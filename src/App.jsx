@@ -61,14 +61,46 @@ const formatPaybackDisplay = (value) => (typeof value === 'number' ? `${value}y`
 const formatNumberWithCommas = (value) => {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) return '0';
-  return Math.round(numericValue).toLocaleString();
+  return numericValue.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+  });
+};
+
+const sanitizeNumericDraft = (value) => {
+  const raw = String(value ?? '').replace(/,/g, '').replace(/[^0-9.-]/g, '');
+  let result = '';
+  let hasDot = false;
+  let hasSign = false;
+
+  for (const char of raw) {
+    if (char === '-') {
+      if (!hasSign && result.length === 0) {
+        result += char;
+        hasSign = true;
+      }
+      continue;
+    }
+
+    if (char === '.') {
+      if (!hasDot) {
+        result += char;
+        hasDot = true;
+      }
+      continue;
+    }
+
+    result += char;
+  }
+
+  return result;
 };
 
 const parseNumericInput = (value) => {
-  const stripped = String(value ?? '').replace(/,/g, '').replace(/[^0-9-]/g, '');
-  if (stripped === '' || stripped === '-') return 0;
-  const parsed = Number(stripped);
-  return Number.isFinite(parsed) ? parsed : 0;
+  const normalized = sanitizeNumericDraft(value);
+  if (normalized === '' || normalized === '-' || normalized === '.' || normalized === '-.') return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
 };
 
 const getSliderBounds = (values, { minBase = -5000, maxBase = 10000 } = {}) => {
@@ -238,6 +270,8 @@ const App = () => {
   const [showMetricsDetails, setShowMetricsDetails] = useState(false);
   const [sliderBounds, setSliderBounds] = useState({ initial: { min: 0, max: 10000 }, cashflow: { min: -5000, max: 10000 } });
   const [copiedProjectLink, setCopiedProjectLink] = useState(false);
+  const [initialInput, setInitialInput] = useState(formatNumberWithCommas(1000));
+  const [cashflowInputs, setCashflowInputs] = useState([200, 300, 400, 500, 600].map(formatNumberWithCommas));
 
 
   useEffect(() => {
@@ -253,7 +287,10 @@ const App = () => {
 
     if (initialValue !== null) {
       const parsedInitial = Number(initialValue);
-      if (Number.isFinite(parsedInitial)) setInitial(parsedInitial);
+      if (Number.isFinite(parsedInitial)) {
+        setInitial(parsedInitial);
+        setInitialInput(formatNumberWithCommas(parsedInitial));
+      }
     }
     if (discountValue !== null) {
       const parsedDiscount = Number(discountValue);
@@ -264,7 +301,10 @@ const App = () => {
         .split(',')
         .map((value) => Number(value))
         .filter((value) => Number.isFinite(value));
-      if (parsedCashflows.length) setCashflows(parsedCashflows);
+      if (parsedCashflows.length) {
+        setCashflows(parsedCashflows);
+        setCashflowInputs(parsedCashflows.map(formatNumberWithCommas));
+      }
     }
     if (currencyParam && ['$', '€', '£'].includes(currencyParam)) {
       setCurrency(currencyParam);
@@ -294,6 +334,8 @@ const App = () => {
     localStorage.setItem('npvProjects', JSON.stringify(newProjects));
     setProjectName(trimmedName);
     setLoadedProjectName(trimmedName);
+    setInitialInput(formatNumberWithCommas(initial));
+    setCashflowInputs(cashflows.map(formatNumberWithCommas));
   };
 
   const loadProject = (name) => {
@@ -302,6 +344,8 @@ const App = () => {
       setInitial(project.initial);
       setDiscount(project.discount);
       setCashflows(project.cashflows);
+      setInitialInput(formatNumberWithCommas(project.initial));
+      setCashflowInputs(project.cashflows.map(formatNumberWithCommas));
       setProjectName(name);
       setLoadedProjectName(name);
     }
@@ -657,8 +701,14 @@ const App = () => {
     return `linear-gradient(to right, ${stops.join(', ')})`;
   };
 
-  const addYear = () => setCashflows([...cashflows, 0]);
-  const removeYear = (index) => setCashflows(cashflows.filter((_, i) => i !== index));
+  const addYear = () => {
+    setCashflows([...cashflows, 0]);
+    setCashflowInputs([...cashflowInputs, formatNumberWithCommas(0)]);
+  };
+  const removeYear = (index) => {
+    setCashflows(cashflows.filter((_, i) => i !== index));
+    setCashflowInputs(cashflowInputs.filter((_, i) => i !== index));
+  };
 
   const exportToCSV = () => {
     const csvContent = `Initial,${initial}\nDiscount Rate,${discount}\nCash Flows,${cashflows.join(',')}\nNPV,${npv}\nIRR,${irr}\nPayback,${payback}\nROI,${roi}\nPI,${pi}`;
@@ -1255,11 +1305,17 @@ const App = () => {
               <div className="cashflow-input-segment currency">{currency}</div>
               <input
                 type="text"
-                inputMode="numeric"
-                pattern="[0-9,\-]*"
+                inputMode="decimal"
+                autoComplete="off"
                 className="cashflow-number-input"
-                value={formatNumberWithCommas(initial)}
-                onChange={(e) => setInitial(parseNumericInput(e.target.value))}
+                value={initialInput}
+                onChange={(e) => {
+                  const rawValue = e.target.value;
+                  setInitialInput(rawValue);
+                  const parsed = parseNumericInput(rawValue);
+                  if (parsed !== null) setInitial(parsed);
+                }}
+                onBlur={() => setInitialInput(formatNumberWithCommas(initial))}
                 aria-label="Initial investment value"
               />
             </div>
@@ -1269,7 +1325,11 @@ const App = () => {
               max={sliderBounds.initial.max}
               step={100}
               value={initial}
-              onChange={(e) => setInitial(Number(e.target.value))}
+              onChange={(e) => {
+                const nextInitial = Number(e.target.value);
+                setInitial(nextInitial);
+                setInitialInput(formatNumberWithCommas(nextInitial));
+              }}
               className="slider-initial"
             />
           </div>
@@ -1298,14 +1358,27 @@ const App = () => {
                   <div className="cashflow-input-segment currency">{currency}</div>
                   <input
                     type="text"
-                    inputMode="numeric"
-                    pattern="[0-9,\-]*"
+                    inputMode="decimal"
+                    autoComplete="off"
                     className="cashflow-number-input"
-                    value={formatNumberWithCommas(cf)}
+                    value={cashflowInputs[index] ?? formatNumberWithCommas(cf)}
                     onChange={(e) => {
-                      const newCashflows = [...cashflows];
-                      newCashflows[index] = parseNumericInput(e.target.value);
-                      setCashflows(newCashflows);
+                      const rawValue = e.target.value;
+                      const newCashflowInputs = [...cashflowInputs];
+                      newCashflowInputs[index] = rawValue;
+                      setCashflowInputs(newCashflowInputs);
+
+                      const parsed = parseNumericInput(rawValue);
+                      if (parsed !== null) {
+                        const newCashflows = [...cashflows];
+                        newCashflows[index] = parsed;
+                        setCashflows(newCashflows);
+                      }
+                    }}
+                    onBlur={() => {
+                      const newCashflowInputs = [...cashflowInputs];
+                      newCashflowInputs[index] = formatNumberWithCommas(cashflows[index]);
+                      setCashflowInputs(newCashflowInputs);
                     }}
                     aria-label={`Year ${index + 1} cash flow value`}
                   />
@@ -1317,9 +1390,14 @@ const App = () => {
                   step={100}
                   value={cf}
                   onChange={(e) => {
+                    const nextValue = Number(e.target.value);
                     const newCashflows = [...cashflows];
-                    newCashflows[index] = Number(e.target.value);
+                    newCashflows[index] = nextValue;
                     setCashflows(newCashflows);
+
+                    const newCashflowInputs = [...cashflowInputs];
+                    newCashflowInputs[index] = formatNumberWithCommas(nextValue);
+                    setCashflowInputs(newCashflowInputs);
                   }}
                   className={`slider-cashflow-${index}`}
                 />
