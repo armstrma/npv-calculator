@@ -770,6 +770,23 @@ const App = () => {
   const npvColor = npv >= 0 ? '#16a34a' : '#dc2626';
   const paybackYear = typeof payback === 'number' ? payback : null;
 
+  const pvBreakEvenInfo = useMemo(() => {
+    const yearlyRows = barData.filter((row) => row.name !== 'NPV' && row.pvCumulative !== null && row.pvCumulative !== undefined);
+    const crossingIndex = yearlyRows.findIndex((row) => Number(row.pvCumulative) >= 0);
+
+    if (crossingIndex === -1) {
+      return {
+        firstPositiveLabel: null,
+        lastNegativeLabel: yearlyRows.length ? yearlyRows[yearlyRows.length - 1].name : null,
+      };
+    }
+
+    return {
+      firstPositiveLabel: yearlyRows[crossingIndex].name,
+      lastNegativeLabel: crossingIndex > 0 ? yearlyRows[crossingIndex - 1].name : null,
+    };
+  }, [barData]);
+
   return (
     <>
       <style>{`
@@ -1607,29 +1624,28 @@ const App = () => {
               />
               {cashflows.length > 0 && (
                 <>
-                  {(paybackYear === null || paybackYear <= 1) ? null : (
+                  {pvBreakEvenInfo.firstPositiveLabel ? (
+                    <>
+                      <ReferenceArea
+                        x1="Initial"
+                        x2={pvBreakEvenInfo.lastNegativeLabel || 'Initial'}
+                        fill="#ef4444"
+                        fillOpacity={0.08}
+                        ifOverflow="hidden"
+                      />
+                      <ReferenceArea
+                        x1={pvBreakEvenInfo.firstPositiveLabel}
+                        x2={`Year ${cashflows.length}`}
+                        fill="#22c55e"
+                        fillOpacity={0.08}
+                        ifOverflow="hidden"
+                      />
+                    </>
+                  ) : (
                     <ReferenceArea
-                      x1="Year 1"
-                      x2={`Year ${Math.max(1, paybackYear - 1)}`}
-                      fill="#ef4444"
-                      fillOpacity={0.08}
-                      ifOverflow="hidden"
-                    />
-                  )}
-                  {paybackYear === null && (
-                    <ReferenceArea
-                      x1="Year 1"
+                      x1="Initial"
                       x2={`Year ${cashflows.length}`}
                       fill="#ef4444"
-                      fillOpacity={0.08}
-                      ifOverflow="hidden"
-                    />
-                  )}
-                  {paybackYear && paybackYear <= cashflows.length && (
-                    <ReferenceArea
-                      x1={`Year ${paybackYear}`}
-                      x2={`Year ${cashflows.length}`}
-                      fill="#22c55e"
                       fillOpacity={0.08}
                       ifOverflow="hidden"
                     />
