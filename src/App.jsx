@@ -25,12 +25,20 @@ const formatCompactCurrency = (value, currency = '$') => {
   return `${currency}${shortValue.toFixed(decimals).replace(/\.0+$|(?<=\.[0-9])0+$/u, '')}${suffix}`;
 };
 
-const getSentimentStatus = (npv, npvAtMinus10Cashflow) => {
+const getSentimentStatus = (npv, npvAtMinus10Cashflow, irr, discount, showHurdleRate, hurdleRate) => {
   if (npv <= 0) {
     return {
       label: 'Reject',
       tone: 'negative',
       detail: 'Negative NPV',
+    };
+  }
+
+  if (showHurdleRate && irr > discount && irr < hurdleRate) {
+    return {
+      label: 'Reject',
+      tone: 'negative',
+      detail: 'Hurdle rate not met',
     };
   }
 
@@ -263,6 +271,8 @@ const App = () => {
   const [cashflows, setCashflows] = useState([200, 300, 400, 500, 600]);
   const [currency, setCurrency] = useState('$');
   const [showSensitivity, setShowSensitivity] = useState(false);
+  const [showHurdleRate, setShowHurdleRate] = useState(false);
+  const [hurdleRate, setHurdleRate] = useState(12);
   const [showModal, setShowModal] = useState(false);
   const [projects, setProjects] = useState({});
   const [projectName, setProjectName] = useState('');
@@ -284,6 +294,8 @@ const App = () => {
     const cashflowsParam = params.get('cashflows');
     const currencyParam = params.get('currency');
     const projectParam = params.get('project');
+    const hurdleEnabledParam = params.get('hurdleEnabled');
+    const hurdleRateParam = params.get('hurdleRate');
 
     if (initialValue !== null) {
       const parsedInitial = Number(initialValue);
@@ -309,12 +321,19 @@ const App = () => {
     if (currencyParam && ['$', '€', '£'].includes(currencyParam)) {
       setCurrency(currencyParam);
     }
+    if (hurdleEnabledParam !== null) {
+      setShowHurdleRate(hurdleEnabledParam === 'true');
+    }
+    if (hurdleRateParam !== null) {
+      const parsedHurdleRate = Number(hurdleRateParam);
+      if (Number.isFinite(parsedHurdleRate)) setHurdleRate(parsedHurdleRate);
+    }
     if (projectParam) {
       setProjectName(projectParam);
       setLoadedProjectName(projectParam);
     }
 
-    if ([initialValue, discountValue, cashflowsParam, currencyParam, projectParam].some((value) => value !== null)) {
+    if ([initialValue, discountValue, cashflowsParam, currencyParam, projectParam, hurdleEnabledParam, hurdleRateParam].some((value) => value !== null)) {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -721,7 +740,7 @@ const App = () => {
   };
 
   const exportToCSV = () => {
-    const csvContent = `Initial,${initial}\nDiscount Rate,${discount}\nCash Flows,${cashflows.join(',')}\nNPV,${npv}\nIRR,${irr}\nPayback,${payback}\nROI,${roi}\nPI,${pi}`;
+    const csvContent = `Initial,${initial}\nDiscount Rate,${discount}\nHurdle Rate Enabled,${showHurdleRate}\nHurdle Rate,${showHurdleRate ? hurdleRate : ''}\nCash Flows,${cashflows.join(',')}\nNPV,${npv}\nIRR,${irr}\nPayback,${payback}\nROI,${roi}\nPI,${pi}`;
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -737,6 +756,8 @@ const App = () => {
     params.set('discount', String(discount));
     params.set('cashflows', cashflows.join(','));
     params.set('currency', currency);
+    params.set('hurdleEnabled', String(showHurdleRate));
+    if (showHurdleRate) params.set('hurdleRate', String(hurdleRate));
     if (projectName.trim()) params.set('project', projectName.trim());
 
     const deepLink = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
@@ -761,12 +782,17 @@ const App = () => {
 
   const recommendation =
     npv > 0
-      ? npvAtMinus10Cashflow <= 0
-        ? 'Consider Project: Positive NPV, but NPV at -10% cash flow turns negative—review downside risk.'
-        : 'Accept Project: Positive NPV (robust to a 10% drop in cash flows)—profitable and relatively low risk.'
+      ? showHurdleRate && irr > discount && irr < hurdleRate
+        ? 'Reject Project: IRR exceeds the discount rate but does not clear the hurdle rate.'
+        : npvAtMinus10Cashflow <= 0
+          ? 'Consider Project: Positive NPV, but NPV at -10% cash flow turns negative—review downside risk.'
+          : 'Accept Project: Positive NPV (robust to a 10% drop in cash flows)—profitable and relatively low risk.'
       : 'Reject/Reassess: Negative NPV—project may not add value. Consider improving cash flows or lowering discount rate assumptions.';
 
-  const sentiment = useMemo(() => getSentimentStatus(npv, npvAtMinus10Cashflow), [npv, npvAtMinus10Cashflow]);
+  const sentiment = useMemo(
+    () => getSentimentStatus(npv, npvAtMinus10Cashflow, irr, discount, showHurdleRate, hurdleRate),
+    [npv, npvAtMinus10Cashflow, irr, discount, showHurdleRate, hurdleRate]
+  );
   const npvColor = npv >= 0 ? '#16a34a' : '#dc2626';
   const paybackYear = typeof payback === 'number' ? payback : null;
 
@@ -1362,7 +1388,17 @@ const App = () => {
           </div>
 
           <div className="discount-control">
-            <label>Discount Rate: {discount}%</label>
+            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <span>Discount Rate: {discount}%</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+                <input
+                  type="checkbox"
+                  checked={showHurdleRate}
+                  onChange={(e) => setShowHurdleRate(e.target.checked)}
+                />
+                Hurdle Rate
+              </span>
+            </label>
             <input
               type="range"
               min={0}
@@ -1372,6 +1408,19 @@ const App = () => {
               onChange={(e) => setDiscount(Number(e.target.value))}
               className="slider-discount"
             />
+            {showHurdleRate && (
+              <div style={{ marginTop: 12 }}>
+                <label>Hurdle Rate: {hurdleRate.toFixed(1)}%</label>
+                <input
+                  type="range"
+                  min={0}
+                  max={30}
+                  step={0.1}
+                  value={hurdleRate}
+                  onChange={(e) => setHurdleRate(Number(e.target.value))}
+                />
+              </div>
+            )}
           </div>
 
           <h3 className="factor-subheader">Cash Flows</h3>
@@ -1561,6 +1610,14 @@ const App = () => {
                 strokeDasharray="3 3"
                 label={<Label value={`Discount Rate: ${discount.toFixed(1)}%`} position="insideBottom" fill="#c084fc" dy={-2} />}
               />
+              {showHurdleRate && (
+                <ReferenceLine
+                  x={hurdleRate}
+                  stroke="#22c55e"
+                  strokeDasharray="6 4"
+                  label={<Label value={`Hurdle Rate: ${hurdleRate.toFixed(1)}%`} position="insideTopLeft" fill="#22c55e" dx={10} dy={-8} />}
+                />
+              )}
               {showSensitivity && (
                 <>
                   <Line
