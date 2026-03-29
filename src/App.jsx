@@ -56,7 +56,7 @@ const formatMobileNpv = (value, currency = '$') => {
 
 const formatMobileIrr = (value) => `${Math.round(Number(value) || 0)}%`;
 
-const formatPaybackDisplay = (value) => (typeof value === 'number' ? `${value}y` : value);
+const formatPaybackDisplay = (value) => (typeof value === 'number' ? `${value.toFixed(1)}y` : value);
 
 const formatNumberWithCommas = (value) => {
   const numericValue = Number(value);
@@ -389,12 +389,22 @@ const App = () => {
     return mid;
   };
 
-  const calculatePayback = (init, cfs) => {
+  const calculatePayback = (init, disc, cfs) => {
+    const rate = disc / 100;
     let cumulative = -init;
+
     for (let i = 0; i < cfs.length; i++) {
-      cumulative += cfs[i];
-      if (cumulative >= 0) return i + 1;
+      const discountedCashflow = cfs[i] / Math.pow(1 + rate, i + 1);
+      const previousCumulative = cumulative;
+      cumulative += discountedCashflow;
+
+      if (cumulative >= 0) {
+        if (discountedCashflow === 0) return i + 1;
+        const fractionOfYear = Math.abs(previousCumulative) / discountedCashflow;
+        return i + Number(Math.min(Math.max(fractionOfYear, 0), 1).toFixed(1));
+      }
     }
+
     return 'N/A';
   };
 
@@ -411,7 +421,7 @@ const App = () => {
 
   const npv = useMemo(() => calculateNPV(initial, discount, cashflows), [initial, discount, cashflows]);
   const irr = useMemo(() => findIRR(initial, cashflows), [initial, cashflows]);
-  const payback = useMemo(() => calculatePayback(initial, cashflows), [initial, cashflows]);
+  const payback = useMemo(() => calculatePayback(initial, discount, cashflows), [initial, discount, cashflows]);
   const roi = useMemo(() => calculateROI(initial, cashflows), [initial, cashflows]);
   const pi = useMemo(() => calculatePI(npv, initial), [npv, initial]);
 
@@ -1591,8 +1601,8 @@ const App = () => {
               <Tooltip content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} />} />
               <Legend
                 payload={[
-                  { value: 'Cash Cumulative', type: 'line', color: '#60a5fa' },
                   { value: 'PV Cumulative', type: 'line', color: '#a78bfa' },
+                  { value: 'Cash Cumulative', type: 'line', color: '#60a5fa' },
                 ]}
               />
               {cashflows.length > 0 && (
@@ -1693,6 +1703,7 @@ const App = () => {
                 stroke="#60a5fa"
                 dot={false}
                 strokeWidth={2}
+                strokeDasharray="5 3"
               />
               <Line
                 type="monotone"
@@ -1700,8 +1711,7 @@ const App = () => {
                 name="PV Cumulative"
                 stroke="#a78bfa"
                 dot={false}
-                strokeWidth={2}
-                strokeDasharray="5 3"
+                strokeWidth={3}
               />
               </ComposedChart>
             </ResponsiveContainer>
