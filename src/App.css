@@ -137,24 +137,63 @@ input[type="range"]::-moz-range-thumb {
 }
 .metrics-details {
   margin-top: 12px;
+  display: grid;
+  gap: 12px;
 }
-.metrics-dock .metrics h2 { margin: 5px 0; font-size: 26px; }
-.metrics-dock .metrics h2:not(:first-child) { font-size: 18px; font-weight: 600; }
-.metrics-dock .recommendation { margin-top: 10px; font-weight: 600; font-size: 14px; line-height: 1.35; }
-.metrics-dock .thresholds {
-  margin-top: 12px;
+.details-panel {
   border: 1px solid #d1d5db;
   border-radius: 10px;
-  padding: 10px;
+  padding: 12px;
   background: rgba(255, 255, 255, 0.75);
 }
-.metrics-dock .thresholds h3 {
-  margin: 0 0 8px;
-  font-size: 14px;
+.details-panel-title {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 800;
 }
-.metrics-dock .thresholds p {
-  margin: 4px 0;
+.details-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.details-metric-card {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+.details-metric-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+.details-metric-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #111827;
+}
+.details-metric-value.sentiment-positive { color: #16a34a; }
+.details-metric-value.sentiment-caution { color: #ca8a04; }
+.details-metric-value.sentiment-negative { color: #dc2626; }
+.details-metric-subtext {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+.details-list p {
+  margin: 6px 0;
   font-size: 13px;
+}
+.metrics-dock .recommendation { margin-top: 12px; font-weight: 600; font-size: 14px; line-height: 1.35; }
+.metrics-dock .thresholds {
+  margin-top: 0;
 }
 .mobile-metrics-header {
   display: none;
@@ -438,6 +477,9 @@ th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
   .project-toolbar {
     padding: 8px;
     gap: 6px;
+  }
+  .details-metric-grid {
+    grid-template-columns: 1fr;
   }
   .chart-section {
     margin-top: 24px;

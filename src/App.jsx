@@ -962,26 +962,48 @@ const App = () => {
 
             {showMetricsDetails && (
               <div className="metrics-details">
-                <div className="metrics">
-                  <h2 title="ROI: Total return percentage.">ROI: {roi.toFixed(2)}%</h2>
-                  <h2 title="PI: NPV efficiency (&gt;1 is good).">Profitability Index: {pi.toFixed(2)}</h2>
-                  <h2 title="NPV at -10% cash flow sensitivity.">NPV at -10% CF: {currency}{npvAtMinus10Cashflow.toFixed(2)}</h2>
+                <section className="details-panel">
+                  <h3 className="details-panel-title">Project Sentiment Analysis</h3>
+                  <div className="details-metric-grid">
+                    <div className="details-metric-card">
+                      <span className="details-metric-label">Recommendation</span>
+                      <span className={`details-metric-value sentiment-${sentiment.tone}`}>{sentiment.label}</span>
+                      <span className="details-metric-subtext">{sentiment.detail}</span>
+                    </div>
+                    <div className="details-metric-card">
+                      <span className="details-metric-label">ROI</span>
+                      <span className="details-metric-value">{roi.toFixed(2)}%</span>
+                      <span className="details-metric-subtext">Total return percentage</span>
+                    </div>
+                    <div className="details-metric-card">
+                      <span className="details-metric-label">Profitability Index</span>
+                      <span className="details-metric-value">{pi.toFixed(2)}</span>
+                      <span className="details-metric-subtext">Efficiency measure (&gt;1 is favorable)</span>
+                    </div>
+                    <div className="details-metric-card">
+                      <span className="details-metric-label">NPV at -10% CF</span>
+                      <span className="details-metric-value">{currency}{npvAtMinus10Cashflow.toFixed(2)}</span>
+                      <span className="details-metric-subtext">Downside sensitivity checkpoint</span>
+                    </div>
+                  </div>
                   <p className="recommendation">{recommendation}</p>
-                </div>
+                </section>
 
-                <div className="thresholds">
-                  <h3>Break-even Thresholds (NPV = 0)</h3>
-                  <p>Break-even discount rate (IRR): <strong>{irr.toFixed(2)}%</strong></p>
-                  <p>
-                    Required cash flow uplift:{' '}
-                    <strong>
-                      {breakEvenCashflowUpliftPct === null
-                        ? 'N/A'
-                        : `${breakEvenCashflowUpliftPct >= 0 ? '+' : ''}${breakEvenCashflowUpliftPct.toFixed(1)}%`}
-                    </strong>
-                  </p>
-                  <p>Max initial investment at current rate: <strong>{currency}{maxInitialAtNpvZero.toFixed(2)}</strong></p>
-                </div>
+                <section className="details-panel thresholds">
+                  <h3 className="details-panel-title">Breakeven Analysis</h3>
+                  <div className="details-list">
+                    <p>Break-even discount rate (IRR): <strong>{irr.toFixed(2)}%</strong></p>
+                    <p>
+                      Required cash flow uplift:{' '}
+                      <strong>
+                        {breakEvenCashflowUpliftPct === null
+                          ? 'N/A'
+                          : `${breakEvenCashflowUpliftPct >= 0 ? '+' : ''}${breakEvenCashflowUpliftPct.toFixed(1)}%`}
+                      </strong>
+                    </p>
+                    <p>Max initial investment at current rate: <strong>{currency}{maxInitialAtNpvZero.toFixed(2)}</strong></p>
+                  </div>
+                </section>
               </div>
             )}
           </div>
