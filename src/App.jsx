@@ -854,14 +854,6 @@ const App = () => {
             />
             {showHurdleRate && (
               <div className="hurdle-rate-control">
-                <input
-                  type="range"
-                  min={0}
-                  max={30}
-                  step={0.1}
-                  value={hurdleRate}
-                  onChange={(e) => setHurdleRate(Number(e.target.value))}
-                />
                 <div className="hurdle-rate-label-row">
                   <span>Hurdle Rate: {hurdleRate.toFixed(1)}%</span>
                   {hurdleRate < discount && (
@@ -885,6 +877,14 @@ const App = () => {
                     </div>
                   )}
                 </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={30}
+                  step={0.1}
+                  value={hurdleRate}
+                  onChange={(e) => setHurdleRate(Number(e.target.value))}
+                />
               </div>
             )}
           </div>
