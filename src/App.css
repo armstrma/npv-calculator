@@ -558,7 +558,7 @@ input[type="range"]::-moz-range-thumb {
 table { width: 100%; border-collapse: collapse; margin-top: 8px; }
 th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
 @media (max-width: 900px) {
-  .container { flex-direction: column; margin-top: 178px; }
+  .container { flex-direction: column; margin-top: 170px; }
   .left, .right { width: 100% !important; padding: 14px; }
   .metrics-dock {
     position: static;
@@ -570,7 +570,7 @@ th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
   }
   .mobile-metrics-header {
     position: fixed;
-    top: 88px;
+    top: 76px;
     left: 0;
     right: 0;
     z-index: 1100;
@@ -620,11 +620,11 @@ th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     font-size: 18px;
   }
   .mobile-metrics-header {
-    top: 138px;
+    top: 126px;
     padding: 7px 8px;
     font-size: 11px;
     gap: 4px;
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  .container { margin-top: 232px; }
+  .container { margin-top: 224px; }
 }
