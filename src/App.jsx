@@ -557,15 +557,20 @@ const App = () => {
     ];
 
     return rows
-      .map((row) => ({
-        ...row,
-        left20: -Math.max(0, Math.abs(row.down20 || 0)),
-        left10: -Math.max(0, Math.abs(row.down10 || 0)),
-        left5: -Math.max(0, Math.abs(row.down5 || 0)),
-        right20: Math.max(0, Math.abs(row.up20 || 0)),
-        right10: Math.max(0, Math.abs(row.up10 || 0)),
-        right5: Math.max(0, Math.abs(row.up5 || 0)),
-      }))
+      .map((row) => {
+        const leftValues = [Math.abs(row.down5 || 0), Math.abs(row.down10 || 0), Math.abs(row.down20 || 0)].sort((a, b) => a - b);
+        const rightValues = [Math.abs(row.up5 || 0), Math.abs(row.up10 || 0), Math.abs(row.up20 || 0)].sort((a, b) => a - b);
+
+        return {
+          ...row,
+          left20: -leftValues[2],
+          left10: -leftValues[1],
+          left5: -leftValues[0],
+          right20: rightValues[2],
+          right10: rightValues[1],
+          right5: rightValues[0],
+        };
+      })
       .sort((a, b) => {
         const aMax = Math.max(
           Math.abs(a.left20 || 0),
