@@ -338,13 +338,40 @@ input[type="range"]::-moz-range-thumb {
   gap: 8px;
   margin-top: 6px;
   font-weight: 600;
+  position: relative;
+}
+.hurdle-warning-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
 }
 .hurdle-warning-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  cursor: help;
+  cursor: pointer;
   font-size: 14px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  line-height: 1;
+}
+.hurdle-warning-tooltip {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  transform: translateX(-50%);
+  width: min(280px, 70vw);
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(17, 24, 39, 0.96);
+  color: #f9fafb;
+  border: 1px solid #374151;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  z-index: 40;
 }
 .action-button-row {
   display: flex;

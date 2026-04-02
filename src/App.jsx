@@ -232,6 +232,7 @@ const App = () => {
   const [showHurdleRate, setShowHurdleRate] = useState(false);
   const [hurdleRate, setHurdleRate] = useState(12);
   const [showModal, setShowModal] = useState(false);
+  const [showHurdleWarning, setShowHurdleWarning] = useState(false);
   const [projects, setProjects] = useState({});
   const [projectName, setProjectName] = useState('');
   const [loadedProjectName, setLoadedProjectName] = useState('');
@@ -861,18 +862,29 @@ const App = () => {
                   value={hurdleRate}
                   onChange={(e) => setHurdleRate(Number(e.target.value))}
                 />
-                <label className="hurdle-rate-label-row">
+                <div className="hurdle-rate-label-row">
                   <span>Hurdle Rate: {hurdleRate.toFixed(1)}%</span>
                   {hurdleRate < discount && (
-                    <span
-                      className="hurdle-warning-icon"
-                      title="Hurdle rates are typically equal to or higher than the discount rate. A hurdle rate below the discount rate may indicate inconsistent assumptions."
-                      aria-label="Hurdle rates are typically equal to or higher than the discount rate. A hurdle rate below the discount rate may indicate inconsistent assumptions."
-                    >
-                      ⚠️
-                    </span>
+                    <div className="hurdle-warning-wrap">
+                      <button
+                        type="button"
+                        className="hurdle-warning-icon"
+                        onClick={() => setShowHurdleWarning((current) => !current)}
+                        onMouseEnter={() => setShowHurdleWarning(true)}
+                        onMouseLeave={() => setShowHurdleWarning(false)}
+                        aria-expanded={showHurdleWarning}
+                        aria-label="Show hurdle rate warning"
+                      >
+                        ⚠️
+                      </button>
+                      {showHurdleWarning && (
+                        <div className="hurdle-warning-tooltip" role="tooltip">
+                          Hurdle rates are typically equal to or higher than the discount rate. A hurdle rate below the discount rate may indicate inconsistent assumptions.
+                        </div>
+                      )}
+                    </div>
                   )}
-                </label>
+                </div>
               </div>
             )}
           </div>
