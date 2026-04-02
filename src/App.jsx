@@ -1111,7 +1111,7 @@ const App = () => {
                   x={hurdleRate}
                   stroke="#22c55e"
                   strokeDasharray="6 4"
-                  label={<Label value={`Hurdle Rate: ${hurdleRate.toFixed(1)}%`} position="insideTopLeft" fill="#22c55e" dx={10} dy={-8} />}
+                  label={<Label value={`Hurdle Rate: ${hurdleRate.toFixed(1)}%`} position="insideBottom" fill="#22c55e" dy={-18} />}
                 />
               )}
               {showSensitivity && (
