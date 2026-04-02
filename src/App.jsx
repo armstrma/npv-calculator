@@ -583,7 +583,7 @@ const App = () => {
   }, [tornadoRippleData]);
 
   const tornadoChartHeight = useMemo(() => {
-    return Math.max(360, tornadoRippleData.length * 38);
+    return Math.max(220, tornadoRippleData.length * 24);
   }, [tornadoRippleData]);
 
   const getGradient = (type, index = null) => {
@@ -1059,7 +1059,7 @@ const App = () => {
         <div className="right" style={{ width: '50%' }}>
           <section className="chart-section">
             <h2 className="chart-title">NPV vs Discount Rate</h2>
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={210}>
               <LineChart data={discountData} margin={{ top: 22, right: 18, left: 0, bottom: 28 }}>
               <XAxis dataKey="discount" type="number" domain={[0, 30]} />
               <YAxis />
@@ -1141,7 +1141,7 @@ const App = () => {
 
           <section className="chart-section cashflow-chart-wrap">
             <h2 className="chart-title">Cash Flows</h2>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={190}>
               <ComposedChart data={barData} barGap={-22} barCategoryGap="30%">
               <XAxis dataKey="name" />
               <YAxis />
