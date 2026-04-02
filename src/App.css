@@ -156,11 +156,55 @@ input[type="range"]::-moz-range-thumb {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
+.details-sentiment-header {
+  margin-bottom: 12px;
+}
 .details-metric-card {
   border: 1px solid #d1d5db;
   border-radius: 10px;
   padding: 10px 12px;
   background: rgba(255, 255, 255, 0.72);
+}
+.details-rule-list {
+  display: grid;
+  gap: 10px;
+}
+.details-rule {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+.details-rule.pass {
+  border-color: rgba(22, 163, 74, 0.35);
+  background: rgba(34, 197, 94, 0.10);
+}
+.details-rule.fail {
+  border-color: rgba(220, 38, 38, 0.35);
+  background: rgba(239, 68, 68, 0.10);
+}
+.details-rule-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+.details-rule-status {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.details-rule.pass .details-rule-status { color: #16a34a; }
+.details-rule.fail .details-rule-status { color: #dc2626; }
+.details-rule-subtext {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
 }
 .details-metric-label {
   display: block;
@@ -398,7 +442,10 @@ input[type="range"]::-moz-range-thumb {
   .metric-pill,
   .metrics-toggle,
   .metrics-dock .thresholds,
-  .cashflow-input-row {
+  .cashflow-input-row,
+  .details-panel,
+  .details-metric-card,
+  .details-rule {
     background: rgba(17, 24, 39, 0.72);
     border-color: #4b5563;
   }
@@ -412,7 +459,11 @@ input[type="range"]::-moz-range-thumb {
     background: rgba(17, 24, 39, 0.92);
   }
   .metric-pill-label,
-  .metric-pill-subtext {
+  .metric-pill-subtext,
+  .details-metric-label,
+  .details-metric-subtext,
+  .details-rule-name,
+  .details-rule-subtext {
     color: #9ca3af;
   }
   .metric-pill-value,

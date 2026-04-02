@@ -28,35 +28,35 @@ const formatCompactCurrency = (value, currency = '$') => {
   return `${currency}${shortValue.toFixed(decimals).replace(/\.0+$|(?<=\.[0-9])0+$/u, '')}${suffix}`;
 };
 
-const getSentimentStatus = (npv, npvAtMinus10Cashflow, irr, discount, showHurdleRate, hurdleRate) => {
-  if (npv <= 0) {
+const getSentimentStatus = ({ viabilityPass, standardPass, fragilityPass }) => {
+  if (!viabilityPass) {
     return {
       label: 'Reject',
       tone: 'negative',
-      detail: 'Negative NPV',
+      detail: 'Base NPV is below zero',
     };
   }
 
-  if (showHurdleRate && irr > discount && irr < hurdleRate) {
+  if (!standardPass) {
     return {
-      label: 'Reject',
-      tone: 'negative',
-      detail: 'Hurdle rate not met',
-    };
-  }
-
-  if (npvAtMinus10Cashflow < 0) {
-    return {
-      label: 'Accept',
+      label: 'Borderline',
       tone: 'caution',
-      detail: '-10% cash flow turns negative',
+      detail: 'Base case fails the required standard',
+    };
+  }
+
+  if (!fragilityPass) {
+    return {
+      label: 'Cautious',
+      tone: 'caution',
+      detail: 'Downside case fails the fragility check',
     };
   }
 
   return {
     label: 'Accept',
     tone: 'positive',
-    detail: 'Still positive at -10% cash flow',
+    detail: 'Base case and downside case both pass',
   };
 };
 
@@ -467,6 +467,15 @@ const App = () => {
     return calculateNPV(initial, discount, lowCashflows);
   }, [initial, discount, cashflows]);
 
+  const downsideIrr = useMemo(() => {
+    const lowCashflows = cashflows.map((cf) => cf * 0.9);
+    return findIRR(initial, lowCashflows);
+  }, [initial, cashflows]);
+
+  const viabilityPass = npv > 0;
+  const standardPass = showHurdleRate ? irr >= hurdleRate : irr >= discount;
+  const fragilityPass = showHurdleRate ? downsideIrr >= hurdleRate : downsideIrr >= discount;
+
   const breakEvenCashflowUpliftPct = useMemo(() => {
     const pvOfCashflows = cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + discount / 100, i + 1), 0);
     if (pvOfCashflows <= 0) return null;
@@ -683,17 +692,17 @@ const App = () => {
   });
 
   const recommendation =
-    npv > 0
-      ? showHurdleRate && irr > discount && irr < hurdleRate
-        ? 'Reject Project: IRR exceeds the discount rate but does not clear the hurdle rate.'
-        : npvAtMinus10Cashflow <= 0
-          ? 'Consider Project: Positive NPV, but NPV at -10% cash flow turns negative—review downside risk.'
-          : 'Accept Project: Positive NPV (robust to a 10% drop in cash flows)—profitable and relatively low risk.'
-      : 'Reject/Reassess: Negative NPV—project may not add value. Consider improving cash flows or lowering discount rate assumptions.';
+    !viabilityPass
+      ? 'Reject Project: Base NPV is below zero, so the project does not create value under the current assumptions.'
+      : !standardPass
+        ? 'Borderline Project: The base case is positive, but it does not meet the required standard rate.'
+        : !fragilityPass
+          ? 'Cautious Project: The base case passes, but the downside scenario fails the fragility check.'
+          : 'Accept Project: The base case and downside case both pass the required checks.';
 
   const sentiment = useMemo(
-    () => getSentimentStatus(npv, npvAtMinus10Cashflow, irr, discount, showHurdleRate, hurdleRate),
-    [npv, npvAtMinus10Cashflow, irr, discount, showHurdleRate, hurdleRate]
+    () => getSentimentStatus({ viabilityPass, standardPass, fragilityPass }),
+    [viabilityPass, standardPass, fragilityPass]
   );
   const npvColor = npv >= 0 ? '#16a34a' : '#dc2626';
   const paybackYear = typeof payback === 'number' ? payback : null;
@@ -964,26 +973,34 @@ const App = () => {
               <div className="metrics-details">
                 <section className="details-panel">
                   <h3 className="details-panel-title">Project Sentiment Analysis</h3>
-                  <div className="details-metric-grid">
-                    <div className="details-metric-card">
-                      <span className="details-metric-label">Recommendation</span>
+                  <div className="details-sentiment-header">
+                    <div>
+                      <span className="details-metric-label">Overall Sentiment</span>
                       <span className={`details-metric-value sentiment-${sentiment.tone}`}>{sentiment.label}</span>
                       <span className="details-metric-subtext">{sentiment.detail}</span>
                     </div>
-                    <div className="details-metric-card">
-                      <span className="details-metric-label">ROI</span>
-                      <span className="details-metric-value">{roi.toFixed(2)}%</span>
-                      <span className="details-metric-subtext">Total return percentage</span>
+                  </div>
+                  <div className="details-rule-list">
+                    <div className={`details-rule ${viabilityPass ? 'pass' : 'fail'}`}>
+                      <span className="details-rule-name">Viability</span>
+                      <span className="details-rule-status">{viabilityPass ? 'Pass' : 'Fail'}</span>
+                      <span className="details-rule-subtext">NPV &gt; 0</span>
                     </div>
-                    <div className="details-metric-card">
-                      <span className="details-metric-label">Profitability Index</span>
-                      <span className="details-metric-value">{pi.toFixed(2)}</span>
-                      <span className="details-metric-subtext">Efficiency measure (&gt;1 is favorable)</span>
+                    <div className={`details-rule ${standardPass ? 'pass' : 'fail'}`}>
+                      <span className="details-rule-name">Standard</span>
+                      <span className="details-rule-status">{standardPass ? 'Pass' : 'Fail'}</span>
+                      <span className="details-rule-subtext">
+                        {showHurdleRate ? `IRR ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `IRR ≥ discount (${discount.toFixed(1)}%)`}
+                      </span>
                     </div>
-                    <div className="details-metric-card">
-                      <span className="details-metric-label">NPV at -10% CF</span>
-                      <span className="details-metric-value">{currency}{npvAtMinus10Cashflow.toFixed(2)}</span>
-                      <span className="details-metric-subtext">Downside sensitivity checkpoint</span>
+                    <div className={`details-rule ${fragilityPass ? 'pass' : 'fail'}`}>
+                      <span className="details-rule-name">Fragility</span>
+                      <span className="details-rule-status">{fragilityPass ? 'Pass' : 'Fail'}</span>
+                      <span className="details-rule-subtext">
+                        {showHurdleRate
+                          ? `Downside IRR (${downsideIrr.toFixed(2)}%) ≥ hurdle (${hurdleRate.toFixed(1)}%)`
+                          : `Downside IRR (${downsideIrr.toFixed(2)}%) ≥ discount (${discount.toFixed(1)}%)`}
+                      </span>
                     </div>
                   </div>
                   <p className="recommendation">{recommendation}</p>
