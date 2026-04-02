@@ -1318,32 +1318,32 @@ const App = () => {
 
               {showSensitivity && (
                 <>
-                  <Bar dataKey="left20" name="-20%" barSize={22} radius={[0, 0, 0, 0]}>
+                  <Bar dataKey="left20" name="-20%" barSize={24} radius={[0, 0, 0, 0]}>
                     {tornadoRippleData.map((entry, index) => (
                       <Cell key={`left20-${index}`} fill="#f5c2bc" />
                     ))}
                   </Bar>
-                  <Bar dataKey="left10" name="-10%" barSize={22} radius={[0, 0, 0, 0]}>
-                    {tornadoRippleData.map((entry, index) => (
-                      <Cell key={`left10-${index}`} fill="#ef5a43" />
-                    ))}
-                  </Bar>
-                  <Bar dataKey="left5" name="-5%" barSize={22} radius={[0, 0, 0, 0]}>
-                    {tornadoRippleData.map((entry, index) => (
-                      <Cell key={`left5-${index}`} fill="#c03f2f" />
-                    ))}
-                  </Bar>
-                  <Bar dataKey="right20" name="+20%" barSize={22} radius={[0, 0, 0, 0]}>
+                  <Bar dataKey="right20" name="+20%" barSize={24} radius={[0, 0, 0, 0]}>
                     {tornadoRippleData.map((entry, index) => (
                       <Cell key={`right20-${index}`} fill="#c8e6c9" />
                     ))}
                   </Bar>
-                  <Bar dataKey="right10" name="+10%" barSize={22} radius={[0, 0, 0, 0]}>
+                  <Bar dataKey="left10" name="-10%" barSize={20} radius={[0, 0, 0, 0]}>
+                    {tornadoRippleData.map((entry, index) => (
+                      <Cell key={`left10-${index}`} fill="#ef5a43" />
+                    ))}
+                  </Bar>
+                  <Bar dataKey="right10" name="+10%" barSize={20} radius={[0, 0, 0, 0]}>
                     {tornadoRippleData.map((entry, index) => (
                       <Cell key={`right10-${index}`} fill="#69c35f" />
                     ))}
                   </Bar>
-                  <Bar dataKey="right5" name="+5%" barSize={22} radius={[0, 0, 0, 0]}>
+                  <Bar dataKey="left5" name="-5%" barSize={16} radius={[0, 0, 0, 0]}>
+                    {tornadoRippleData.map((entry, index) => (
+                      <Cell key={`left5-${index}`} fill="#c03f2f" />
+                    ))}
+                  </Bar>
+                  <Bar dataKey="right5" name="+5%" barSize={16} radius={[0, 0, 0, 0]}>
                     {tornadoRippleData.map((entry, index) => (
                       <Cell key={`right5-${index}`} fill="#54a24b" />
                     ))}
