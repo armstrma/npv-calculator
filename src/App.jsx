@@ -223,6 +223,23 @@ const CashflowTooltip = ({ active, payload, label, currency, showSensitivity }) 
   );
 };
 
+const MarginalSensitivityTooltip = ({ active, payload, label, currency }) => {
+  if (!active || !payload || !payload.length) return null;
+  const row = payload[0]?.payload || {};
+
+  return (
+    <div style={tooltipShellStyle}>
+      <div style={{ marginBottom: 4, color: '#d1d5db' }}>
+        <strong>{label}</strong>
+      </div>
+      <div style={{ color: Number(row.impactPerDollar) >= 0 ? '#86efac' : '#fca5a5' }}>
+        NPV impact per $1: {currency}{Number(row.impactPerDollar || 0).toFixed(2)}
+      </div>
+      {row.note && <div style={{ color: '#d1d5db', marginTop: 4 }}>{row.note}</div>}
+    </div>
+  );
+};
+
 const App = () => {
   const [initial, setInitial] = useState(1000);
   const [discount, setDiscount] = useState(10);
@@ -462,6 +479,26 @@ const App = () => {
       return { variation: varPct, npv: calculateNPV(initial, discount, variedCashflows) };
     });
   }, [initial, discount, cashflows]);
+
+  const marginalSensitivityData = useMemo(() => {
+    const rows = [
+      {
+        name: 'Initial',
+        impactPerDollar: -1,
+        note: 'Every extra $1 of upfront cost reduces NPV by $1.00.',
+      },
+      ...cashflows.map((_, i) => {
+        const impact = 1 / Math.pow(1 + discount / 100, i + 1);
+        return {
+          name: `Year ${i + 1}`,
+          impactPerDollar: impact,
+          note: `A $1 change in Year ${i + 1} cash flow changes NPV by about ${currency}${impact.toFixed(2)}.`,
+        };
+      }),
+    ];
+
+    return rows;
+  }, [cashflows, discount, currency]);
 
   const npvAtMinus10Cashflow = useMemo(() => {
     const lowCashflows = cashflows.map((cf) => cf * 0.9);
@@ -1416,6 +1453,26 @@ const App = () => {
                 </>
               )}
             </div>
+          </section>
+
+          <section className="chart-section">
+            <h2 className="chart-title">NPV Impact per $1 Change</h2>
+            <p className="chart-subtitle">
+              A simple teaching view: how much NPV changes when a factor moves by $1. Earlier cash flows should matter more than later ones.
+            </p>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={marginalSensitivityData} margin={{ top: 10, right: 18, left: 40, bottom: 5 }}>
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(v) => `${currency}${Number(v).toFixed(2)}`} />
+                <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={2} />
+                <Tooltip content={<MarginalSensitivityTooltip currency={currency} />} />
+                <Bar dataKey="impactPerDollar" barSize={26} radius={[4, 4, 0, 0]}>
+                  {marginalSensitivityData.map((entry, index) => (
+                    <Cell key={`marginal-${index}`} fill={entry.impactPerDollar >= 0 ? '#22c55e' : '#ef4444'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </section>
         </div>
       </div>
