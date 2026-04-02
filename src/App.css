@@ -312,6 +312,47 @@ input[type="range"]::-moz-range-thumb {
 .discount-control {
   text-align: left;
 }
+.rate-toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.rate-toggle-label {
+  font-weight: 600;
+}
+.rate-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.hurdle-rate-control {
+  margin-top: 10px;
+}
+.hurdle-rate-label-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-weight: 600;
+}
+.hurdle-warning-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  font-size: 14px;
+}
+.action-button-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 10px;
+}
 .add-year-button {
   margin-bottom: 8px;
 }

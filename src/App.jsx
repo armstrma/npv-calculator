@@ -831,9 +831,9 @@ const App = () => {
           </div>
 
           <div className="discount-control">
-            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <span>Discount Rate: {discount}%</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <div className="rate-toggle-row">
+              <label className="rate-toggle-label">Discount Rate: {discount.toFixed(1)}%</label>
+              <span className="rate-checkbox-label">
                 <input
                   type="checkbox"
                   checked={showHurdleRate}
@@ -841,7 +841,7 @@ const App = () => {
                 />
                 Hurdle Rate
               </span>
-            </label>
+            </div>
             <input
               type="range"
               min={0}
@@ -852,8 +852,7 @@ const App = () => {
               className="slider-discount"
             />
             {showHurdleRate && (
-              <div style={{ marginTop: 12 }}>
-                <label>Hurdle Rate: {hurdleRate.toFixed(1)}%</label>
+              <div className="hurdle-rate-control">
                 <input
                   type="range"
                   min={0}
@@ -862,6 +861,18 @@ const App = () => {
                   value={hurdleRate}
                   onChange={(e) => setHurdleRate(Number(e.target.value))}
                 />
+                <label className="hurdle-rate-label-row">
+                  <span>Hurdle Rate: {hurdleRate.toFixed(1)}%</span>
+                  {hurdleRate < discount && (
+                    <span
+                      className="hurdle-warning-icon"
+                      title="Hurdle rates are typically equal to or higher than the discount rate. A hurdle rate below the discount rate may indicate inconsistent assumptions."
+                      aria-label="Hurdle rates are typically equal to or higher than the discount rate. A hurdle rate below the discount rate may indicate inconsistent assumptions."
+                    >
+                      ⚠️
+                    </span>
+                  )}
+                </label>
               </div>
             )}
           </div>
@@ -1037,7 +1048,7 @@ const App = () => {
             Show Sensitivity Analysis
           </label>
 
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+          <div className="action-button-row">
             <button onClick={exportToCSV}>Export CSV</button>
             <button onClick={copyProjectLink}>{copiedProjectLink ? 'Copied Project Link' : 'Copy Project Link'}</button>
           </div>
