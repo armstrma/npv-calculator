@@ -1037,7 +1037,7 @@ const App = () => {
             Show Sensitivity Analysis
           </label>
 
-          <div style={{ display: 'block', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
             <button onClick={exportToCSV}>Export CSV</button>
             <button onClick={copyProjectLink}>{copiedProjectLink ? 'Copied Project Link' : 'Copy Project Link'}</button>
           </div>
