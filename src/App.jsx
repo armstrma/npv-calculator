@@ -1091,6 +1091,7 @@ const App = () => {
                   <h3 className="details-panel-title">Breakeven Analysis</h3>
                   <div className="details-list">
                     <p>Break-even discount rate (IRR): <strong>{irr.toFixed(2)}%</strong></p>
+                    <p>Discounted payback period: <strong>{formatPaybackDisplay(payback)}</strong></p>
                     <p>
                       Required cash flow uplift:{' '}
                       <strong>
