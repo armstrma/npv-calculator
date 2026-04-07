@@ -439,6 +439,25 @@ Potential product implication:
 - expose both the final permission and the reason source, such as plan, class rule, or preview restriction
 - use that same resolution path for UI visibility, API authorization, and paywall messaging so behavior stays consistent
 
+### Paywall moment design refinement
+A useful freemium/product-scaffolding idea is to treat premium prompts differently depending on what the user is trying to do.
+
+Potential paywall moment types:
+- curiosity moment: learner clicks a locked advanced chart or analysis panel
+- workflow moment: user tries to save, compare scenarios, or return later
+- classroom moment: instructor tries to publish, lock variables, or create a class link
+
+Why this matters:
+- the same upgrade modal should not try to sell every audience with the same language
+- conversion usually improves when the prompt matches the user's immediate intent
+- this helps keep free mode feeling respectful instead of constantly salesy
+
+Potential product implication:
+- map each gated action to a small set of paywall message templates
+- classroom prompts should emphasize launch readiness, assignment control, and reduced in-class friction
+- learner prompts should emphasize persistence, deeper analysis, and better study workflow
+- curiosity moments can stay lightweight, while workflow-blocking moments can justify stronger upgrade messaging or trial offers
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
