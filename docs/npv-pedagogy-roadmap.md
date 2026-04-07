@@ -568,6 +568,20 @@ Potential product implication:
 - support different feedback layers such as score/status, model reasoning, or instructor notes
 - keep the first version lightweight, but avoid assuming that submission automatically means full answer reveal
 
+### Classroom analytics boundary refinement
+A useful product-scaffolding question is to define what classroom analytics should be in scope early, and what should stay out.
+
+Why this matters:
+- instructors often want some visibility, but analytics can quickly turn the product into an LMS or surveillance tool
+- a light, assignment-focused analytics layer could strengthen the classroom offer without exploding scope
+- deciding the boundary early helps shape the data model and avoids collecting noisy metrics with no product purpose
+
+Potential product implication:
+- keep early analytics focused on assignment operational signals such as opened, in progress, submitted, and maybe not-yet-started
+- avoid deep behavioral surveillance unless there is a very clear pedagogical need
+- treat analytics as instructor workflow support first, not as a broad student monitoring system
+- align metrics with the seat lifecycle and submission models already described so the system tells one consistent story
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
