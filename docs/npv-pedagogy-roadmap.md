@@ -530,6 +530,25 @@ Potential product implication:
 - allow instructors to choose whether changes apply only to future opens, all unstarted learners, or a newly duplicated assignment
 - make version history visible enough to support troubleshooting and fairness
 
+### Late enrollment and make-up workflow refinement
+A useful classroom workflow note is to plan for students who join after the normal assignment launch window.
+
+Common situations:
+- a student adds the course late and needs access after the original class link was already distributed
+- an instructor grants a make-up assignment or extended due date to one student or a small subset
+- a learner’s first open happens after the main cohort has already submitted
+
+Why this matters:
+- classroom tooling often assumes one clean cohort, but real classes are messier
+- instructors need flexibility without cloning the whole course structure manually every time
+- fairness and support both improve when exceptions are modeled intentionally instead of handled with ad hoc overrides
+
+Potential product implication:
+- support per-student or subgroup access windows and due-date overrides
+- let late enrollees inherit the correct assignment version intentionally, not accidentally
+- keep exception handling visible in the instructor view so special cases do not disappear into hidden system state
+- avoid forcing instructors to duplicate an entire assignment just to accommodate one late student
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
