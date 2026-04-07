@@ -206,6 +206,26 @@ Potential product implication:
 - show simple roster status labels so classroom troubleshooting does not become billing confusion
 - keep billing rules aligned with learning-state transitions, not raw page views
 
+### Classroom roster import and identity reconciliation refinement
+Another useful classroom-scaffolding idea is to plan for roster mismatch handling early.
+
+Common real-world situations:
+- instructor uploads or syncs a roster before students ever open the product
+- student enters through a class link with a different email than the rostered address
+- student first joins as a guest on mobile, then later creates an account on desktop
+- add/drop changes happen after assignments are already distributed
+
+Why this matters:
+- classroom tools often become painful when identity mismatches turn into manual support work
+- instructors mostly want confidence that the right student got credit, not a perfect identity model
+- delayed account creation works better if the product later reconciles guest activity into a named learner cleanly
+
+Potential product implication:
+- keep a distinction between roster identity, access identity, and final named account identity
+- support a lightweight reconciliation flow for instructors or support, instead of assuming every join is clean
+- preserve assignment work when a learner upgrades from guest to account-backed status
+- make add/drop and late-enrollment handling part of the classroom model, not an afterthought
+
 ---
 
 ## Suggested Monetization Structure
