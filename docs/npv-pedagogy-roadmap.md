@@ -549,6 +549,25 @@ Potential product implication:
 - keep exception handling visible in the instructor view so special cases do not disappear into hidden system state
 - avoid forcing instructors to duplicate an entire assignment just to accommodate one late student
 
+### Instructor feedback release workflow refinement
+A useful follow-on classroom idea is to decide how and when instructor feedback or answer visibility gets released back to students.
+
+Common situations:
+- instructor wants students to submit before seeing solution guidance
+- a class discussion happens first, and feedback should unlock afterward
+- some assignments may reveal only numeric results, while others reveal full reasoning or answer-key style commentary
+
+Why this matters:
+- pedagogical timing often matters as much as the content itself
+- instructors may want to preserve exploration and discussion before revealing the "right answer"
+- this creates another meaningful distinction between a classroom workflow product and a plain calculator
+
+Potential product implication:
+- model feedback visibility separately from submission state and assignment locks
+- allow instructors to release feedback immediately, manually, on a date, or after the due window
+- support different feedback layers such as score/status, model reasoning, or instructor notes
+- keep the first version lightweight, but avoid assuming that submission automatically means full answer reveal
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
