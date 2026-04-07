@@ -511,6 +511,25 @@ Potential product implication:
 - let instructors test first-run flows such as guest entry, instructions, submission state, and paywall behavior before sharing
 - treat preview accuracy as a product trust feature, not just a convenience
 
+### Assignment versioning and edit window refinement
+A useful next classroom refinement is to decide how assignment changes behave after students have already opened them.
+
+Common situations:
+- instructor fixes a typo after the link is already shared
+- instructor changes lock rules after some students have started
+- instructor wants a future section to use an updated version without disrupting existing submissions
+
+Why this matters:
+- classroom trust drops fast if assignment behavior shifts invisibly underneath students
+- instructors need some flexibility, but students also need a stable target once work begins
+- support and grading both get harder if no one can tell which assignment version a student actually saw
+
+Potential product implication:
+- distinguish minor edits from material changes that should create a new assignment version
+- store the assignment version on each student copy or submission context
+- allow instructors to choose whether changes apply only to future opens, all unstarted learners, or a newly duplicated assignment
+- make version history visible enough to support troubleshooting and fairness
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
