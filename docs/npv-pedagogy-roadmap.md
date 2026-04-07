@@ -497,6 +497,20 @@ Potential product implication:
 - make assignment links and student copies aware of due-state and resubmission rules
 - keep the first version simple, but avoid a data model that assumes every project is always freely editable forever
 
+### Instructor preview versus student view refinement
+A useful classroom-scaffolding idea is to distinguish instructor preview mode from the actual student runtime early.
+
+Why this matters:
+- instructors need confidence that locks, prompts, and visible outputs behave the way students will actually see them
+- many classroom tools create confusion when the authoring view is too different from the learner experience, or when preview is inaccurate
+- this is especially important if assignments can hide features, lock variables, or delay premium prompts
+
+Potential product implication:
+- support a true "view as student" preview that resolves the same entitlement and restriction rules as the learner link
+- clearly label when the instructor is in authoring mode versus preview mode
+- let instructors test first-run flows such as guest entry, instructions, submission state, and paywall behavior before sharing
+- treat preview accuracy as a product trust feature, not just a convenience
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
