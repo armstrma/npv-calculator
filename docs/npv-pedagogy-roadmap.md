@@ -582,6 +582,25 @@ Potential product implication:
 - treat analytics as instructor workflow support first, not as a broad student monitoring system
 - align metrics with the seat lifecycle and submission models already described so the system tells one consistent story
 
+### Support and exception audit trail refinement
+A useful operational refinement is to plan for a lightweight audit trail on instructor and support-side exception handling.
+
+Common situations:
+- support manually fixes a roster mismatch
+- instructor grants an extension or unlocks a hidden feature for one student
+- a seat is reclaimed, reassigned, or corrected after a billing or classroom issue
+
+Why this matters:
+- classroom products accumulate edge cases quickly once real classes are live
+- without a basic audit trail, support and instructors can lose trust in what changed and why
+- this can stay lightweight without becoming full enterprise compliance machinery
+
+Potential product implication:
+- record important manual overrides with actor, time, reason, and affected learner or assignment
+- show a concise history for high-impact classroom exceptions in instructor/support views
+- align exception logs with submission, roster, and seat lifecycle models so troubleshooting has one coherent source of truth
+- keep the first version minimal, but avoid hidden state changes that are impossible to explain later
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
