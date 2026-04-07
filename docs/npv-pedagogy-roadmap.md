@@ -477,6 +477,26 @@ Potential product implication:
 - let trial offers differ by audience and trigger point
 - preserve the strongest workflow moment for the first serious trial prompt, rather than spending it on a generic banner
 
+### Assignment submission state refinement
+A useful classroom-workflow refinement is to separate ordinary project editing from assignment submission state early.
+
+Potential states:
+- in progress
+- submitted
+- resubmission allowed
+- returned for revision
+- graded or reviewed later if that ever exists
+
+Why this matters:
+- classroom products often get messy if submission is treated as just another saved project flag
+- instructors may want a clear freeze point for grading or discussion, while still allowing later revision paths
+- students need confidence about whether they are still experimenting privately or have actually turned something in
+
+Potential product implication:
+- model submission state separately from project ownership and feature entitlements
+- make assignment links and student copies aware of due-state and resubmission rules
+- keep the first version simple, but avoid a data model that assumes every project is always freely editable forever
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
