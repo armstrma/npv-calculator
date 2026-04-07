@@ -152,6 +152,24 @@ Why this feels important:
 - professors care about reliability and speed almost as much as feature depth
 - this creates a clean distinction between a consumer calculator and a teachable classroom product
 
+### Instructor onboarding and course-bootstrap refinement
+A useful product scaffolding idea is a "first 10 minutes of class" workflow optimized for instructors who are trying the tool live for the first time.
+
+Potential premium onboarding flow:
+- instructor picks a course type template such as intro finance, corporate finance, or capital budgeting
+- system creates a starter class with one sample case, one editable assignment, and a ready-to-share student link
+- instructor gets a short preflight checklist: test link, projected classroom view, variable locks, and expected student steps
+- system offers a printable or copyable one-paragraph student instruction block
+
+Why this seems valuable:
+- many professor tools fail not because features are weak, but because initial setup feels risky right before class
+- a guided bootstrap flow makes the product feel classroom-safe sooner
+- this improves trial conversion because instructors can imagine using it immediately instead of planning a future setup session
+
+This may become an important product principle:
+- premium classroom value is not just deeper controls
+- premium classroom value is also confidence, speed, and low-chaos launch readiness
+
 ### Important extension: delayed account creation and seat activation
 A particularly strong classroom pattern may be:
 - student enters through a class link or short code
