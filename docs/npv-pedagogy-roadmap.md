@@ -420,6 +420,25 @@ This suggests the product should separate:
 
 That separation will likely prevent messy conditional logic later and make classroom workflows much cleaner.
 
+### Entitlement evaluation order refinement
+It may help to define an explicit precedence rule early, before feature gating spreads through the UI.
+
+A likely evaluation order could be:
+- product plan sets the maximum feature ceiling
+- role or org entitlement grants a broader capability set
+- class or assignment rules narrow what is allowed in that context
+- project state determines whether the user is viewing, editing, submitting, or previewing
+
+Why this seems valuable:
+- avoids contradictory gating decisions across tabs, modals, and classroom links
+- makes support easier because entitlement outcomes can be explained in plain language
+- helps engineers avoid scattered one-off checks that drift over time
+
+Potential product implication:
+- compute a resolved entitlement object for the current session or project context
+- expose both the final permission and the reason source, such as plan, class rule, or preview restriction
+- use that same resolution path for UI visibility, API authorization, and paywall messaging so behavior stays consistent
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
