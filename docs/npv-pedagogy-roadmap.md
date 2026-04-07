@@ -48,6 +48,7 @@ Wants:
 - control assumptions
 - create classroom or course access
 - have students interact without setup chaos
+- avoid support burden during the first 10 minutes of class
 
 ### 4. Students in institutional plans
 Wants:
@@ -135,6 +136,21 @@ Instructor authoring should eventually support:
 - write prompt/context for the case
 - publish to class
 - optionally generate answer key/private instructor notes
+- define a student handoff flow that works in one click from a class link or code
+
+### Classroom workflow refinement
+A strong freemium boundary may be less about raw analytics and more about orchestration.
+Potential premium classroom workflow:
+- instructor creates a case
+- system generates a class link or short code
+- student opens directly into the assignment context
+- first interaction works before full account creation, or with very lightweight sign-in
+- project is autosaved into a student submission copy only when needed
+
+Why this feels important:
+- classroom products die fast when setup friction eats class time
+- professors care about reliability and speed almost as much as feature depth
+- this creates a clean distinction between a consumer calculator and a teachable classroom product
 
 ---
 
@@ -306,8 +322,29 @@ Need a clean feature flag / entitlement model, e.g.:
 - canCreateClasses
 - canPublishAssignments
 - canLockVariables
+- canExportBrandedAssignmentPDFs
+- canUseInstructorAnswerKeys
 
 This will matter a lot. Product complexity becomes much easier if entitlements are modeled intentionally early.
+
+### Important refinement: entitlements should be scoped, not just global
+A useful next-step principle is to model permissions at more than one level:
+- user/account level entitlement
+- class level entitlement
+- project/template level entitlement
+- assignment instance level restrictions
+
+Why this matters:
+- an instructor may generally have premium access, but a specific assignment can still hide IRR or lock the discount rate
+- a student may have access through a class without owning an individual paid plan
+- a sample premium preview may expose visibility without edit rights
+
+This suggests the product should separate:
+- feature visibility
+- feature editability
+- feature export/share rights
+
+That separation will likely prevent messy conditional logic later and make classroom workflows much cleaner.
 
 ## Persistence
 ### Free
