@@ -152,6 +152,24 @@ Why this feels important:
 - professors care about reliability and speed almost as much as feature depth
 - this creates a clean distinction between a consumer calculator and a teachable classroom product
 
+### Important extension: delayed account creation and seat activation
+A particularly strong classroom pattern may be:
+- student enters through a class link or short code
+- student can begin interacting immediately as a guest or temporary session
+- account creation is deferred until the student tries to save, submit, or return later
+- seat activation happens only when the student crosses that persistence boundary
+
+Why this could matter:
+- removes first-minute classroom friction
+- reduces abandoned starts caused by auth fatigue
+- lets instructors distribute work without troubleshooting signups live
+- creates a cleaner economic model for institutional seats, because "opened once" and "actually activated" are different events
+
+This may become an important product and billing principle:
+- access friction should be near zero
+- persistence and returnability are what trigger identity binding
+- institutional usage metrics should distinguish visitors, active learners, and activated seats
+
 ---
 
 ## Suggested Monetization Structure
