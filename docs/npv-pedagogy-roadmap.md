@@ -170,6 +170,24 @@ This may become an important product and billing principle:
 - persistence and returnability are what trigger identity binding
 - institutional usage metrics should distinguish visitors, active learners, and activated seats
 
+### Seat lifecycle and instructor controls refinement
+A useful follow-on to delayed activation is a more explicit seat lifecycle model:
+- invited or eligible seat
+- first-open visitor
+- active learner
+- activated named seat
+- completed or inactive seat
+
+Why this seems useful:
+- instructors and departments often care about roster consumption, not just anonymous traffic
+- support gets easier when the product can explain why a student does or does not count against a license
+- trials and institutional contracts can use cleaner language around activation thresholds and reclaimable seats
+
+Potential product implication:
+- allow instructors or admins to reclaim seats that never crossed a true activation boundary
+- show simple roster status labels so classroom troubleshooting does not become billing confusion
+- keep billing rules aligned with learning-state transitions, not raw page views
+
 ---
 
 ## Suggested Monetization Structure
