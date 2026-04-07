@@ -458,6 +458,25 @@ Potential product implication:
 - learner prompts should emphasize persistence, deeper analysis, and better study workflow
 - curiosity moments can stay lightweight, while workflow-blocking moments can justify stronger upgrade messaging or trial offers
 
+### Trial conversion timing refinement
+A useful next refinement is to define not just who gets a trial, but when the product should offer it.
+
+Potential timing rules:
+- do not interrupt a brand-new free user immediately on first load
+- offer a learner trial after a meaningful workflow block, such as save, compare, or revisit intent
+- offer an instructor trial when classroom-intent signals appear, such as class creation, assignment publishing, or variable-lock usage
+- avoid starting the trial too early if the user is still exploring a sample preview casually
+
+Why this seems valuable:
+- early trial prompts can waste the most motivated evaluation window before the user understands the value
+- later prompts, tied to clear intent, make the trial feel helpful instead of pushy
+- instructor trials especially should begin when classroom setup is imminent, not when a professor is just browsing
+
+Potential product implication:
+- track upgrade-trigger intent events, not just page visits
+- let trial offers differ by audience and trigger point
+- preserve the strongest workflow moment for the first serious trial prompt, rather than spending it on a generic banner
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
