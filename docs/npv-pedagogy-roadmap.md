@@ -662,6 +662,20 @@ Potential product implication:
 - keep the first pricing surface compact, but make deeper plan comparison easy to reach when intent is high
 - ensure sample preview, trial prompts, and upgrade modals all point to the same plan narrative so the product feels coherent
 
+### First-run empty-state refinement
+A useful product-scaffolding refinement is to think carefully about empty states for each major mode, especially before users have any saved work or classes.
+
+Why this matters:
+- first-run moments strongly shape whether the tool feels approachable or unfinished
+- the product will eventually have several modes, and each needs a clear next step when there is no existing data
+- good empty states can teach the workflow and reinforce the free-versus-paid boundary without extra documentation
+
+Potential product implication:
+- learner empty states should point toward starting a calculation, opening a sample project, or revisiting locally persisted work if available
+- instructor empty states should point toward creating a starter class, duplicating a past course, or previewing a classroom sample flow
+- empty states should explain value in workflow terms, not just show blank tables or disabled controls
+- make sure free, paid, and instructor contexts each have distinct next-step guidance so the product never feels directionless
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
