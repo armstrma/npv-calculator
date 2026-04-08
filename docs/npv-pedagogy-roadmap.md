@@ -648,6 +648,20 @@ Potential product implication:
 - revisit the sample periodically as the product evolves so it continues to showcase the best premium workflow
 - consider different curated samples later for learner intent versus instructor intent, if that becomes worth the complexity
 
+### Upgrade comparison page refinement
+A useful monetization refinement is to think about the upgrade comparison page or modal as part of the product flow, not just a pricing artifact.
+
+Why this matters:
+- once multiple plans and audiences exist, users will need a simple explanation of which path fits them
+- confusion between individual premium and instructor/classroom value can reduce conversion even if the product itself is strong
+- a good comparison view can reinforce the freemium boundary in a way that feels clarifying rather than pushy
+
+Potential product implication:
+- present learner and instructor value side by side in plain workflow language, not only feature lists
+- emphasize outcomes like save and revisit work, create class links, lock variables, or manage assignments
+- keep the first pricing surface compact, but make deeper plan comparison easy to reach when intent is high
+- ensure sample preview, trial prompts, and upgrade modals all point to the same plan narrative so the product feels coherent
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
