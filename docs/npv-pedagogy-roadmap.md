@@ -620,6 +620,20 @@ Potential product implication:
 - clearly separate reusable authoring assets from term-bound learner activity and submissions
 - make copied courses easy to review before publishing so stale dates, locks, or prompts are caught early
 
+### Freemium local-persistence boundary refinement
+A useful product-boundary question is whether free users should get limited local persistence before cloud save becomes a paid feature.
+
+Why this matters:
+- forcing total ephemerality can make the free product feel disposable instead of educational
+- allowing lightweight browser-local persistence could preserve user momentum without giving away the full paid workflow
+- this creates a cleaner distinction between "I can come back on this device" and "I can save, organize, and return anywhere"
+
+Potential product implication:
+- free tier could allow recent-project persistence in browser storage on the same device only
+- paid tier would still own cloud sync, durable project library, naming/organization, and cross-device continuity
+- the UX should clearly explain the difference so users do not confuse local browser persistence with account-backed saving
+- this may improve conversion by making free mode genuinely usable while still reserving the strongest workflow value for paid plans
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
