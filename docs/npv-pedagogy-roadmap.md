@@ -601,6 +601,25 @@ Potential product implication:
 - align exception logs with submission, roster, and seat lifecycle models so troubleshooting has one coherent source of truth
 - keep the first version minimal, but avoid hidden state changes that are impossible to explain later
 
+### Course copy and term rollover refinement
+A useful next classroom/product note is to plan for instructors reusing a course or assignment set across semesters.
+
+Common situations:
+- instructor wants to copy last term's class with the same cases and lock rules
+- course title, dates, and roster need to change, but assignment structure should mostly carry forward
+- old student data must stay separate from the new term
+
+Why this matters:
+- real classroom products live or die on repeatability once an instructor decides to adopt them
+- forcing instructors to rebuild every case each term creates unnecessary churn and weakens retention
+- term rollover is also where messy data boundaries can accidentally leak old roster or submission state into a new class
+
+Potential product implication:
+- support course duplication that copies templates, settings, and assignment structures without copying student-specific data
+- treat term rollover as a first-class workflow, not just a manual series of edits
+- clearly separate reusable authoring assets from term-bound learner activity and submissions
+- make copied courses easy to review before publishing so stale dates, locks, or prompts are caught early
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
