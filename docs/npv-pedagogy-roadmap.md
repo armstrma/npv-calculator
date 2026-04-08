@@ -634,6 +634,20 @@ Potential product implication:
 - the UX should clearly explain the difference so users do not confuse local browser persistence with account-backed saving
 - this may improve conversion by making free mode genuinely usable while still reserving the strongest workflow value for paid plans
 
+### Premium sample project curation refinement
+A useful next freemium note is to treat the premium sample project itself as a product asset that needs deliberate curation.
+
+Why this matters:
+- the sample project is not just a demo, it is the user's clearest first impression of premium value
+- if the sample case is too simple, premium feels shallow; if it is too complex, it can feel intimidating or fake
+- a strong sample can teach the product's value proposition faster than any pricing page copy
+
+Potential product implication:
+- choose a sample scenario with visible tradeoffs, not an obviously easy yes/no investment case
+- make sure the locked premium views reveal genuinely interesting analysis, not just more numbers
+- revisit the sample periodically as the product evolves so it continues to showcase the best premium workflow
+- consider different curated samples later for learner intent versus instructor intent, if that becomes worth the complexity
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
