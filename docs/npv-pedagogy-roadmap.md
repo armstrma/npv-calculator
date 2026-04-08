@@ -676,6 +676,20 @@ Potential product implication:
 - empty states should explain value in workflow terms, not just show blank tables or disabled controls
 - make sure free, paid, and instructor contexts each have distinct next-step guidance so the product never feels directionless
 
+### Onboarding checklist progression refinement
+A useful next product refinement is to consider lightweight onboarding checklists for different user types.
+
+Why this matters:
+- calculators and classroom tools both benefit when users can see a short path to "first value"
+- checklists can quietly teach workflow without forcing a tutorial
+- this could complement the bootstrap and empty-state ideas already in the roadmap
+
+Potential product implication:
+- learner checklist could include run a first scenario, compare one assumption change, and open the premium sample
+- instructor checklist could include create a starter class, test student view, and share a class link
+- checklists should disappear quickly once value is reached, not become a nagging dashboard element
+- completion steps can double as product analytics for where users get stuck, without needing invasive tracking
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
