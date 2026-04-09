@@ -37,12 +37,10 @@ input[type="range"]::-moz-range-thumb {
 }
 .product-page-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
   gap: 20px;
-  align-items: start;
   margin-top: 72px;
   padding: 32px 20px 18px;
-  overflow: hidden;
   background: radial-gradient(circle at top left, rgba(124, 58, 237, 0.28), transparent 40%), #020617;
   border-bottom: 1px solid rgba(71, 85, 105, 0.5);
 }
@@ -50,8 +48,6 @@ input[type="range"]::-moz-range-thumb {
   display: grid;
   gap: 12px;
   align-content: start;
-  min-width: 0;
-  text-align: left;
 }
 .product-badge {
   display: inline-flex;
@@ -66,16 +62,13 @@ input[type="range"]::-moz-range-thumb {
 }
 .product-page-title {
   margin: 0;
-  max-width: 12ch;
-  font-size: clamp(2rem, 3.8vw, 3.2rem);
-  line-height: 1.02;
-  letter-spacing: -0.04em;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 1.05;
   color: #f8fafc;
-  overflow-wrap: anywhere;
 }
 .product-page-subtitle {
   margin: 0;
-  max-width: 680px;
+  max-width: 700px;
   color: #cbd5e1;
   line-height: 1.6;
   font-size: 15px;
@@ -90,14 +83,12 @@ input[type="range"]::-moz-range-thumb {
 .product-page-grid {
   display: grid;
   gap: 12px;
-  min-width: 0;
 }
 .product-highlight-card {
   padding: 16px;
   border-radius: 16px;
   border: 1px solid rgba(71, 85, 105, 0.5);
   background: rgba(15, 23, 42, 0.84);
-  text-align: left;
 }
 .product-highlight-card h3,
 .product-highlight-card p {
@@ -610,9 +601,6 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .product-page-hero {
     grid-template-columns: 1fr;
     margin-top: 102px;
-  }
-  .product-page-title {
-    max-width: 100%;
   }
   .container {
     display: flex;
