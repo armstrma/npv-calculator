@@ -1050,18 +1050,20 @@ const App = () => {
                   label={<Label value={`IRR: ${irr.toFixed(2)}%`} position="insideTopRight" fill="#7dd3fc" dx={-10} dy={-8} />}
                 />
               )}
-              <ReferenceLine
-                x={discount}
-                stroke="#c084fc"
-                strokeDasharray="3 3"
-                label={<Label value={`Discount Rate: ${discount.toFixed(1)}%`} position="insideBottom" fill="#c084fc" dy={-2} />}
-              />
+              {!showHurdleRate && (
+                <ReferenceLine
+                  x={discount}
+                  stroke="#c084fc"
+                  strokeDasharray="3 3"
+                  label={<Label value={`Discount Rate: ${discount.toFixed(1)}%`} position="insideBottom" fill="#c084fc" dy={-2} />}
+                />
+              )}
               {showHurdleRate && (
                 <ReferenceLine
                   x={hurdleRate}
                   stroke="#22c55e"
                   strokeDasharray="6 4"
-                  label={<Label value={`Hurdle Rate: ${hurdleRate.toFixed(1)}%`} position="insideBottom" fill="#22c55e" dy={-18} />}
+                  label={<Label value={`Hurdle Rate: ${hurdleRate.toFixed(1)}%`} position="insideBottom" fill="#22c55e" dy={-2} />}
                 />
               )}
               {showSensitivity && (
