@@ -17,7 +17,7 @@ const GuideModal = ({ onClose }) => {
 
         <p><strong>NPV (Net Present Value)</strong> measures how much value a project creates after discounting future cash flows back to today.</p>
         <BlockMath math={NPV_FORMULA} />
-        <p>A positive NPV means the project adds value under the selected assumptions.</p>
+        <p>A positive NPV means the project adds value under the selected assumptions today.</p>
 
         <p><strong>IRR (Internal Rate of Return)</strong> is the discount rate that makes NPV equal to zero.</p>
         <BlockMath math={IRR_FORMULA} />
