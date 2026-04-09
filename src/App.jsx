@@ -869,18 +869,28 @@ const App = () => {
       <div className="mobile-topbar-shell">
         <button
           type="button"
-          className="mobile-topbar-icon"
+          className="mobile-topbar-action mobile-topbar-action-left"
           onClick={() => {
             setMobileLibraryTab('saved');
             setShowMobileLibrary(true);
           }}
           aria-label="Open project library"
         >
-          ☰
+          <span className="mobile-topbar-icon-glyph">☰</span>
         </button>
-        <div className="mobile-topbar-title">{projectName.trim() || 'NPV Lab'}</div>
-        <button type="button" className="mobile-topbar-save button-primary" onClick={() => saveProject(projectName)}>
-          Save
+        <button type="button" className="mobile-topbar-action mobile-topbar-action-left mobile-topbar-save" onClick={() => saveProject(projectName)}>
+          <span className="mobile-topbar-icon-glyph">✎</span>
+          <span>Save</span>
+        </button>
+        <div className="mobile-topbar-brand">
+          <span className="mobile-topbar-title">NPV Lab</span>
+          <span className="mobile-topbar-pro-badge">PRO</span>
+        </div>
+        <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={copyProjectLink} aria-label="Share project link">
+          <span className="mobile-topbar-icon-glyph">⤴</span>
+        </button>
+        <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => handleRequireAuth(authUser ? 'signin' : 'register')} aria-label="Account">
+          <span className="mobile-topbar-icon-glyph">◉</span>
         </button>
       </div>
 

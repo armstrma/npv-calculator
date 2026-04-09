@@ -670,32 +670,66 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     right: 0;
     z-index: 1400;
     display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) auto;
+    grid-template-columns: auto auto minmax(0, 1fr) auto auto;
     align-items: center;
     gap: 8px;
     padding: 8px 10px;
     background: rgba(2, 6, 23, 0.96);
     border-bottom: 1px solid rgba(71, 85, 105, 0.55);
   }
-  .mobile-topbar-icon {
-    height: 38px;
+  .mobile-topbar-action {
+    min-height: 38px;
     border-radius: 10px;
     border: 1px solid #475569;
     background: rgba(15, 23, 42, 0.92);
     color: #f8fafc;
-    font-size: 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+  }
+  .mobile-topbar-action-left {
+    justify-content: flex-start;
+  }
+  .mobile-topbar-action-right {
+    justify-content: flex-end;
+  }
+  .mobile-topbar-icon-glyph {
+    font-size: 16px;
+    line-height: 1;
+  }
+  .mobile-topbar-brand {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
   }
   .mobile-topbar-title {
     min-width: 0;
     color: #f8fafc;
     font-size: 14px;
+    font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .mobile-topbar-pro-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(139, 92, 246, 0.22);
+    border: 1px solid rgba(167, 139, 250, 0.5);
+    color: #e9d5ff;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+  }
   .mobile-topbar-save {
     min-height: 38px;
-    padding: 0 14px;
+    padding: 0 12px;
   }
   .product-page-hero {
     margin-top: 134px;
