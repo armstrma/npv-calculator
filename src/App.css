@@ -653,14 +653,15 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     padding-top: 48px;
   }
   .project-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     padding: 8px;
     gap: 6px;
   }
-  .project-toolbar input,
-  .project-toolbar select,
-  .project-toolbar button,
-  .button-primary,
-  .button-secondary {
+  .project-toolbar > :nth-child(1),
+  .project-toolbar > :nth-child(2),
+  .project-toolbar > :nth-child(3),
+  .project-toolbar > :nth-child(4) {
     width: 100%;
     min-width: 0 !important;
   }
