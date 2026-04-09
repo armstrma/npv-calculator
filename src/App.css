@@ -698,6 +698,16 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     font-size: 16px;
     line-height: 1;
   }
+  .mobile-topbar-icon-svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex: 0 0 auto;
+  }
   .mobile-topbar-brand {
     min-width: 0;
     display: inline-flex;

@@ -886,11 +886,18 @@ const App = () => {
           <span className="mobile-topbar-title">NPV Lab</span>
           <span className="mobile-topbar-pro-badge">PRO</span>
         </div>
-        <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={copyProjectLink} aria-label="Share project link">
-          <span className="mobile-topbar-icon-glyph">⤴</span>
-        </button>
         <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => handleRequireAuth(authUser ? 'signin' : 'register')} aria-label="Account">
-          <span className="mobile-topbar-icon-glyph">◉</span>
+          <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5Z" />
+            <path d="M4 20a8 8 0 0 1 16 0" />
+          </svg>
+        </button>
+        <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={copyProjectLink} aria-label="Share project link">
+          <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 16V5" />
+            <path d="m7 10 5-5 5 5" />
+            <path d="M5 19h14" />
+          </svg>
         </button>
       </div>
 
