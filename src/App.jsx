@@ -139,7 +139,7 @@ const productHighlights = [
 ];
 
 const pricingPlan = {
-  name: 'NPV Calculator Pro',
+  name: 'NPV Lab Pro',
   price: '$4.99/month',
   annual: '$50/year',
   cta: 'Start checkout in app',
@@ -764,7 +764,7 @@ const App = () => {
         <div className="product-page-copy">
           <h1 className="product-page-title">Learn capital budgeting with a calculator that actually explains the decision.</h1>
           <p className="product-page-subtitle">
-            NPV Calculator Pro combines fast scenario analysis, visual reasoning, and a growing premium workflow for students, instructors, and finance learners.
+            NPV Lab Pro combines fast scenario analysis, visual reasoning, and a growing premium workflow for students, instructors, and finance learners.
           </p>
           <div className="product-page-actions">
             <button type="button" className="button-primary" onClick={() => setShowUpgradeModal(true)}>
@@ -828,7 +828,7 @@ const App = () => {
 
       <div className="container">
         <div className="left" style={{ width: '50%' }}>
-          <h1 className="app-title">NPV Calculator</h1>
+          <h1 className="app-title">NPV Lab</h1>
 
           <select value={currency} onChange={(e) => setCurrency(e.target.value)} title="Display currency (calculations unchanged)" className="currency-picker">
             <option>$</option>

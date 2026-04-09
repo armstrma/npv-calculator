@@ -1,4 +1,4 @@
-# NPV Calculator
+# NPV Lab
 
 A browser-based project evaluation tool for comparing discounted cash flow scenarios, IRR, discounted payback, profitability, and sensitivity ranges.
 
