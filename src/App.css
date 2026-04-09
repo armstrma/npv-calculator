@@ -550,17 +550,24 @@ input[type="range"]::-moz-range-thumb {
 table { width: 100%; border-collapse: collapse; margin-top: 8px; }
 th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 @media (max-width: 900px) {
-  .product-page-hero,
-  .container { grid-template-columns: 1fr; flex-direction: column; }
+  .product-page-hero {
+    grid-template-columns: 1fr;
+  }
+  .container {
+    display: flex;
+    flex-direction: column;
+    margin-top: 102px;
+  }
   .left, .right { width: 100% !important; }
-  .container { margin-top: 102px; }
   .metrics-dock { position: static; top: auto; margin-top: 10px; }
   .metrics-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mobile-metrics-header {
     position: fixed;
     top: 58px;
+    left: 0;
+    right: 0;
     z-index: 1100;
-    display: grid;
+    display: grid !important;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
     align-items: center;
@@ -585,10 +592,6 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .upgrade-modal-header {
     display: grid;
     grid-template-columns: 1fr;
-  }
-  .container {
-    display: flex;
-    flex-direction: column;
   }
   .project-toolbar {
     padding: 8px;
