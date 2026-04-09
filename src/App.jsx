@@ -258,6 +258,7 @@ const App = () => {
   const [copiedProjectLink, setCopiedProjectLink] = useState(false);
   const [initialInput, setInitialInput] = useState(formatNumberWithCommas(1000));
   const [cashflowInputs, setCashflowInputs] = useState([200, 300, 400, 500, 600].map(formatNumberWithCommas));
+  const discountRateForAnalysis = showHurdleRate ? hurdleRate : discount;
 
 
   useEffect(() => {
@@ -358,9 +359,9 @@ const App = () => {
     }
   };
 
-  const npv = useMemo(() => calculateNPV(initial, discount, cashflows), [initial, discount, cashflows]);
+  const npv = useMemo(() => calculateNPV(initial, discountRateForAnalysis, cashflows), [initial, discountRateForAnalysis, cashflows]);
   const irr = useMemo(() => findIRR(initial, cashflows), [initial, cashflows]);
-  const payback = useMemo(() => calculatePayback(initial, discount, cashflows), [initial, discount, cashflows]);
+  const payback = useMemo(() => calculatePayback(initial, discountRateForAnalysis, cashflows), [initial, discountRateForAnalysis, cashflows]);
   const roi = useMemo(() => calculateROI(initial, cashflows), [initial, cashflows]);
   const pi = useMemo(() => calculatePI(npv, initial), [npv, initial]);
 
@@ -401,7 +402,7 @@ const App = () => {
     let pvCumulativeLow = -initial;
     let pvCumulativeHigh = -initial;
 
-    const rate = discount / 100;
+    const rate = discountRateForAnalysis / 100;
 
     return [
       {
@@ -470,15 +471,15 @@ const App = () => {
         pvCumulativeRange: null,
       },
     ];
-  }, [initial, cashflows, npv, discount]);
+  }, [initial, cashflows, npv, discountRateForAnalysis]);
 
   const sensitivityData = useMemo(() => {
     const variations = [-10, 0, 10];
     return variations.map((varPct) => {
       const variedCashflows = cashflows.map((cf) => cf * (1 + varPct / 100));
-      return { variation: varPct, npv: calculateNPV(initial, discount, variedCashflows) };
+      return { variation: varPct, npv: calculateNPV(initial, discountRateForAnalysis, variedCashflows) };
     });
-  }, [initial, discount, cashflows]);
+  }, [initial, discountRateForAnalysis, cashflows]);
 
   const marginalSensitivityData = useMemo(() => {
     const rows = [
@@ -488,7 +489,7 @@ const App = () => {
         note: 'Every extra $1 of upfront cost reduces NPV by $1.00.',
       },
       ...cashflows.map((_, i) => {
-        const impact = 1 / Math.pow(1 + discount / 100, i + 1);
+        const impact = 1 / Math.pow(1 + discountRateForAnalysis / 100, i + 1);
         return {
           name: `Year ${i + 1}`,
           impactPerDollar: impact,
@@ -498,12 +499,12 @@ const App = () => {
     ];
 
     return rows;
-  }, [cashflows, discount, currency]);
+  }, [cashflows, discountRateForAnalysis, currency]);
 
   const npvAtMinus10Cashflow = useMemo(() => {
     const lowCashflows = cashflows.map((cf) => cf * 0.9);
-    return calculateNPV(initial, discount, lowCashflows);
-  }, [initial, discount, cashflows]);
+    return calculateNPV(initial, discountRateForAnalysis, lowCashflows);
+  }, [initial, discountRateForAnalysis, cashflows]);
 
   const downsideIrr = useMemo(() => {
     const lowCashflows = cashflows.map((cf) => cf * 0.9);
@@ -515,135 +516,16 @@ const App = () => {
   const fragilityPass = showHurdleRate ? downsideIrr >= hurdleRate : downsideIrr >= discount;
 
   const breakEvenCashflowUpliftPct = useMemo(() => {
-    const pvOfCashflows = cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + discount / 100, i + 1), 0);
+    const pvOfCashflows = cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + discountRateForAnalysis / 100, i + 1), 0);
     if (pvOfCashflows <= 0) return null;
     const multiplier = initial / pvOfCashflows;
     return (multiplier - 1) * 100;
-  }, [initial, discount, cashflows]);
+  }, [initial, discountRateForAnalysis, cashflows]);
 
   const maxInitialAtNpvZero = useMemo(() => {
-    const pvOfCashflows = cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + discount / 100, i + 1), 0);
+    const pvOfCashflows = cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + discountRateForAnalysis / 100, i + 1), 0);
     return pvOfCashflows;
-  }, [discount, cashflows]);
-
-  const tornadoPairedData = useMemo(() => {
-    const rows = [
-      {
-        name: 'Discount Rate (±1%)',
-        downside: calculateNPV(initial, discount + 1, cashflows) - npv,
-        upside: calculateNPV(initial, Math.max(0, discount - 1), cashflows) - npv,
-      },
-      {
-        name: 'Initial Investment (±10%)',
-        downside: calculateNPV(initial * 1.1, discount, cashflows) - npv,
-        upside: calculateNPV(initial * 0.9, discount, cashflows) - npv,
-      },
-      ...cashflows.map((_, i) => {
-        const down = [...cashflows];
-        down[i] = down[i] * 0.9;
-        const up = [...cashflows];
-        up[i] = up[i] * 1.1;
-        return {
-          name: `Year ${i + 1} Cash Flow (±10%)`,
-          downside: calculateNPV(initial, discount, down) - npv,
-          upside: calculateNPV(initial, discount, up) - npv,
-        };
-      }),
-    ];
-
-    return rows.sort(
-      (a, b) => Math.max(Math.abs(b.downside), Math.abs(b.upside)) - Math.max(Math.abs(a.downside), Math.abs(a.upside))
-    );
-  }, [initial, discount, cashflows, npv]);
-
-  const tornadoRippleData = useMemo(() => {
-    const levels = [0.05, 0.1, 0.2];
-
-    const discountShocks = levels.reduce((acc, lvl) => {
-      const pts = lvl * 10; // ±0.5, ±1.0, ±2.0 percentage points
-      acc[`down${Math.round(lvl * 100)}`] = calculateNPV(initial, discount + pts, cashflows) - npv;
-      acc[`up${Math.round(lvl * 100)}`] = calculateNPV(initial, Math.max(0, discount - pts), cashflows) - npv;
-      return acc;
-    }, {});
-
-    const rows = [
-      {
-        name: 'Discount',
-        ...discountShocks,
-      },
-      {
-        name: 'Initial',
-        ...levels.reduce((acc, lvl) => {
-          acc[`down${Math.round(lvl * 100)}`] = calculateNPV(initial * (1 + lvl), discount, cashflows) - npv;
-          acc[`up${Math.round(lvl * 100)}`] = calculateNPV(initial * (1 - lvl), discount, cashflows) - npv;
-          return acc;
-        }, {}),
-      },
-      ...cashflows.map((_, i) => {
-        const row = { name: `Year ${i + 1}` };
-        levels.forEach((lvl) => {
-          const down = [...cashflows];
-          down[i] = down[i] * (1 - lvl);
-          const up = [...cashflows];
-          up[i] = up[i] * (1 + lvl);
-          row[`down${Math.round(lvl * 100)}`] = calculateNPV(initial, discount, down) - npv;
-          row[`up${Math.round(lvl * 100)}`] = calculateNPV(initial, discount, up) - npv;
-        });
-        return row;
-      }),
-    ];
-
-    return rows
-      .map((row) => {
-        const leftValues = [Math.abs(row.down5 || 0), Math.abs(row.down10 || 0), Math.abs(row.down20 || 0)].sort((a, b) => a - b);
-        const rightValues = [Math.abs(row.up5 || 0), Math.abs(row.up10 || 0), Math.abs(row.up20 || 0)].sort((a, b) => a - b);
-
-        return {
-          ...row,
-          left20: -leftValues[2],
-          left10: -leftValues[1],
-          left5: -leftValues[0],
-          right20: rightValues[2],
-          right10: rightValues[1],
-          right5: rightValues[0],
-          leftBase: -leftValues[0],
-          leftMid: -(leftValues[1] - leftValues[0]),
-          leftOuter: -(leftValues[2] - leftValues[1]),
-          rightBase: rightValues[0],
-          rightMid: rightValues[1] - rightValues[0],
-          rightOuter: rightValues[2] - rightValues[1],
-        };
-      })
-      .sort((a, b) => {
-        const aMax = Math.max(
-          Math.abs(a.left20 || 0),
-          Math.abs(a.right20 || 0),
-          Math.abs(a.left10 || 0),
-          Math.abs(a.right10 || 0),
-          Math.abs(a.left5 || 0),
-          Math.abs(a.right5 || 0)
-        );
-        const bMax = Math.max(
-          Math.abs(b.left20 || 0),
-          Math.abs(b.right20 || 0),
-          Math.abs(b.left10 || 0),
-          Math.abs(b.right10 || 0),
-          Math.abs(b.left5 || 0),
-          Math.abs(b.right5 || 0)
-        );
-        return bMax - aMax;
-      });
-  }, [initial, discount, cashflows, npv]);
-
-  const tornadoMaxAbs = useMemo(() => {
-    const source = tornadoRippleData.flatMap((d) => [d.down5, d.up5, d.down10, d.up10, d.down20, d.up20]);
-    const maxAbs = Math.max(1, ...source.map((v) => Math.abs(v || 0)));
-    return Math.ceil(maxAbs / 10) * 10;
-  }, [tornadoRippleData]);
-
-  const tornadoChartHeight = useMemo(() => {
-    return Math.max(220, tornadoRippleData.length * 24);
-  }, [tornadoRippleData]);
+  }, [discountRateForAnalysis, cashflows]);
 
   const getGradient = (type, index = null) => {
     let minVal;
@@ -670,7 +552,7 @@ const App = () => {
     for (let i = 0; i <= steps; i++) {
       const val = minVal + (maxVal - minVal) * (i / steps);
       const tempInitial = type === 'initial' ? val : initial;
-      const tempDiscount = type === 'discount' ? val : discount;
+      const tempDiscount = type === 'discount' ? val : discountRateForAnalysis;
       const tempCashflows = [...cashflows];
       if (type === 'cashflow' && index !== null) tempCashflows[index] = val;
       npvs.push(calculateNPV(tempInitial, tempDiscount, tempCashflows));
@@ -846,7 +728,7 @@ const App = () => {
 
       <div className="container">
         <div className="left" style={{ width: '50%' }}>
-          <h1>NPV Calculator</h1>
+          <h1 className="app-title">NPV Calculator</h1>
 
           <select value={currency} onChange={(e) => setCurrency(e.target.value)} title="Display currency (calculations unchanged)" className="currency-picker">
             <option>$</option>
@@ -1058,14 +940,17 @@ const App = () => {
                     <div>
                       <span className="details-metric-label">Overall Sentiment</span>
                       <span className={`details-metric-value sentiment-${sentiment.tone}`}>{sentiment.label}</span>
-                      <span className="details-metric-subtext">{sentiment.detail}</span>
+                  <span className="details-metric-subtext">{sentiment.detail}</span>
                     </div>
+                  </div>
+                  <div className="details-discount-source-badge" role="status">
+                    Discounting source: {showHurdleRate ? `Hurdle rate (${hurdleRate.toFixed(1)}%)` : `Discount rate (${discount.toFixed(1)}%)`}
                   </div>
                   <div className="details-rule-list">
                     <div className={`details-rule ${viabilityPass ? 'pass' : 'fail'}`}>
                       <span className="details-rule-name">Viability</span>
                       <span className="details-rule-status">{viabilityPass ? 'Pass' : 'Fail'}</span>
-                      <span className="details-rule-subtext">NPV &gt; 0</span>
+                      <span className="details-rule-subtext">NPV &gt; 0 using {discountRateForAnalysis.toFixed(1)}%</span>
                     </div>
                     <div className={`details-rule ${standardPass ? 'pass' : 'fail'}`}>
                       <span className="details-rule-name">Standard</span>
@@ -1091,7 +976,7 @@ const App = () => {
                   <h3 className="details-panel-title">Breakeven Analysis</h3>
                   <div className="details-list">
                     <p>Break-even discount rate (IRR): <strong>{irr.toFixed(2)}%</strong></p>
-                    <p>Discounted payback period: <strong>{formatPaybackDisplay(payback)}</strong></p>
+                    <p>Discounted payback period at {discountRateForAnalysis.toFixed(1)}%: <strong>{formatPaybackDisplay(payback)}</strong></p>
                     <p>
                       Required cash flow uplift:{' '}
                       <strong>
@@ -1344,124 +1229,6 @@ const App = () => {
               </ComposedChart>
             </ResponsiveContainer>
           </section>
-
-          <section className="chart-section">
-            <h2 className="chart-title">Top NPV Drivers (Tornado)</h2>
-            <p className="chart-subtitle">
-              Two-sided sensitivity: left of zero reduces NPV (risk), right of zero increases NPV (upside). Green helps NPV, red hurts NPV, and longer bars mean bigger impact.
-            </p>
-            <ResponsiveContainer width="100%" height={tornadoChartHeight}>
-              <BarChart data={tornadoRippleData} layout="vertical" margin={{ top: 12, right: 18, left: 40, bottom: 5 }} barGap={-20}>
-                <XAxis
-                  type="number"
-                  domain={[-tornadoMaxAbs, tornadoMaxAbs]}
-                  tickFormatter={(v) => `${v >= 0 ? '+' : ''}${v.toFixed(0)}`}
-                />
-                <YAxis type="category" dataKey="name" width={90} interval={0} />
-                <ReferenceLine x={0} stroke="#9ca3af" strokeWidth={2} />
-
-              {showSensitivity && (
-                <>
-                  <Bar dataKey="leftBase" name="-5%" stackId="negative" barSize={18} radius={[0, 0, 0, 0]}>
-                    {tornadoRippleData.map((entry, index) => (
-                      <Cell key={`leftBase-${index}`} fill="#c03f2f" />
-                    ))}
-                  </Bar>
-                  <Bar dataKey="leftMid" name="-10%" stackId="negative" barSize={18} radius={[0, 0, 0, 0]}>
-                    {tornadoRippleData.map((entry, index) => (
-                      <Cell key={`leftMid-${index}`} fill="#ef5a43" />
-                    ))}
-                  </Bar>
-                  <Bar dataKey="leftOuter" name="-20%" stackId="negative" barSize={18} radius={[0, 0, 0, 0]}>
-                    {tornadoRippleData.map((entry, index) => (
-                      <Cell key={`leftOuter-${index}`} fill="#f5c2bc" />
-                    ))}
-                  </Bar>
-                  <Bar dataKey="rightBase" name="+5%" stackId="positive" barSize={18} radius={[0, 0, 0, 0]}>
-                    {tornadoRippleData.map((entry, index) => (
-                      <Cell key={`rightBase-${index}`} fill="#54a24b" />
-                    ))}
-                  </Bar>
-                  <Bar dataKey="rightMid" name="+10%" stackId="positive" barSize={18} radius={[0, 0, 0, 0]}>
-                    {tornadoRippleData.map((entry, index) => (
-                      <Cell key={`rightMid-${index}`} fill="#69c35f" />
-                    ))}
-                  </Bar>
-                  <Bar dataKey="rightOuter" name="+20%" stackId="positive" barSize={18} radius={[0, 0, 0, 0]}>
-                    {tornadoRippleData.map((entry, index) => (
-                      <Cell key={`rightOuter-${index}`} fill="#c8e6c9" />
-                    ))}
-                  </Bar>
-                </>
-              )}
-              {!showSensitivity && (
-                <>
-                  <Bar dataKey="left10" name="-10%" barSize={22} radius={[0, 0, 0, 0]}>
-                    {tornadoRippleData.map((entry, index) => (
-                      <Cell key={`left10-default-${index}`} fill="#dc2626" />
-                    ))}
-                  </Bar>
-                  <Bar dataKey="right10" name="+10%" barSize={22} radius={[0, 0, 0, 0]}>
-                    {tornadoRippleData.map((entry, index) => (
-                      <Cell key={`right10-default-${index}`} fill="#16a34a" />
-                    ))}
-                  </Bar>
-                </>
-              )}
-                <Tooltip content={<TornadoTooltip currency={currency} showSensitivity={showSensitivity} />} />
-              </BarChart>
-            </ResponsiveContainer>
-            <div className="tornado-legend">
-              {showSensitivity ? (
-                <>
-                  <div className="tornado-legend-group">
-                    <span className="tornado-legend-item">
-                      <span className="tornado-legend-swatch level-5 positive" />
-                      <span>+ NPV · 5%</span>
-                    </span>
-                    <span className="tornado-legend-item">
-                      <span className="tornado-legend-swatch level-10 positive" />
-                      <span>+ NPV · 10%</span>
-                    </span>
-                    <span className="tornado-legend-item">
-                      <span className="tornado-legend-swatch level-20 positive" />
-                      <span>+ NPV · 20%</span>
-                    </span>
-                  </div>
-                  <div className="tornado-legend-group">
-                    <span className="tornado-legend-item">
-                      <span className="tornado-legend-swatch level-5 negative" />
-                      <span>- NPV · 5%</span>
-                    </span>
-                    <span className="tornado-legend-item">
-                      <span className="tornado-legend-swatch level-10 negative" />
-                      <span>- NPV · 10%</span>
-                    </span>
-                    <span className="tornado-legend-item">
-                      <span className="tornado-legend-swatch level-20 negative" />
-                      <span>- NPV · 20%</span>
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="tornado-legend-group">
-                    <span className="tornado-legend-item">
-                      <span className="tornado-legend-swatch level-10 positive" />
-                      <span>+ NPV · 10%</span>
-                    </span>
-                  </div>
-                  <div className="tornado-legend-group">
-                    <span className="tornado-legend-item">
-                      <span className="tornado-legend-swatch level-10 negative" />
-                      <span>- NPV · 10%</span>
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-          </section>
-
           <section className="chart-section">
             <h2 className="chart-title">NPV Impact per $1 Change</h2>
             <p className="chart-subtitle">
