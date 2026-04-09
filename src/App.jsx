@@ -960,6 +960,13 @@ const App = () => {
         </div>
       )}
 
+      <div className="app-shell-header">
+        <div className="app-shell-brand">
+          <h1 className="app-title">NPV Lab</h1>
+          <span className="app-shell-pro-badge">PRO</span>
+        </div>
+      </div>
+
       <div className="container">
         <div className="mobile-metrics-header mobile-metrics-header-inline">
           <span>
@@ -970,7 +977,6 @@ const App = () => {
           <span>Payback <strong>{formatPaybackDisplay(payback)}</strong></span>
         </div>
         <div className="left" style={{ width: '50%' }}>
-          <h1 className="app-title">NPV Lab</h1>
 
           <select value={currency} onChange={(e) => setCurrency(e.target.value)} title="Display currency (calculations unchanged)" className="currency-picker">
             <option>$</option>
