@@ -924,16 +924,15 @@ const App = () => {
         </select>
       </div>
 
-      <div className="mobile-metrics-header">
-        <span>
-          <strong style={{ color: sentiment.tone === 'positive' ? '#16a34a' : sentiment.tone === 'caution' ? '#ca8a04' : '#dc2626' }}>{sentiment.label}</strong>
-        </span>
-        <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
-        <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>
-        <span>Payback <strong>{formatPaybackDisplay(payback)}</strong></span>
-      </div>
-
       <div className="container">
+        <div className="mobile-metrics-header">
+          <span>
+            <strong style={{ color: sentiment.tone === 'positive' ? '#16a34a' : sentiment.tone === 'caution' ? '#ca8a04' : '#dc2626' }}>{sentiment.label}</strong>
+          </span>
+          <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
+          <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>
+          <span>Payback <strong>{formatPaybackDisplay(payback)}</strong></span>
+        </div>
         <div className="left" style={{ width: '50%' }}>
           <h1 className="app-title">NPV Lab</h1>
 
