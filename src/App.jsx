@@ -860,19 +860,6 @@ const App = () => {
               <button type="button" className="button-primary hero-pricing-button" onClick={() => setShowUpgradeModal(true)}>
                 See Pricing
               </button>
-              <button type="button" className="button-primary hero-upgrade-button desktop-hero-action" onClick={() => setShowUpgradeModal(true)}>
-                Upgrade Now
-              </button>
-              <button
-                type="button"
-                className="button-secondary hero-dismiss-button desktop-hero-action"
-                onClick={() => {
-                  setShowProductHero(false);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-              >
-                Dismiss
-              </button>
             </div>
           </div>
         </div>
