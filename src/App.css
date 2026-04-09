@@ -773,12 +773,12 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     bottom: 12px;
     width: auto;
   }
-  .container { margin-top: 24px; }
+  .container { margin-top: 8px; }
   .mobile-metrics-header {
-    margin: 8px -12px 12px;
+    margin: 0 -12px 12px;
   }
   .mobile-metrics-header-pinned {
-    top: 62px;
+    top: 54px;
     z-index: 1350;
     margin: 0;
   }
