@@ -56,6 +56,15 @@ input[type="range"]::-moz-range-thumb {
 .product-page-actions-top {
   justify-content: flex-start;
 }
+.desktop-hero-actions {
+  display: flex;
+}
+.desktop-hero-action {
+  display: inline-flex;
+}
+.mobile-only-hero-actions {
+  display: none;
+}
 .product-page-actions-bottom {
   margin-top: auto;
   justify-content: flex-start;
@@ -753,6 +762,12 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .product-page-actions {
     display: grid;
     grid-template-columns: 1fr;
+  }
+  .desktop-hero-actions .desktop-hero-action {
+    display: none;
+  }
+  .mobile-only-hero-actions {
+    display: grid;
   }
   .hero-pricing-button,
   .hero-upgrade-button,
