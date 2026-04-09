@@ -960,7 +960,7 @@ const App = () => {
         </div>
       )}
 
-      <div className="app-shell-header">
+      <div className={`app-shell-header ${showProductHero ? '' : 'app-shell-header-hidden-mobile'}`}>
         <div className="app-shell-brand">
           <h1 className="app-title">NPV Lab</h1>
           <span className="app-shell-pro-badge">PRO</span>

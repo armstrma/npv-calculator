@@ -699,6 +699,9 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     display: grid;
     grid-template-columns: 1fr;
   }
+  .app-shell-header-hidden-mobile {
+    display: none;
+  }
   .mobile-topbar-shell {
     position: fixed;
     top: 0;
