@@ -59,9 +59,13 @@ input[type="range"]::-moz-range-thumb {
 .product-page-actions-bottom {
   margin-top: auto;
   justify-content: flex-start;
+  width: fit-content;
 }
 .product-page-grid-wrap {
+  display: grid;
+  gap: 12px;
   align-content: start;
+  justify-items: stretch;
 }
 .product-badge {
   display: inline-flex;
@@ -97,10 +101,6 @@ input[type="range"]::-moz-range-thumb {
 }
 .upgrade-actions .button-secondary.upgrade-modal-close-bottom {
   margin-left: auto;
-}
-.product-page-grid-wrap {
-  display: grid;
-  gap: 12px;
 }
 .product-page-grid {
   display: grid;
