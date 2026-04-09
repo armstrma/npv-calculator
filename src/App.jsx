@@ -209,7 +209,7 @@ const ProductModal = ({ open, onClose, title = 'Upgrade to Pro', isAuthenticated
           <div>
             <h2>{title}</h2>
             <p>
-              Keep the calculator in view, upgrade in place later, and unlock the premium workflow as the product rolls out.
+              Unlock the premium workflow without leaving the calculator.
             </p>
           </div>
           <button type="button" className="button-secondary upgrade-modal-close" onClick={onClose}>
@@ -223,27 +223,16 @@ const ProductModal = ({ open, onClose, title = 'Upgrade to Pro', isAuthenticated
             <strong>{pricingPlan.price}</strong>
             <span>or {pricingPlan.annual}</span>
           </div>
-          <p className="upgrade-price-note">
-            Stripe can be embedded directly on-page with Checkout or Payment Element. This modal is ready to become the in-app checkout surface.
-          </p>
+          <p className="upgrade-price-note">Premium tools for saving, sharing, and guided decision-making.</p>
         </div>
 
-        <div className="upgrade-grid">
+        <div className="upgrade-grid single-column">
           <section>
             <h3>What you get</h3>
             <ul className="upgrade-feature-list">
               {upgradeFeatures.map((feature) => (
                 <li key={feature}>{feature}</li>
               ))}
-            </ul>
-          </section>
-
-          <section>
-            <h3>Fastest implementation path</h3>
-            <ul className="upgrade-feature-list compact">
-              <li>Stripe Payment Links or embedded Checkout for payment</li>
-              <li>Supabase Auth for Google sign-in and lightweight accounts</li>
-              <li>Supabase Postgres for projects, entitlements, and customer state</li>
             </ul>
           </section>
         </div>

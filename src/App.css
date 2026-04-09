@@ -697,3 +697,63 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   letter-spacing: 0.06em;
   font-weight: 700;
 }
+
+.upgrade-grid.single-column { grid-template-columns: 1fr; }
+
+@media (max-width: 640px) {
+  .modal-content.upgrade-modal {
+    padding: 16px;
+    gap: 12px;
+  }
+  .upgrade-modal-header {
+    gap: 10px;
+  }
+  .upgrade-modal-header h2 {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+  .upgrade-modal-header p {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .upgrade-pricing-card {
+    padding: 14px;
+  }
+  .upgrade-plan-name {
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .upgrade-price-row strong {
+    font-size: 22px;
+  }
+  .upgrade-price-row span {
+    font-size: 15px;
+  }
+  .upgrade-price-note {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .upgrade-grid h3 {
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+  .upgrade-feature-list {
+    gap: 6px;
+    font-size: 14px;
+  }
+  .upgrade-feature-list li {
+    line-height: 1.4;
+  }
+  .upgrade-account-state {
+    padding: 10px 12px;
+  }
+  .upgrade-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .upgrade-actions .button-primary,
+  .upgrade-actions .button-secondary,
+  .upgrade-modal-close {
+    width: 100%;
+  }
+}
