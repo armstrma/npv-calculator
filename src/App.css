@@ -376,7 +376,7 @@ input[type="range"]::-moz-range-thumb {
 .app-shell-header {
   display: flex;
   justify-content: center;
-  padding: 18px 12px 0;
+  padding: 34px 12px 0;
 }
 .app-shell-brand {
   display: inline-flex;
