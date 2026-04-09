@@ -769,11 +769,13 @@ const App = () => {
             <p className="product-page-subtitle">
               NPV Lab Pro combines fast scenario analysis, visual reasoning, and a growing premium workflow for students, instructors, and finance learners.
             </p>
+            <div className="product-page-actions product-page-actions-top">
+              <button type="button" className="button-primary hero-pricing-button" onClick={() => setShowUpgradeModal(true)}>
+                See Pricing
+              </button>
+            </div>
           </div>
           <div className="product-page-actions product-page-actions-bottom">
-            <button type="button" className="button-primary hero-pricing-button" onClick={() => setShowUpgradeModal(true)}>
-              See Pricing
-            </button>
             <button type="button" className="button-primary hero-upgrade-button" onClick={() => setShowUpgradeModal(true)}>
               Upgrade Now
             </button>
