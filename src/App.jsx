@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import './App.css';
 import { calculateNPV, findIRR, calculatePayback, calculateROI, calculatePI } from './lib/finance.js';
 import { formatNumberWithCommas, parseNumericInput } from './lib/input.js';
@@ -351,11 +351,6 @@ const App = () => {
   const [initialInput, setInitialInput] = useState(formatNumberWithCommas(1000));
   const [cashflowInputs, setCashflowInputs] = useState([200, 300, 400, 500, 600].map(formatNumberWithCommas));
   const discountRateForAnalysis = showHurdleRate ? hurdleRate : discount;
-  const deferredInitial = useDeferredValue(initial);
-  const deferredDiscount = useDeferredValue(discount);
-  const deferredHurdleRate = useDeferredValue(hurdleRate);
-  const deferredCashflows = useDeferredValue(cashflows);
-  const deferredDiscountRateForAnalysis = showHurdleRate ? deferredHurdleRate : deferredDiscount;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -493,7 +488,7 @@ const App = () => {
   const discountData = useMemo(() => {
     const data = [];
     for (let r = 0; r <= 30; r += 0.5) {
-      const npvVal = calculateNPV(deferredInitial, r, deferredCashflows);
+      const npvVal = calculateNPV(initial, r, cashflows);
       const entry = {
         discount: r,
         npv: npvVal,
@@ -501,10 +496,10 @@ const App = () => {
         npv_neg: npvVal < 0 ? npvVal : null,
       };
       if (showSensitivity) {
-        const lowCashflows = deferredCashflows.map((cf) => cf * 0.9);
-        const highCashflows = deferredCashflows.map((cf) => cf * 1.1);
-        const lowNpv = calculateNPV(deferredInitial, r, lowCashflows);
-        const highNpv = calculateNPV(deferredInitial, r, highCashflows);
+        const lowCashflows = cashflows.map((cf) => cf * 0.9);
+        const highCashflows = cashflows.map((cf) => cf * 1.1);
+        const lowNpv = calculateNPV(initial, r, lowCashflows);
+        const highNpv = calculateNPV(initial, r, highCashflows);
 
         entry.low_npv = lowNpv;
         entry.high_npv = highNpv;
@@ -516,36 +511,36 @@ const App = () => {
       data.push(entry);
     }
     return data;
-  }, [deferredInitial, deferredCashflows, showSensitivity]);
+  }, [initial, cashflows, showSensitivity]);
 
   const barData = useMemo(() => {
-    let cumulative = -deferredInitial;
-    let cumulativeLow = -deferredInitial;
-    let cumulativeHigh = -deferredInitial;
-    let pvCumulative = -deferredInitial;
-    let pvCumulativeLow = -deferredInitial;
-    let pvCumulativeHigh = -deferredInitial;
-    const rate = deferredDiscountRateForAnalysis / 100;
+    let cumulative = -initial;
+    let cumulativeLow = -initial;
+    let cumulativeHigh = -initial;
+    let pvCumulative = -initial;
+    let pvCumulativeLow = -initial;
+    let pvCumulativeHigh = -initial;
+    const rate = discountRateForAnalysis / 100;
 
     return [
       {
         name: 'Initial',
-        value: -deferredInitial,
-        pvValue: -deferredInitial,
+        value: -initial,
+        pvValue: -initial,
         pvLow: null,
         pvHigh: null,
-        cumulative: -deferredInitial,
-        cumulativeLow: -deferredInitial,
-        cumulativeHigh: -deferredInitial,
-        cumulativeBand: [-deferredInitial, -deferredInitial],
+        cumulative: -initial,
+        cumulativeLow: -initial,
+        cumulativeHigh: -initial,
+        cumulativeBand: [-initial, -initial],
         cumulativeRange: 0,
-        pvCumulative: -deferredInitial,
-        pvCumulativeLow: -deferredInitial,
-        pvCumulativeHigh: -deferredInitial,
-        pvCumulativeBand: [-deferredInitial, -deferredInitial],
+        pvCumulative: -initial,
+        pvCumulativeLow: -initial,
+        pvCumulativeHigh: -initial,
+        pvCumulativeBand: [-initial, -initial],
         pvCumulativeRange: 0,
       },
-      ...deferredCashflows.map((cf, i) => {
+      ...cashflows.map((cf, i) => {
         const pvValue = cf / Math.pow(1 + rate, i + 1);
         const pvLow = (cf * 0.9) / Math.pow(1 + rate, i + 1);
         const pvHigh = (cf * 1.1) / Math.pow(1 + rate, i + 1);
@@ -592,15 +587,15 @@ const App = () => {
         pvCumulativeRange: null,
       },
     ];
-  }, [deferredInitial, deferredCashflows, npv, deferredDiscountRateForAnalysis]);
+  }, [initial, cashflows, npv, discountRateForAnalysis]);
 
   const sensitivityData = useMemo(() => {
     const variations = [-10, 0, 10];
     return variations.map((varPct) => {
-      const variedCashflows = deferredCashflows.map((cf) => cf * (1 + varPct / 100));
-      return { variation: varPct, npv: calculateNPV(deferredInitial, deferredDiscountRateForAnalysis, variedCashflows) };
+      const variedCashflows = cashflows.map((cf) => cf * (1 + varPct / 100));
+      return { variation: varPct, npv: calculateNPV(initial, discountRateForAnalysis, variedCashflows) };
     });
-  }, [deferredInitial, deferredDiscountRateForAnalysis, deferredCashflows]);
+  }, [initial, discountRateForAnalysis, cashflows]);
 
   const marginalSensitivityData = useMemo(() => {
     const rows = [
@@ -609,8 +604,8 @@ const App = () => {
         impactPerDollar: -1,
         note: 'Every extra $1 of upfront cost reduces NPV by $1.00.',
       },
-      ...deferredCashflows.map((_, i) => {
-        const impact = 1 / Math.pow(1 + deferredDiscountRateForAnalysis / 100, i + 1);
+      ...cashflows.map((_, i) => {
+        const impact = 1 / Math.pow(1 + discountRateForAnalysis / 100, i + 1);
         return {
           name: `Year ${i + 1}`,
           impactPerDollar: impact,
@@ -620,7 +615,7 @@ const App = () => {
     ];
 
     return rows;
-  }, [deferredCashflows, deferredDiscountRateForAnalysis, currency]);
+  }, [cashflows, discountRateForAnalysis, currency]);
 
   const downsideIrr = useMemo(() => {
     const lowCashflows = cashflows.map((cf) => cf * 0.9);
@@ -632,15 +627,15 @@ const App = () => {
   const fragilityPass = showHurdleRate ? downsideIrr >= hurdleRate : downsideIrr >= discount;
 
   const breakEvenCashflowUpliftPct = useMemo(() => {
-    const pvOfCashflows = deferredCashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + deferredDiscountRateForAnalysis / 100, i + 1), 0);
+    const pvOfCashflows = cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + discountRateForAnalysis / 100, i + 1), 0);
     if (pvOfCashflows <= 0) return null;
     const multiplier = initial / pvOfCashflows;
     return (multiplier - 1) * 100;
-  }, [initial, deferredDiscountRateForAnalysis, deferredCashflows]);
+  }, [initial, discountRateForAnalysis, cashflows]);
 
   const maxInitialAtNpvZero = useMemo(() => {
-    return deferredCashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + deferredDiscountRateForAnalysis / 100, i + 1), 0);
-  }, [deferredDiscountRateForAnalysis, deferredCashflows]);
+    return cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + discountRateForAnalysis / 100, i + 1), 0);
+  }, [discountRateForAnalysis, cashflows]);
 
   const getGradient = (type, index = null) => {
     let minVal;
