@@ -781,7 +781,44 @@ Examples:
 Compare 2–3 project scenarios side-by-side.
 Very valuable pedagogically.
 
-### 5. Assessment mode
+### 5. Project comparison feature
+User explicitly wants a project comparison feature, and this likely deserves elevation from a generic scenario idea into a first-class product surface.
+
+Potential shape:
+- compare multiple saved projects side by side
+- compare headline metrics, assumptions, and final recommendation
+- highlight which assumption differences drive the decision gap
+- support both learner study use and instructor-led classroom discussion
+
+Why this seems strong:
+- comparison is one of the clearest ways to teach capital allocation tradeoffs
+- it turns saved projects into a workflow, not just storage
+- it strengthens premium value for both individual users and classroom users
+
+Product implication:
+- this should likely be treated as a premium workflow feature, not just a chart variant
+- roadmap should plan for comparison-aware project models, not only single-project views
+
+### 6. Presentation mode
+User explicitly wants a presentation mode that walks through the graphs progressively and explains why the final decision is what it is.
+
+Potential shape:
+- full-screen or clean-focus mode for teaching/presenting
+- progressive reveal of charts and annotations
+- layered animations that explain what each graph means before showing the conclusion
+- a stepwise narrative from assumptions → discounting logic → outputs → sensitivity/fragility → final recommendation
+- optional instructor notes or scripted teaching beats later
+
+Why this seems especially valuable:
+- turns the calculator into a teaching artifact, not just an analysis tool
+- gives instructors and students a shared storytelling mode for the "why" behind the decision
+- creates a highly visible premium differentiator that is pedagogical, not merely administrative
+
+Product implication:
+- presentation mode should probably be designed as a guided narrative layer over existing analytics, not a separate duplicate product surface
+- if done well, it could become one of the clearest demonstrations of the product's teaching value
+
+### 7. Assessment mode
 Potential future premium feature:
 - instructor creates assignment
 - students answer prediction questions before seeing full output
@@ -881,13 +918,15 @@ That feels right.
 1. Draft entitlement matrix in detail
 2. Define free-mode UI exactly
 3. Define premium sample project UX
-4. Write pricing experiments / candidate plans
-5. Sketch database schema for users/projects/classes/templates
-6. Evaluate Stripe + Supabase stack formally
-7. Consider whether saved browser projects should become cloud projects for paid tier
-8. Define instructor lock-rule model carefully
-9. Write landing page copy ideas
-10. Define onboarding flow for professor vs learner
-11. Define student vs instructor trial experiences
-12. Sketch backend support/admin panel requirements
-13. Define institutional SSO readiness plan
+4. Define project comparison workflow and UX
+5. Sketch presentation mode narrative flow and progressive chart reveal system
+6. Write pricing experiments / candidate plans
+7. Sketch database schema for users/projects/classes/templates
+8. Evaluate Stripe + Supabase stack formally
+9. Consider whether saved browser projects should become cloud projects for paid tier
+10. Define instructor lock-rule model carefully
+11. Write landing page copy ideas
+12. Define onboarding flow for professor vs learner
+13. Define student vs instructor trial experiences
+14. Sketch backend support/admin panel requirements
+15. Define institutional SSO readiness plan

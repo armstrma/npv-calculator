@@ -683,7 +683,7 @@ const App = () => {
           onChange={(e) => setProjectName(e.target.value)}
           style={{ minWidth: 170, flex: '1 1 180px' }}
         />
-        <button onClick={() => saveProject(projectName)}>Save Project</button>
+        <button onClick={() => saveProject(projectName)} className="button-primary">Save Project</button>
 
         <select
           onChange={(e) => loadProject(e.target.value)}
@@ -836,7 +836,7 @@ const App = () => {
           </div>
 
           <h3 className="factor-subheader">Cash Flows</h3>
-          <button onClick={addYear} className="add-year-button">Add Year</button>
+          <button onClick={addYear} className="button-secondary add-year-button">Add Year</button>
 
           {cashflows.map((cf, index) => (
             <div key={index} className="cashflow-row">
@@ -933,7 +933,7 @@ const App = () => {
               </div>
             </div>
 
-            <button className="metrics-toggle" onClick={() => setShowMetricsDetails((current) => !current)}>
+            <button className="metrics-toggle button-secondary" onClick={() => setShowMetricsDetails((current) => !current)}>
               <span>{showMetricsDetails ? 'Hide details' : 'Show details'}</span>
               <span className="metrics-toggle-caret">{showMetricsDetails ? '▴' : '▾'}</span>
             </button>
@@ -998,7 +998,7 @@ const App = () => {
             )}
           </div>
 
-          <button onClick={() => setShowModal(true)}>Learn More (Educational Guide)</button>
+          <button onClick={() => setShowModal(true)} className="button-secondary button-full">Learn More (Educational Guide)</button>
 
 
           <label style={{ display: 'block', marginTop: 10 }}>
@@ -1011,8 +1011,8 @@ const App = () => {
           </label>
 
           <div className="action-button-row">
-            <button onClick={exportToCSV}>Export CSV</button>
-            <button onClick={copyProjectLink}>{copiedProjectLink ? 'Copied Project Link' : 'Copy Project Link'}</button>
+            <button onClick={exportToCSV} className="button-secondary">Export CSV</button>
+            <button onClick={copyProjectLink} className="button-secondary">{copiedProjectLink ? 'Copied Project Link' : 'Copy Project Link'}</button>
           </div>
 
           {showSensitivity && (
@@ -1032,6 +1032,9 @@ const App = () => {
         <div className="right" style={{ width: '50%' }}>
           <section className="chart-section">
             <h2 className="chart-title">NPV vs Discount Rate</h2>
+            <p className="chart-subtitle">
+              See how the project’s discounted value changes as the required rate rises, and where it crosses into unattractive territory.
+            </p>
             <ResponsiveContainer width="100%" height={210}>
               <LineChart data={discountData} margin={{ top: 22, right: 18, left: 0, bottom: 28 }}>
               <XAxis dataKey="discount" type="number" domain={[0, 30]} />
@@ -1116,6 +1119,9 @@ const App = () => {
 
           <section className="chart-section cashflow-chart-wrap">
             <h2 className="chart-title">Cash Flows</h2>
+            <p className="chart-subtitle">
+              Compare raw cash recovery to discounted recovery so it is clear when time value changes the investment story.
+            </p>
             <ResponsiveContainer width="100%" height={190}>
               <ComposedChart data={barData} barGap={-22} barCategoryGap="30%">
               <XAxis dataKey="name" />
@@ -1269,7 +1275,7 @@ const App = () => {
             <p><strong>ROI</strong>: (Net Gain / Cost) × 100—simple return metric.</p>
             <p><strong>PI</strong>: (NPV + Initial) / Initial; &gt;1 means profitable.</p>
             <p>Story flow: set assumptions → analyze metrics/charts → make go/no-go decision.</p>
-            <button onClick={() => setShowModal(false)}>Close</button>
+            <button onClick={() => setShowModal(false)} className="button-primary">Close</button>
           </div>
         </div>
       )}
