@@ -1,7 +1,24 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import './App.css';
 import { calculateNPV, findIRR, calculatePayback, calculateROI, calculatePI } from './lib/finance.js';
-import { formatNumberWithCommas, sanitizeNumericDraft, parseNumericInput } from './lib/input.js';
+import { formatNumberWithCommas, parseNumericInput } from './lib/input.js';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  ReferenceLine,
+  ReferenceArea,
+  ComposedChart,
+  BarChart,
+  Bar,
+  Cell,
+  Label,
+  Legend,
+  Tooltip,
+  Area,
+} from 'recharts';
 
 const formatCompactCurrency = (value, currency = '$') => {
   const numericValue = Number(value);
@@ -70,9 +87,7 @@ const formatMobileIrr = (value) => `${Math.round(Number(value) || 0)}%`;
 const formatPaybackDisplay = (value) => (typeof value === 'number' ? `${value.toFixed(1)}y` : value);
 
 const getSliderBounds = (values, { minBase = -5000, maxBase = 10000 } = {}) => {
-  const numericValues = values
-    .map((value) => Number(value))
-    .filter((value) => Number.isFinite(value));
+  const numericValues = values.map((value) => Number(value)).filter((value) => Number.isFinite(value));
 
   const highestPositive = numericValues.length ? Math.max(0, ...numericValues) : 0;
   const lowestNegative = numericValues.length ? Math.min(0, ...numericValues) : 0;
@@ -89,23 +104,6 @@ const getSliderBounds = (values, { minBase = -5000, maxBase = 10000 } = {}) => {
 
   return { min, max };
 };
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  ReferenceLine,
-  ReferenceArea,
-  ComposedChart,
-  BarChart,
-  Bar,
-  Cell,
-  Label,
-  Legend,
-  Tooltip,
-  Area,
-} from 'recharts';
 
 const tooltipShellStyle = {
   background: 'rgba(17, 24, 39, 0.92)',
@@ -115,6 +113,157 @@ const tooltipShellStyle = {
   padding: '8px 10px',
   fontSize: 12,
   minWidth: 150,
+};
+
+const upgradeFeatures = [
+  'Save and organize projects',
+  'Share polished project links',
+  'Unlock guided decision support',
+  'Use hurdle-rate-driven analysis',
+  'Get upcoming comparison and presentation workflows',
+];
+
+const productHighlights = [
+  {
+    title: 'Built for finance teaching',
+    body: 'Go beyond a plain calculator with visual reasoning, decision framing, and classroom-friendly storytelling.',
+  },
+  {
+    title: 'Fast enough for live use',
+    body: 'Run scenarios in seconds, explain the result on-screen, and keep students oriented while you teach.',
+  },
+  {
+    title: 'Premium path is ready',
+    body: 'Use the free calculator now, then convert serious learners and instructors with a clear upgrade path.',
+  },
+];
+
+const pricingPlan = {
+  name: 'NPV Calculator Pro',
+  price: '$9/month',
+  annual: '$79/year',
+  cta: 'Start checkout in app',
+};
+
+const AuthModal = ({ open, onClose, authMode, setAuthMode, authEmail, setAuthEmail, onAuthSuccess }) => {
+  if (!open) return null;
+
+  return (
+    <div className="modal" onClick={onClose}>
+      <div className="modal-content auth-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="upgrade-modal-header">
+          <div>
+            <h2>{authMode === 'signin' ? 'Sign in to continue' : 'Create your account'}</h2>
+            <p>Use a lightweight account so projects, purchases, and premium access stay attached to you.</p>
+          </div>
+          <button type="button" className="button-secondary upgrade-modal-close" onClick={onClose}>
+            Close
+          </button>
+        </div>
+
+        <div className="auth-mode-tabs">
+          <button type="button" className={`button-secondary auth-mode-tab ${authMode === 'signin' ? 'active' : ''}`} onClick={() => setAuthMode('signin')}>
+            Sign in
+          </button>
+          <button type="button" className={`button-secondary auth-mode-tab ${authMode === 'register' ? 'active' : ''}`} onClick={() => setAuthMode('register')}>
+            Register
+          </button>
+        </div>
+
+        <div className="auth-card">
+          <label className="auth-field">
+            <span>Email</span>
+            <input
+              type="email"
+              value={authEmail}
+              onChange={(e) => setAuthEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
+          </label>
+
+          <div className="auth-actions">
+            <button type="button" className="button-primary" onClick={onAuthSuccess}>
+              {authMode === 'signin' ? 'Email me a sign-in link' : 'Create account with email'}
+            </button>
+            <button type="button" className="button-secondary" onClick={onAuthSuccess}>
+              Continue with Google
+            </button>
+          </div>
+
+          <p className="auth-footnote">
+            Recommended eventual stack: Supabase Auth with magic links plus Google OAuth.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ProductModal = ({ open, onClose, title = 'Upgrade to Pro', isAuthenticated, userLabel, onStartCheckout, onRequireAuth }) => {
+  if (!open) return null;
+
+  return (
+    <div className="modal" onClick={onClose}>
+      <div className="modal-content upgrade-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="upgrade-modal-header">
+          <div>
+            <h2>{title}</h2>
+            <p>
+              Keep the calculator in view, upgrade in place later, and unlock the premium workflow as the product rolls out.
+            </p>
+          </div>
+          <button type="button" className="button-secondary upgrade-modal-close" onClick={onClose}>
+            Close
+          </button>
+        </div>
+
+        <div className="upgrade-pricing-card">
+          <span className="upgrade-plan-name">{pricingPlan.name}</span>
+          <div className="upgrade-price-row">
+            <strong>{pricingPlan.price}</strong>
+            <span>or {pricingPlan.annual}</span>
+          </div>
+          <p className="upgrade-price-note">
+            Stripe can be embedded directly on-page with Checkout or Payment Element. This modal is ready to become the in-app checkout surface.
+          </p>
+        </div>
+
+        <div className="upgrade-grid">
+          <section>
+            <h3>What you get</h3>
+            <ul className="upgrade-feature-list">
+              {upgradeFeatures.map((feature) => (
+                <li key={feature}>{feature}</li>
+              ))}
+            </ul>
+          </section>
+
+          <section>
+            <h3>Fastest implementation path</h3>
+            <ul className="upgrade-feature-list compact">
+              <li>Stripe Payment Links or embedded Checkout for payment</li>
+              <li>Supabase Auth for Google sign-in and lightweight accounts</li>
+              <li>Supabase Postgres for projects, entitlements, and customer state</li>
+            </ul>
+          </section>
+        </div>
+
+        <div className="upgrade-account-state">
+          <span className="upgrade-account-label">Account</span>
+          <strong>{isAuthenticated ? userLabel : 'Not signed in yet'}</strong>
+        </div>
+
+        <div className="upgrade-actions">
+          <button type="button" className="button-primary" onClick={isAuthenticated ? onStartCheckout : onRequireAuth}>
+            {isAuthenticated ? pricingPlan.cta : 'Sign in to continue'}
+          </button>
+          <button type="button" className="button-secondary" onClick={isAuthenticated ? onStartCheckout : onRequireAuth}>
+            {isAuthenticated ? 'Open embedded checkout next' : 'Create free account'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const NpvTooltip = ({ active, payload, label, currency, showSensitivity }) => {
@@ -130,59 +279,9 @@ const NpvTooltip = ({ active, payload, label, currency, showSensitivity }) => {
       <div style={{ marginBottom: 4, color: '#d1d5db' }}>
         Discount: <strong>{Number(label).toFixed(1)}%</strong>
       </div>
-      {baseNpv !== null && (
-        <div style={{ color: baseNpv >= 0 ? '#86efac' : '#fca5a5' }}>
-          NPV: {currency}{baseNpv.toFixed(2)}
-        </div>
-      )}
-      {showSensitivity && highNpv !== null && (
-        <div style={{ color: '#c4b5fd' }}>High (+10% CF): {currency}{highNpv.toFixed(2)}</div>
-      )}
-      {showSensitivity && lowNpv !== null && (
-        <div style={{ color: '#f9a8d4' }}>Low (-10% CF): {currency}{lowNpv.toFixed(2)}</div>
-      )}
-    </div>
-  );
-};
-
-const TornadoTooltip = ({ active, payload, label, currency, showSensitivity }) => {
-  if (!active || !payload || !payload.length) return null;
-
-  const row = payload[0]?.payload || {};
-  const getImpactColor = (value, positiveShade, negativeShade) =>
-    Number(value || 0) >= 0 ? positiveShade : negativeShade;
-
-  return (
-    <div style={tooltipShellStyle}>
-      <div style={{ marginBottom: 4, color: '#d1d5db' }}>
-        <strong>{label}</strong>
-      </div>
-      {showSensitivity && (
-        <div style={{ color: getImpactColor(row.down5, '#54a24b', '#c03f2f') }}>
-          -5%: {currency}{Number(row.down5 || 0).toFixed(2)}
-        </div>
-      )}
-      <div style={{ color: getImpactColor(row.down10, '#69c35f', '#ef5a43') }}>
-        -10%: {currency}{Number(row.down10 || 0).toFixed(2)}
-      </div>
-      {showSensitivity && (
-        <div style={{ color: getImpactColor(row.down20, '#c8e6c9', '#f5c2bc') }}>
-          -20%: {currency}{Number(row.down20 || 0).toFixed(2)}
-        </div>
-      )}
-      {showSensitivity && (
-        <div style={{ color: getImpactColor(row.up5, '#54a24b', '#c03f2f'), marginTop: 4 }}>
-          +5%: {currency}{Number(row.up5 || 0).toFixed(2)}
-        </div>
-      )}
-      <div style={{ color: getImpactColor(row.up10, '#69c35f', '#ef5a43'), marginTop: showSensitivity ? 0 : 4 }}>
-        +10%: {currency}{Number(row.up10 || 0).toFixed(2)}
-      </div>
-      {showSensitivity && (
-        <div style={{ color: getImpactColor(row.up20, '#c8e6c9', '#f5c2bc') }}>
-          +20%: {currency}{Number(row.up20 || 0).toFixed(2)}
-        </div>
-      )}
+      {baseNpv !== null && <div style={{ color: baseNpv >= 0 ? '#86efac' : '#fca5a5' }}>NPV: {currency}{baseNpv.toFixed(2)}</div>}
+      {showSensitivity && highNpv !== null && <div style={{ color: '#c4b5fd' }}>High (+10% CF): {currency}{highNpv.toFixed(2)}</div>}
+      {showSensitivity && lowNpv !== null && <div style={{ color: '#f9a8d4' }}>Low (-10% CF): {currency}{lowNpv.toFixed(2)}</div>}
     </div>
   );
 };
@@ -196,29 +295,15 @@ const CashflowTooltip = ({ active, payload, label, currency, showSensitivity }) 
       <div style={{ marginBottom: 4, color: '#d1d5db' }}>
         <strong>{label}</strong>
       </div>
-      <div style={{ color: Number(row.value) >= 0 ? '#93c5fd' : '#fca5a5' }}>
-        Cash Flow: {currency}{Number(row.value || 0).toFixed(2)}
-      </div>
-      {row.pvValue !== null && row.pvValue !== undefined && (
-        <div style={{ color: '#c4b5fd' }}>
-          PV Cash Flow: {currency}{Number(row.pvValue).toFixed(2)}
-        </div>
-      )}
+      <div style={{ color: Number(row.value) >= 0 ? '#93c5fd' : '#fca5a5' }}>Cash Flow: {currency}{Number(row.value || 0).toFixed(2)}</div>
+      {row.pvValue !== null && row.pvValue !== undefined && <div style={{ color: '#c4b5fd' }}>PV Cash Flow: {currency}{Number(row.pvValue).toFixed(2)}</div>}
       {showSensitivity && row.pvLow !== null && row.pvLow !== undefined && row.pvHigh !== null && row.pvHigh !== undefined && (
         <div style={{ color: '#ddd6fe' }}>
           PV Sensitivity Range: {currency}{Number(row.pvLow).toFixed(2)} → {currency}{Number(row.pvHigh).toFixed(2)}
         </div>
       )}
-      {row.cumulative !== null && row.cumulative !== undefined && (
-        <div style={{ color: '#60a5fa' }}>
-          Cash Cumulative: {currency}{Number(row.cumulative).toFixed(2)}
-        </div>
-      )}
-      {row.pvCumulative !== null && row.pvCumulative !== undefined && (
-        <div style={{ color: '#a78bfa' }}>
-          PV Cumulative: {currency}{Number(row.pvCumulative).toFixed(2)}
-        </div>
-      )}
+      {row.cumulative !== null && row.cumulative !== undefined && <div style={{ color: '#60a5fa' }}>Cash Cumulative: {currency}{Number(row.cumulative).toFixed(2)}</div>}
+      {row.pvCumulative !== null && row.pvCumulative !== undefined && <div style={{ color: '#a78bfa' }}>PV Cumulative: {currency}{Number(row.pvCumulative).toFixed(2)}</div>}
     </div>
   );
 };
@@ -248,7 +333,12 @@ const App = () => {
   const [showSensitivity, setShowSensitivity] = useState(false);
   const [showHurdleRate, setShowHurdleRate] = useState(false);
   const [hurdleRate, setHurdleRate] = useState(12);
-  const [showModal, setShowModal] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState('signin');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authUser, setAuthUser] = useState(null);
   const [showHurdleWarning, setShowHurdleWarning] = useState(false);
   const [projects, setProjects] = useState({});
   const [projectName, setProjectName] = useState('');
@@ -259,7 +349,6 @@ const App = () => {
   const [initialInput, setInitialInput] = useState(formatNumberWithCommas(1000));
   const [cashflowInputs, setCashflowInputs] = useState([200, 300, 400, 500, 600].map(formatNumberWithCommas));
   const discountRateForAnalysis = showHurdleRate ? hurdleRate : discount;
-
 
   useEffect(() => {
     const saved = localStorage.getItem('npvProjects');
@@ -286,10 +375,7 @@ const App = () => {
       if (Number.isFinite(parsedDiscount)) setDiscount(parsedDiscount);
     }
     if (cashflowsParam) {
-      const parsedCashflows = cashflowsParam
-        .split(',')
-        .map((value) => Number(value))
-        .filter((value) => Number.isFinite(value));
+      const parsedCashflows = cashflowsParam.split(',').map((value) => Number(value)).filter((value) => Number.isFinite(value));
       if (parsedCashflows.length) {
         setCashflows(parsedCashflows);
         setCashflowInputs(parsedCashflows.map(formatNumberWithCommas));
@@ -321,6 +407,22 @@ const App = () => {
       cashflow: getSliderBounds(cashflows, { minBase: -5000, maxBase: 10000 }),
     });
   }, [initial, cashflows]);
+
+  const handleRequireAuth = (mode = 'signin') => {
+    setAuthMode(mode);
+    setShowAuthModal(true);
+  };
+
+  const handleAuthSuccess = () => {
+    const normalizedEmail = authEmail.trim() || 'goose@example.com';
+    setAuthUser({ email: normalizedEmail });
+    setShowAuthModal(false);
+    setShowUpgradeModal(true);
+  };
+
+  const handleStartCheckout = () => {
+    window.alert('Next step: mount Stripe Embedded Checkout here once the backend session endpoint is wired.');
+  };
 
   const saveProject = (name) => {
     if (!name?.trim()) return;
@@ -397,11 +499,9 @@ const App = () => {
     let cumulative = -initial;
     let cumulativeLow = -initial;
     let cumulativeHigh = -initial;
-
     let pvCumulative = -initial;
     let pvCumulativeLow = -initial;
     let pvCumulativeHigh = -initial;
-
     const rate = discountRateForAnalysis / 100;
 
     return [
@@ -426,11 +526,9 @@ const App = () => {
         const pvValue = cf / Math.pow(1 + rate, i + 1);
         const pvLow = (cf * 0.9) / Math.pow(1 + rate, i + 1);
         const pvHigh = (cf * 1.1) / Math.pow(1 + rate, i + 1);
-
         cumulative += cf;
         cumulativeLow += cf * 0.9;
         cumulativeHigh += cf * 1.1;
-
         pvCumulative += pvValue;
         pvCumulativeLow += pvLow;
         pvCumulativeHigh += pvHigh;
@@ -501,11 +599,6 @@ const App = () => {
     return rows;
   }, [cashflows, discountRateForAnalysis, currency]);
 
-  const npvAtMinus10Cashflow = useMemo(() => {
-    const lowCashflows = cashflows.map((cf) => cf * 0.9);
-    return calculateNPV(initial, discountRateForAnalysis, lowCashflows);
-  }, [initial, discountRateForAnalysis, cashflows]);
-
   const downsideIrr = useMemo(() => {
     const lowCashflows = cashflows.map((cf) => cf * 0.9);
     return findIRR(initial, lowCashflows);
@@ -523,8 +616,7 @@ const App = () => {
   }, [initial, discountRateForAnalysis, cashflows]);
 
   const maxInitialAtNpvZero = useMemo(() => {
-    const pvOfCashflows = cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + discountRateForAnalysis / 100, i + 1), 0);
-    return pvOfCashflows;
+    return cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + discountRateForAnalysis / 100, i + 1), 0);
   }, [discountRateForAnalysis, cashflows]);
 
   const getGradient = (type, index = null) => {
@@ -586,6 +678,7 @@ const App = () => {
     setCashflows([...cashflows, 0]);
     setCashflowInputs([...cashflowInputs, formatNumberWithCommas(0)]);
   };
+
   const removeYear = (index) => {
     setCashflows(cashflows.filter((_, i) => i !== index));
     setCashflowInputs(cashflowInputs.filter((_, i) => i !== index));
@@ -646,12 +739,8 @@ const App = () => {
           ? 'Cautious Project: The base case passes, but the downside scenario fails the fragility check.'
           : 'Accept Project: The base case and downside case both pass the required checks.';
 
-  const sentiment = useMemo(
-    () => getSentimentStatus({ viabilityPass, standardPass, fragilityPass }),
-    [viabilityPass, standardPass, fragilityPass]
-  );
+  const sentiment = useMemo(() => getSentimentStatus({ viabilityPass, standardPass, fragilityPass }), [viabilityPass, standardPass, fragilityPass]);
   const npvColor = npv >= 0 ? '#16a34a' : '#dc2626';
-  const paybackYear = typeof payback === 'number' ? payback : null;
 
   const pvBreakEvenInfo = useMemo(() => {
     const yearlyRows = barData.filter((row) => row.name !== 'NPV' && row.pvCumulative !== null && row.pvCumulative !== undefined);
@@ -672,17 +761,36 @@ const App = () => {
 
   return (
     <>
-      <style>{`
-      ${sliderCss}
-      `}</style>
+      <style>{`${sliderCss}`}</style>
+
+      <section className="product-page-hero">
+        <div className="product-page-copy">
+          <span className="product-badge">Finance teaching MVP</span>
+          <h1 className="product-page-title">Teach capital budgeting with a calculator that actually explains the decision.</h1>
+          <p className="product-page-subtitle">
+            NPV Calculator Pro combines fast scenario analysis, visual reasoning, and a growing premium workflow for students, instructors, and finance learners.
+          </p>
+          <div className="product-page-actions">
+            <button type="button" className="button-primary" onClick={() => setShowUpgradeModal(true)}>
+              See pricing
+            </button>
+            <button type="button" className="button-secondary" onClick={() => window.scrollTo({ top: 520, behavior: 'smooth' })}>
+              Jump to calculator
+            </button>
+          </div>
+        </div>
+        <div className="product-page-grid">
+          {productHighlights.map((highlight) => (
+            <article key={highlight.title} className="product-highlight-card">
+              <h3>{highlight.title}</h3>
+              <p>{highlight.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <div className="project-toolbar">
-        <input
-          placeholder="Project Name"
-          value={projectName}
-          onChange={(e) => setProjectName(e.target.value)}
-          style={{ minWidth: 170, flex: '1 1 180px' }}
-        />
+        <input placeholder="Project Name" value={projectName} onChange={(e) => setProjectName(e.target.value)} style={{ minWidth: 170, flex: '1 1 180px' }} />
         <button onClick={() => saveProject(projectName)} className="button-primary">Save Project</button>
 
         <select
@@ -690,12 +798,8 @@ const App = () => {
           value={loadedProjectName && !projects[loadedProjectName] ? '__unsaved__' : loadedProjectName || '__placeholder__'}
           style={{ minWidth: 150, flex: '1 1 160px' }}
         >
-          <option value="__placeholder__" disabled>
-            Load Project
-          </option>
-          {loadedProjectName && !projects[loadedProjectName] && (
-            <option value="__unsaved__">{loadedProjectName} (Unsaved)</option>
-          )}
+          <option value="__placeholder__" disabled>Load Project</option>
+          {loadedProjectName && !projects[loadedProjectName] && <option value="__unsaved__">{loadedProjectName} (Unsaved)</option>}
           {Object.keys(projects).map((name) => (
             <option key={name} value={name}>{name}</option>
           ))}
@@ -707,24 +811,11 @@ const App = () => {
             <option key={name}>{name}</option>
           ))}
         </select>
-
-
       </div>
 
       <div className="mobile-metrics-header">
         <span>
-          <strong
-            style={{
-              color:
-                sentiment.tone === 'positive'
-                  ? '#16a34a'
-                  : sentiment.tone === 'caution'
-                    ? '#ca8a04'
-                    : '#dc2626',
-            }}
-          >
-            {sentiment.label}
-          </strong>
+          <strong style={{ color: sentiment.tone === 'positive' ? '#16a34a' : sentiment.tone === 'caution' ? '#ca8a04' : '#dc2626' }}>{sentiment.label}</strong>
         </span>
         <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
         <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>
@@ -780,23 +871,11 @@ const App = () => {
             <div className="rate-toggle-row">
               <label className="rate-toggle-label">Discount Rate: {discount.toFixed(1)}%</label>
               <span className="rate-checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={showHurdleRate}
-                  onChange={(e) => setShowHurdleRate(e.target.checked)}
-                />
+                <input type="checkbox" checked={showHurdleRate} onChange={(e) => setShowHurdleRate(e.target.checked)} />
                 Hurdle Rate
               </span>
             </div>
-            <input
-              type="range"
-              min={0}
-              max={30}
-              step={0.1}
-              value={discount}
-              onChange={(e) => setDiscount(Number(e.target.value))}
-              className="slider-discount"
-            />
+            <input type="range" min={0} max={30} step={0.1} value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="slider-discount" />
             {showHurdleRate && (
               <div className="hurdle-rate-control">
                 <div className="hurdle-rate-label-row">
@@ -822,15 +901,7 @@ const App = () => {
                     </div>
                   )}
                 </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={30}
-                  step={0.1}
-                  value={hurdleRate}
-                  onChange={(e) => setHurdleRate(Number(e.target.value))}
-                  className="slider-hurdle"
-                />
+                <input type="range" min={0} max={30} step={0.1} value={hurdleRate} onChange={(e) => setHurdleRate(Number(e.target.value))} className="slider-hurdle" />
               </div>
             )}
           </div>
@@ -855,7 +926,6 @@ const App = () => {
                       const newCashflowInputs = [...cashflowInputs];
                       newCashflowInputs[index] = rawValue;
                       setCashflowInputs(newCashflowInputs);
-
                       const parsed = parseNumericInput(rawValue);
                       if (parsed !== null) {
                         const newCashflows = [...cashflows];
@@ -882,7 +952,6 @@ const App = () => {
                     const newCashflows = [...cashflows];
                     newCashflows[index] = nextValue;
                     setCashflows(newCashflows);
-
                     const newCashflowInputs = [...cashflowInputs];
                     newCashflowInputs[index] = formatNumberWithCommas(nextValue);
                     setCashflowInputs(newCashflowInputs);
@@ -890,12 +959,7 @@ const App = () => {
                   className={`slider-cashflow-${index}`}
                 />
               </div>
-              <button
-                onClick={() => removeYear(index)}
-                className="delete-btn"
-                title={`Delete Year ${index + 1}`}
-                aria-label={`Delete Year ${index + 1}`}
-              >
+              <button onClick={() => removeYear(index)} className="delete-btn" title={`Delete Year ${index + 1}`} aria-label={`Delete Year ${index + 1}`}>
                 <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M3 6h18" />
                   <path d="M8 6V4h8v2" />
@@ -916,9 +980,7 @@ const App = () => {
               </div>
               <div className="metric-pill">
                 <span className="metric-pill-label">NPV</span>
-                <span className="metric-pill-value compact" style={{ color: npvColor }}>
-                  {formatCompactCurrency(npv, currency)}
-                </span>
+                <span className="metric-pill-value compact" style={{ color: npvColor }}>{formatCompactCurrency(npv, currency)}</span>
                 <span className="metric-pill-subtext">Discounted value</span>
               </div>
               <div className="metric-pill">
@@ -946,7 +1008,7 @@ const App = () => {
                     <div>
                       <span className="details-metric-label">Overall Sentiment</span>
                       <span className={`details-metric-value sentiment-${sentiment.tone}`}>{sentiment.label}</span>
-                  <span className="details-metric-subtext">{sentiment.detail}</span>
+                      <span className="details-metric-subtext">{sentiment.detail}</span>
                     </div>
                   </div>
                   <div className="details-discount-source-badge" role="status">
@@ -961,17 +1023,13 @@ const App = () => {
                     <div className={`details-rule ${standardPass ? 'pass' : 'fail'}`}>
                       <span className="details-rule-name">Standard</span>
                       <span className="details-rule-status">{standardPass ? 'Pass' : 'Fail'}</span>
-                      <span className="details-rule-subtext">
-                        {showHurdleRate ? `IRR ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `IRR ≥ discount (${discount.toFixed(1)}%)`}
-                      </span>
+                      <span className="details-rule-subtext">{showHurdleRate ? `IRR ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `IRR ≥ discount (${discount.toFixed(1)}%)`}</span>
                     </div>
                     <div className={`details-rule ${fragilityPass ? 'pass' : 'fail'}`}>
                       <span className="details-rule-name">Fragility</span>
                       <span className="details-rule-status">{fragilityPass ? 'Pass' : 'Fail'}</span>
                       <span className="details-rule-subtext">
-                        {showHurdleRate
-                          ? `Downside IRR (${downsideIrr.toFixed(2)}%) ≥ hurdle (${hurdleRate.toFixed(1)}%)`
-                          : `Downside IRR (${downsideIrr.toFixed(2)}%) ≥ discount (${discount.toFixed(1)}%)`}
+                        {showHurdleRate ? `Downside IRR (${downsideIrr.toFixed(2)}%) ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `Downside IRR (${downsideIrr.toFixed(2)}%) ≥ discount (${discount.toFixed(1)}%)`}
                       </span>
                     </div>
                   </div>
@@ -985,11 +1043,7 @@ const App = () => {
                     <p>Discounted payback period at {discountRateForAnalysis.toFixed(1)}%: <strong>{formatPaybackDisplay(payback)}</strong></p>
                     <p>
                       Required cash flow uplift:{' '}
-                      <strong>
-                        {breakEvenCashflowUpliftPct === null
-                          ? 'N/A'
-                          : `${breakEvenCashflowUpliftPct >= 0 ? '+' : ''}${breakEvenCashflowUpliftPct.toFixed(1)}%`}
-                      </strong>
+                      <strong>{breakEvenCashflowUpliftPct === null ? 'N/A' : `${breakEvenCashflowUpliftPct >= 0 ? '+' : ''}${breakEvenCashflowUpliftPct.toFixed(1)}%`}</strong>
                     </p>
                     <p>Max initial investment at current rate: <strong>{currency}{maxInitialAtNpvZero.toFixed(2)}</strong></p>
                   </div>
@@ -998,16 +1052,10 @@ const App = () => {
             )}
           </div>
 
-          <button onClick={() => setShowModal(true)} className="button-secondary button-full">Learn More (Educational Guide)</button>
-
+          <button onClick={() => setShowGuideModal(true)} className="button-secondary button-full">Learn More (Educational Guide)</button>
 
           <label style={{ display: 'block', marginTop: 10 }}>
-            <input
-              type="checkbox"
-              checked={showSensitivity}
-              onChange={(e) => setShowSensitivity(e.target.checked)}
-            />{' '}
-            Show Sensitivity Analysis
+            <input type="checkbox" checked={showSensitivity} onChange={(e) => setShowSensitivity(e.target.checked)} /> Show Sensitivity Analysis
           </label>
 
           <div className="action-button-row">
@@ -1032,222 +1080,88 @@ const App = () => {
         <div className="right" style={{ width: '50%' }}>
           <section className="chart-section">
             <h2 className="chart-title">NPV vs Discount Rate</h2>
-            <p className="chart-subtitle">
-              See how the project’s discounted value changes as the required rate rises, and where it crosses into unattractive territory.
-            </p>
+            <p className="chart-subtitle">See how the project’s discounted value changes as the required rate rises, and where it crosses into unattractive territory.</p>
             <ResponsiveContainer width="100%" height={210}>
               <LineChart data={discountData} margin={{ top: 22, right: 18, left: 0, bottom: 28 }}>
-              <XAxis dataKey="discount" type="number" domain={[0, 30]} />
-              <YAxis />
-              <Tooltip
-                cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }}
-                content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} />}
-              />
-              <Line type="monotone" dataKey="npv_pos" stroke="green" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
-              <Line type="monotone" dataKey="npv_neg" stroke="red" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
-              {!Number.isNaN(irr) && (
-                <ReferenceLine
-                  x={irr}
-                  stroke="#7dd3fc"
-                  strokeDasharray="3 3"
-                  label={<Label value={`IRR: ${irr.toFixed(2)}%`} position="insideTopRight" fill="#7dd3fc" dx={-10} dy={-8} />}
-                />
-              )}
-              {!showHurdleRate && (
-                <ReferenceLine
-                  x={discount}
-                  stroke="#c084fc"
-                  strokeDasharray="3 3"
-                  label={<Label value={`Discount Rate: ${discount.toFixed(1)}%`} position="insideBottom" fill="#c084fc" dy={-2} />}
-                />
-              )}
-              {showHurdleRate && (
-                <ReferenceLine
-                  x={hurdleRate}
-                  stroke="#22c55e"
-                  strokeDasharray="6 4"
-                  label={<Label value={`Hurdle Rate: ${hurdleRate.toFixed(1)}%`} position="insideBottom" fill="#22c55e" dy={-2} />}
-                />
-              )}
-              {showSensitivity && (
-                <>
-                  <Line
-                    type="monotone"
-                    dataKey="high_npv_pos"
-                    stroke="#a78bfa"
-                    dot={false}
-                    activeDot={{ r: 3 }}
-                    strokeWidth={2}
-                    strokeDasharray="4 3"
-                    isAnimationActive={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="high_npv_neg"
-                    stroke="#ef4444"
-                    dot={false}
-                    activeDot={{ r: 3 }}
-                    strokeWidth={2}
-                    strokeDasharray="4 3"
-                    isAnimationActive={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="low_npv_pos"
-                    stroke="#f9a8d4"
-                    dot={false}
-                    activeDot={{ r: 3 }}
-                    strokeWidth={2}
-                    strokeDasharray="4 3"
-                    isAnimationActive={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="low_npv_neg"
-                    stroke="#dc2626"
-                    dot={false}
-                    activeDot={{ r: 3 }}
-                    strokeWidth={3}
-                    strokeDasharray="4 3"
-                    isAnimationActive={false}
-                  />
-                </>
-              )}
+                <XAxis dataKey="discount" type="number" domain={[0, 30]} />
+                <YAxis />
+                <Tooltip cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} />} />
+                <Line type="monotone" dataKey="npv_pos" stroke="green" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
+                <Line type="monotone" dataKey="npv_neg" stroke="red" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
+                {!Number.isNaN(irr) && (
+                  <ReferenceLine x={irr} stroke="#7dd3fc" strokeDasharray="3 3" label={<Label value={`IRR: ${irr.toFixed(2)}%`} position="insideTopRight" fill="#7dd3fc" dx={-10} dy={-8} />} />
+                )}
+                {!showHurdleRate && (
+                  <ReferenceLine x={discount} stroke="#c084fc" strokeDasharray="3 3" label={<Label value={`Discount Rate: ${discount.toFixed(1)}%`} position="insideBottom" fill="#c084fc" dy={-2} />} />
+                )}
+                {showHurdleRate && (
+                  <ReferenceLine x={hurdleRate} stroke="#22c55e" strokeDasharray="6 4" label={<Label value={`Hurdle Rate: ${hurdleRate.toFixed(1)}%`} position="insideBottom" fill="#22c55e" dy={-2} />} />
+                )}
+                {showSensitivity && (
+                  <>
+                    <Line type="monotone" dataKey="high_npv_pos" stroke="#a78bfa" dot={false} activeDot={{ r: 3 }} strokeWidth={2} strokeDasharray="4 3" isAnimationActive={false} />
+                    <Line type="monotone" dataKey="high_npv_neg" stroke="#ef4444" dot={false} activeDot={{ r: 3 }} strokeWidth={2} strokeDasharray="4 3" isAnimationActive={false} />
+                    <Line type="monotone" dataKey="low_npv_pos" stroke="#f9a8d4" dot={false} activeDot={{ r: 3 }} strokeWidth={2} strokeDasharray="4 3" isAnimationActive={false} />
+                    <Line type="monotone" dataKey="low_npv_neg" stroke="#dc2626" dot={false} activeDot={{ r: 3 }} strokeWidth={3} strokeDasharray="4 3" isAnimationActive={false} />
+                  </>
+                )}
               </LineChart>
             </ResponsiveContainer>
           </section>
 
           <section className="chart-section cashflow-chart-wrap">
             <h2 className="chart-title">Cash Flows</h2>
-            <p className="chart-subtitle">
-              Compare raw cash recovery to discounted recovery so it is clear when time value changes the investment story.
-            </p>
+            <p className="chart-subtitle">Compare raw cash recovery to discounted recovery so it is clear when time value changes the investment story.</p>
             <ResponsiveContainer width="100%" height={190}>
               <ComposedChart data={barData} barGap={-22} barCategoryGap="30%">
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} />} />
-              <Legend
-                payload={[
-                  { value: 'PV Cumulative', type: 'line', color: '#a78bfa' },
-                  { value: 'Cash Cumulative', type: 'line', color: '#60a5fa' },
-                ]}
-              />
-              {cashflows.length > 0 && (
-                <>
-                  {pvBreakEvenInfo.firstPositiveLabel ? (
-                    <>
-                      <ReferenceArea
-                        x1="Initial"
-                        x2={pvBreakEvenInfo.lastNegativeLabel || 'Initial'}
-                        fill="#ef4444"
-                        fillOpacity={0.08}
-                        ifOverflow="hidden"
-                      />
-                      <ReferenceArea
-                        x1={pvBreakEvenInfo.firstPositiveLabel}
-                        x2={`Year ${cashflows.length}`}
-                        fill="#22c55e"
-                        fillOpacity={0.08}
-                        ifOverflow="hidden"
-                      />
-                    </>
-                  ) : (
-                    <ReferenceArea
-                      x1="Initial"
-                      x2={`Year ${cashflows.length}`}
-                      fill="#ef4444"
-                      fillOpacity={0.08}
-                      ifOverflow="hidden"
-                    />
-                  )}
-                </>
-              )}
-              <Bar dataKey="value" name="Cash Flow" legendType="none" fillOpacity={0.35} barSize={24}>
-                {barData.map((entry, index) => {
-                  const isNpv = entry.name === 'NPV';
-                  const fill = isNpv ? (entry.value >= 0 ? '#22c55e' : '#ef4444') : '#3b82f6';
-                  return <Cell key={`cash-cell-${index}`} fill={fill} />;
-                })}
-              </Bar>
-              <Bar dataKey="pvValue" name="PV Cash Flow" legendType="none" barSize={14}>
-                {barData.map((entry, index) => {
-                  if (entry.pvValue === null || entry.pvValue === undefined) {
-                    return <Cell key={`pv-cell-${index}`} fill="transparent" />;
-                  }
-                  const isNpv = entry.name === 'NPV';
-                  const fill = isNpv ? (entry.value >= 0 ? '#16a34a' : '#dc2626') : '#8b5cf6';
-                  return <Cell key={`pv-cell-${index}`} fill={fill} />;
-                })}
-
-              </Bar>
-              {showSensitivity && (
-                <>
-                  <Area
-                    type="monotone"
-                    dataKey="cumulativeLow"
-                    stackId="cashBand"
-                    legendType="none"
-                    stroke="none"
-                    fill="transparent"
-                    isAnimationActive={false}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="cumulativeRange"
-                    stackId="cashBand"
-                    legendType="none"
-                    stroke="none"
-                    fill="#60a5fa"
-                    fillOpacity={0.16}
-                    isAnimationActive={false}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="pvCumulativeLow"
-                    stackId="pvBand"
-                    legendType="none"
-                    stroke="none"
-                    fill="transparent"
-                    isAnimationActive={false}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="pvCumulativeRange"
-                    stackId="pvBand"
-                    legendType="none"
-                    stroke="none"
-                    fill="#a78bfa"
-                    fillOpacity={0.16}
-                    isAnimationActive={false}
-                  />
-                </>
-              )}
-              <Line
-                type="monotone"
-                dataKey="cumulative"
-                name="Cash Cumulative"
-                stroke="#60a5fa"
-                dot={false}
-                strokeWidth={2}
-                strokeDasharray="5 3"
-              />
-              <Line
-                type="monotone"
-                dataKey="pvCumulative"
-                name="PV Cumulative"
-                stroke="#a78bfa"
-                dot={false}
-                strokeWidth={3}
-              />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} />} />
+                <Legend payload={[{ value: 'PV Cumulative', type: 'line', color: '#a78bfa' }, { value: 'Cash Cumulative', type: 'line', color: '#60a5fa' }]} />
+                {cashflows.length > 0 && (
+                  <>
+                    {pvBreakEvenInfo.firstPositiveLabel ? (
+                      <>
+                        <ReferenceArea x1="Initial" x2={pvBreakEvenInfo.lastNegativeLabel || 'Initial'} fill="#ef4444" fillOpacity={0.08} ifOverflow="hidden" />
+                        <ReferenceArea x1={pvBreakEvenInfo.firstPositiveLabel} x2={`Year ${cashflows.length}`} fill="#22c55e" fillOpacity={0.08} ifOverflow="hidden" />
+                      </>
+                    ) : (
+                      <ReferenceArea x1="Initial" x2={`Year ${cashflows.length}`} fill="#ef4444" fillOpacity={0.08} ifOverflow="hidden" />
+                    )}
+                  </>
+                )}
+                <Bar dataKey="value" name="Cash Flow" legendType="none" fillOpacity={0.35} barSize={24}>
+                  {barData.map((entry, index) => {
+                    const isNpv = entry.name === 'NPV';
+                    const fill = isNpv ? (entry.value >= 0 ? '#22c55e' : '#ef4444') : '#3b82f6';
+                    return <Cell key={`cash-cell-${index}`} fill={fill} />;
+                  })}
+                </Bar>
+                <Bar dataKey="pvValue" name="PV Cash Flow" legendType="none" barSize={14}>
+                  {barData.map((entry, index) => {
+                    if (entry.pvValue === null || entry.pvValue === undefined) return <Cell key={`pv-cell-${index}`} fill="transparent" />;
+                    const isNpv = entry.name === 'NPV';
+                    const fill = isNpv ? (entry.value >= 0 ? '#16a34a' : '#dc2626') : '#8b5cf6';
+                    return <Cell key={`pv-cell-${index}`} fill={fill} />;
+                  })}
+                </Bar>
+                {showSensitivity && (
+                  <>
+                    <Area type="monotone" dataKey="cumulativeLow" stackId="cashBand" legendType="none" stroke="none" fill="transparent" isAnimationActive={false} />
+                    <Area type="monotone" dataKey="cumulativeRange" stackId="cashBand" legendType="none" stroke="none" fill="#60a5fa" fillOpacity={0.16} isAnimationActive={false} />
+                    <Area type="monotone" dataKey="pvCumulativeLow" stackId="pvBand" legendType="none" stroke="none" fill="transparent" isAnimationActive={false} />
+                    <Area type="monotone" dataKey="pvCumulativeRange" stackId="pvBand" legendType="none" stroke="none" fill="#a78bfa" fillOpacity={0.16} isAnimationActive={false} />
+                  </>
+                )}
+                <Line type="monotone" dataKey="cumulative" name="Cash Cumulative" stroke="#60a5fa" dot={false} strokeWidth={2} strokeDasharray="5 3" />
+                <Line type="monotone" dataKey="pvCumulative" name="PV Cumulative" stroke="#a78bfa" dot={false} strokeWidth={3} />
               </ComposedChart>
             </ResponsiveContainer>
           </section>
+
           <section className="chart-section">
             <h2 className="chart-title">NPV Impact per $1 Change</h2>
-            <p className="chart-subtitle">
-              A simple teaching view: how much NPV changes when a factor moves by $1. Earlier cash flows should matter more than later ones.
-            </p>
+            <p className="chart-subtitle">A simple teaching view: how much NPV changes when a factor moves by $1. Earlier cash flows should matter more than later ones.</p>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={marginalSensitivityData} margin={{ top: 10, right: 18, left: 40, bottom: 5 }}>
                 <XAxis dataKey="name" />
@@ -1265,20 +1179,44 @@ const App = () => {
         </div>
       </div>
 
-      {showModal && (
-        <div className="modal" onClick={() => setShowModal(false)}>
+      <button type="button" className="floating-upgrade-button button-primary" onClick={() => setShowUpgradeModal(true)}>
+        Upgrade to Pro
+      </button>
+
+      {showGuideModal && (
+        <div className="modal" onClick={() => setShowGuideModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Educational Guide</h2>
             <p><strong>NPV (Net Present Value)</strong>: Measures project profitability by discounting future cash flows. Formula: Σ(CF_t / (1+r)^t) - Initial. Positive means value added.</p>
             <p><strong>IRR (Internal Rate of Return)</strong>: Discount rate making NPV = 0. Compare to cost of capital.</p>
-            <p><strong>Payback Period</strong>: Time to recover investment—shorter is generally less risky.</p>
-            <p><strong>ROI</strong>: (Net Gain / Cost) × 100—simple return metric.</p>
+            <p><strong>Payback Period</strong>: Time to recover investment, shorter is generally less risky.</p>
+            <p><strong>ROI</strong>: (Net Gain / Cost) × 100, simple return metric.</p>
             <p><strong>PI</strong>: (NPV + Initial) / Initial; &gt;1 means profitable.</p>
             <p>Story flow: set assumptions → analyze metrics/charts → make go/no-go decision.</p>
-            <button onClick={() => setShowModal(false)} className="button-primary">Close</button>
+            <button onClick={() => setShowGuideModal(false)} className="button-primary">Close</button>
           </div>
         </div>
       )}
+
+      <AuthModal
+        open={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        authMode={authMode}
+        setAuthMode={setAuthMode}
+        authEmail={authEmail}
+        setAuthEmail={setAuthEmail}
+        onAuthSuccess={handleAuthSuccess}
+      />
+
+      <ProductModal
+        open={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        title="Upgrade without leaving the page"
+        isAuthenticated={Boolean(authUser)}
+        userLabel={authUser ? authUser.email : 'Not signed in'}
+        onStartCheckout={handleStartCheckout}
+        onRequireAuth={() => handleRequireAuth('register')}
+      />
     </>
   );
 };
