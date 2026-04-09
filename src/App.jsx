@@ -125,16 +125,16 @@ const upgradeFeatures = [
 
 const productHighlights = [
   {
-    title: 'Built for finance teaching',
-    body: 'Go beyond a plain calculator with visual reasoning, decision framing, and classroom-friendly storytelling.',
+    title: 'Built for learning finance',
+    body: 'Go beyond a plain calculator with visual reasoning, decision framing, and storytelling.',
   },
   {
     title: 'Fast enough for live use',
-    body: 'Run scenarios in seconds, explain the result on-screen, and keep students oriented while you teach.',
+    body: 'Run scenarios in seconds, explain the on-screen, and understand results immediately.',
   },
   {
     title: 'Premium path is ready',
-    body: 'Use the free calculator now, then convert serious learners and instructors with a clear upgrade path.',
+    body: 'Use the free calculator now, but upgrade when you want to save, share, compare, and more.',
   },
 ];
 
@@ -762,7 +762,7 @@ const App = () => {
       {showProductHero && (
       <section className="product-page-hero">
         <div className="product-page-copy">
-          <h1 className="product-page-title">Teach capital budgeting with a calculator that actually explains the decision.</h1>
+          <h1 className="product-page-title">Learn capital budgeting with a calculator that actually explains the decision.</h1>
           <p className="product-page-subtitle">
             NPV Calculator Pro combines fast scenario analysis, visual reasoning, and a growing premium workflow for students, instructors, and finance learners.
           </p>
