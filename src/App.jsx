@@ -336,6 +336,8 @@ const App = () => {
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showProductHero, setShowProductHero] = useState(true);
+  const [returnToUpgradeAfterAuth, setReturnToUpgradeAfterAuth] = useState(false);
   const [authMode, setAuthMode] = useState('signin');
   const [authEmail, setAuthEmail] = useState('');
   const [authUser, setAuthUser] = useState(null);
@@ -349,6 +351,17 @@ const App = () => {
   const [initialInput, setInitialInput] = useState(formatNumberWithCommas(1000));
   const [cashflowInputs, setCashflowInputs] = useState([200, 300, 400, 500, 600].map(formatNumberWithCommas));
   const discountRateForAnalysis = showHurdleRate ? hurdleRate : discount;
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 140) {
+        setShowProductHero(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem('npvProjects');
@@ -410,6 +423,8 @@ const App = () => {
 
   const handleRequireAuth = (mode = 'signin') => {
     setAuthMode(mode);
+    setReturnToUpgradeAfterAuth(showUpgradeModal);
+    setShowUpgradeModal(false);
     setShowAuthModal(true);
   };
 
@@ -417,7 +432,10 @@ const App = () => {
     const normalizedEmail = authEmail.trim() || 'goose@example.com';
     setAuthUser({ email: normalizedEmail });
     setShowAuthModal(false);
-    setShowUpgradeModal(true);
+    if (returnToUpgradeAfterAuth) {
+      setShowUpgradeModal(true);
+      setReturnToUpgradeAfterAuth(false);
+    }
   };
 
   const handleStartCheckout = () => {
@@ -763,6 +781,7 @@ const App = () => {
     <>
       <style>{`${sliderCss}`}</style>
 
+      {showProductHero && (
       <section className="product-page-hero">
         <div className="product-page-copy">
           <span className="product-badge">Finance teaching MVP</span>
@@ -774,8 +793,15 @@ const App = () => {
             <button type="button" className="button-primary" onClick={() => setShowUpgradeModal(true)}>
               See pricing
             </button>
-            <button type="button" className="button-secondary" onClick={() => window.scrollTo({ top: 520, behavior: 'smooth' })}>
-              Jump to calculator
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={() => {
+                setShowProductHero(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              Dismiss
             </button>
           </div>
         </div>
@@ -788,8 +814,9 @@ const App = () => {
           ))}
         </div>
       </section>
+      )}
 
-      <div className="project-toolbar">
+      <div className={`project-toolbar ${showProductHero ? '' : 'project-toolbar-condensed'}`}>
         <input placeholder="Project Name" value={projectName} onChange={(e) => setProjectName(e.target.value)} style={{ minWidth: 170, flex: '1 1 180px' }} />
         <button onClick={() => saveProject(projectName)} className="button-primary">Save Project</button>
 
