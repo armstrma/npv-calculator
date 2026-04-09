@@ -775,6 +775,16 @@ const App = () => {
               </button>
             </div>
           </div>
+        </div>
+        <div className="product-page-grid-wrap">
+          <div className="product-page-grid">
+            {productHighlights.map((highlight) => (
+              <article key={highlight.title} className="product-highlight-card">
+                <h3>{highlight.title}</h3>
+                <p>{highlight.body}</p>
+              </article>
+            ))}
+          </div>
           <div className="product-page-actions product-page-actions-bottom">
             <button type="button" className="button-primary hero-upgrade-button" onClick={() => setShowUpgradeModal(true)}>
               Upgrade Now
@@ -790,14 +800,6 @@ const App = () => {
               Dismiss
             </button>
           </div>
-        </div>
-        <div className="product-page-grid">
-          {productHighlights.map((highlight) => (
-            <article key={highlight.title} className="product-highlight-card">
-              <h3>{highlight.title}</h3>
-              <p>{highlight.body}</p>
-            </article>
-          ))}
         </div>
       </section>
       )}

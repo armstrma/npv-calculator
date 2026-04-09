@@ -91,6 +91,10 @@ input[type="range"]::-moz-range-thumb {
 .upgrade-actions .button-secondary.upgrade-modal-close-bottom {
   margin-left: auto;
 }
+.product-page-grid-wrap {
+  display: grid;
+  gap: 12px;
+}
 .product-page-grid {
   display: grid;
   gap: 12px;
