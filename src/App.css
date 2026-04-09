@@ -690,10 +690,22 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   margin: 0.25rem 0 0.5rem;
   overflow-x: auto;
   overflow-y: hidden;
+  padding-bottom: 2px;
 }
 .guide-modal p {
   margin: 0;
   line-height: 1.55;
+}
+@media (max-width: 640px) {
+  .guide-modal {
+    gap: 10px;
+  }
+  .guide-modal .katex {
+    font-size: 1.02em;
+  }
+  .guide-modal .katex-display {
+    font-size: 1em;
+  }
 }
 
 .auth-modal {
