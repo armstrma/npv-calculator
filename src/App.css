@@ -104,6 +104,7 @@ input[type="range"]::-moz-range-thumb {
   font-size: 14px;
 }
 .project-toolbar {
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   left: 0;
@@ -178,7 +179,7 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
 }
 .button-full { width: 100%; }
-.container { display: flex; gap: 12px; margin-top: 0; padding: 14px 12px 80px; }
+.container { display: flex; gap: 12px; margin-top: 0; padding: 14px 12px 80px; overflow: visible; }
 .left, .right { padding: 12px; }
 .left {
   background: rgba(15, 23, 42, 0.84);
@@ -556,6 +557,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .metrics-dock { position: static; top: auto; margin-top: 10px; }
   .metrics-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mobile-metrics-header {
+    position: -webkit-sticky;
     position: sticky;
     top: 60px;
     z-index: 1100;
