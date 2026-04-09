@@ -581,11 +581,14 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 }
 @media (max-width: 640px) {
   .product-page-hero,
-  .container,
   .upgrade-grid,
   .upgrade-modal-header {
     display: grid;
     grid-template-columns: 1fr;
+  }
+  .container {
+    display: flex;
+    flex-direction: column;
   }
   .project-toolbar {
     padding: 8px;
