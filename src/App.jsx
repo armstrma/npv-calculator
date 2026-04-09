@@ -147,6 +147,66 @@ const pricingPlan = {
   cta: 'Start checkout in app',
 };
 
+const exampleProjectCards = [
+  { title: 'Office Solar Retrofit', subtitle: 'Sample premium case study', meta: 'Placeholder example' },
+  { title: 'New Product Launch', subtitle: 'Pricing and rollout scenario', meta: 'Placeholder example' },
+  { title: 'Warehouse Automation', subtitle: 'Capex efficiency model', meta: 'Placeholder example' },
+  { title: 'Campus EV Chargers', subtitle: 'Infrastructure decision', meta: 'Placeholder example' },
+];
+
+const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth }) => {
+  if (!open) return null;
+
+  return (
+    <div className="mobile-library-overlay" onClick={onClose}>
+      <div className="mobile-library-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="mobile-library-topbar">
+          <button type="button" className="mobile-library-close" onClick={onClose}>×</button>
+        </div>
+
+        <div className="mobile-library-toolbar">
+          <button type="button" className="mobile-library-new button-secondary">New Project ▾</button>
+        </div>
+
+        <div className="mobile-library-tabs">
+          <button type="button" className={`mobile-library-tab ${activeTab === 'saved' ? 'active' : ''}`} onClick={() => setActiveTab('saved')}>
+            Saved
+          </button>
+          <button type="button" className={`mobile-library-tab ${activeTab === 'examples' ? 'active' : ''}`} onClick={() => setActiveTab('examples')}>
+            Examples
+          </button>
+        </div>
+
+        {activeTab === 'saved' ? (
+          <div className="mobile-library-empty-state">
+            <h3>{isAuthenticated ? 'Your saved projects will live here' : 'Create your free account'}</h3>
+            <p>
+              {isAuthenticated
+                ? 'Project organization, recent work, and saved scenarios are coming here next.'
+                : 'Log in to save, share, and organize your NPV Lab projects.'}
+            </p>
+            <div className="mobile-library-auth-actions">
+              <button type="button" className="button-secondary" onClick={() => onRequireAuth('signin')}>Log In</button>
+              <button type="button" className="button-primary" onClick={() => onRequireAuth('register')}>Sign Up</button>
+            </div>
+          </div>
+        ) : (
+          <div className="mobile-library-grid">
+            {exampleProjectCards.map((card) => (
+              <article key={card.title} className="mobile-library-card">
+                <div className="mobile-library-card-thumb" />
+                <h4>{card.title}</h4>
+                <p>{card.subtitle}</p>
+                <span>{card.meta}</span>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const AuthModal = ({ open, onClose, authMode, setAuthMode, authEmail, setAuthEmail, onAuthSuccess }) => {
   if (!open) return null;
 
@@ -328,6 +388,8 @@ const App = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProductHero, setShowProductHero] = useState(true);
+  const [showMobileLibrary, setShowMobileLibrary] = useState(false);
+  const [mobileLibraryTab, setMobileLibraryTab] = useState('saved');
   const [returnToUpgradeAfterAuth, setReturnToUpgradeAfterAuth] = useState(false);
   const [authMode, setAuthMode] = useState('signin');
   const [authEmail, setAuthEmail] = useState('');
@@ -804,6 +866,24 @@ const App = () => {
       </section>
       )}
 
+      <div className="mobile-topbar-shell">
+        <button
+          type="button"
+          className="mobile-topbar-icon"
+          onClick={() => {
+            setMobileLibraryTab('saved');
+            setShowMobileLibrary(true);
+          }}
+          aria-label="Open project library"
+        >
+          ☰
+        </button>
+        <div className="mobile-topbar-title">{projectName.trim() || 'NPV Lab'}</div>
+        <button type="button" className="mobile-topbar-save button-primary" onClick={() => saveProject(projectName)}>
+          Save
+        </button>
+      </div>
+
       <div className={`project-toolbar ${showProductHero ? '' : 'project-toolbar-condensed'}`}>
         <input placeholder="Project Name" value={projectName} onChange={(e) => setProjectName(e.target.value)} style={{ minWidth: 170, flex: '1 1 180px' }} />
         <button onClick={() => saveProject(projectName)} className="button-primary">Save Project</button>
@@ -1212,6 +1292,18 @@ const App = () => {
           <GuideModal onClose={() => setShowGuideModal(false)} />
         </Suspense>
       )}
+
+      <MobileLibraryPanel
+        open={showMobileLibrary}
+        onClose={() => setShowMobileLibrary(false)}
+        activeTab={mobileLibraryTab}
+        setActiveTab={setMobileLibraryTab}
+        isAuthenticated={Boolean(authUser)}
+        onRequireAuth={(mode) => {
+          setShowMobileLibrary(false);
+          handleRequireAuth(mode);
+        }}
+      />
 
       <AuthModal
         open={showAuthModal}
