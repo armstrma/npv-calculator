@@ -762,7 +762,6 @@ const App = () => {
       {showProductHero && (
       <section className="product-page-hero">
         <div className="product-page-copy">
-          <span className="product-badge">Finance teaching MVP</span>
           <h1 className="product-page-title">Teach capital budgeting with a calculator that actually explains the decision.</h1>
           <p className="product-page-subtitle">
             NPV Calculator Pro combines fast scenario analysis, visual reasoning, and a growing premium workflow for students, instructors, and finance learners.
