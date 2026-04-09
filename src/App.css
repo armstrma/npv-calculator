@@ -49,6 +49,13 @@ input[type="range"]::-moz-range-thumb {
   gap: 12px;
   align-content: start;
 }
+.product-page-copy-top {
+  display: grid;
+  gap: 12px;
+}
+.product-page-actions-bottom {
+  margin-top: auto;
+}
 .product-badge {
   display: inline-flex;
   width: fit-content;
@@ -651,6 +658,15 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .product-page-hero {
     margin-top: 134px;
     padding-top: 48px;
+  }
+  .product-page-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .hero-pricing-button,
+  .hero-upgrade-button,
+  .hero-dismiss-button {
+    width: 100%;
   }
   .project-toolbar {
     display: grid;

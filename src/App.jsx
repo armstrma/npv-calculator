@@ -764,17 +764,22 @@ const App = () => {
       {showProductHero && (
       <section className="product-page-hero">
         <div className="product-page-copy">
-          <h1 className="product-page-title">Learn capital budgeting with a calculator that actually explains the decision.</h1>
-          <p className="product-page-subtitle">
-            NPV Lab Pro combines fast scenario analysis, visual reasoning, and a growing premium workflow for students, instructors, and finance learners.
-          </p>
-          <div className="product-page-actions">
-            <button type="button" className="button-primary" onClick={() => setShowUpgradeModal(true)}>
-              See pricing
+          <div className="product-page-copy-top">
+            <h1 className="product-page-title">Learn capital budgeting with a calculator that actually explains the decision.</h1>
+            <p className="product-page-subtitle">
+              NPV Lab Pro combines fast scenario analysis, visual reasoning, and a growing premium workflow for students, instructors, and finance learners.
+            </p>
+          </div>
+          <div className="product-page-actions product-page-actions-bottom">
+            <button type="button" className="button-primary hero-pricing-button" onClick={() => setShowUpgradeModal(true)}>
+              See Pricing
+            </button>
+            <button type="button" className="button-primary hero-upgrade-button" onClick={() => setShowUpgradeModal(true)}>
+              Upgrade Now
             </button>
             <button
               type="button"
-              className="button-secondary"
+              className="button-secondary hero-dismiss-button"
               onClick={() => {
                 setShowProductHero(false);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
