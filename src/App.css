@@ -297,6 +297,33 @@ input[type="range"]::-moz-range-thumb {
 .details-rule-status { display: block; font-size: 20px; font-weight: 800; line-height: 1.2; }
 .metrics-dock .recommendation { margin-top: 12px; font-weight: 600; font-size: 14px; line-height: 1.35; color: #e2e8f0; }
 .mobile-metrics-header { display: none; color: #f9fafb; }
+
+@media (max-width: 1024px) {
+  .mobile-metrics-header {
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 1100;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #475569;
+    background: rgba(17, 24, 39, 0.98);
+    color: #f8fafc;
+    backdrop-filter: blur(6px);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .mobile-metrics-header span {
+    min-width: 0;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
 .chart-section {
   margin-top: 0;
   padding: 14px 14px 10px;
@@ -562,21 +589,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .metrics-dock { position: static; top: auto; margin-top: 10px; }
   .metrics-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mobile-metrics-header {
-    position: fixed;
     top: 58px;
-    left: 0;
-    right: 0;
-    z-index: 1100;
-    display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 6px;
-    align-items: center;
-    padding: 8px 12px;
-    border-bottom: 1px solid #374151;
-    background: rgba(17, 24, 39, 0.96);
-    backdrop-filter: blur(6px);
-    font-size: 12px;
-    font-weight: 700;
   }
   .mobile-metrics-header span {
     min-width: 0;
