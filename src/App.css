@@ -576,9 +576,22 @@ input[type="range"]::-moz-range-thumb {
 }
 .upgrade-feature-list {
   margin: 0;
-  padding-left: 18px;
+  padding: 0;
+  list-style: none;
   display: grid;
   gap: 8px;
+}
+.upgrade-feature-list li {
+  position: relative;
+  padding-left: 18px;
+  text-align: left;
+}
+.upgrade-feature-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #cbd5e1;
 }
 .upgrade-feature-list.compact { gap: 6px; }
 .upgrade-modal-close { min-width: 84px; }
