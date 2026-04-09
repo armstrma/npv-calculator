@@ -240,6 +240,13 @@ input[type="range"]::-moz-range-thumb {
   color: #f8fafc;
 }
 .metric-pill-value.compact { font-size: 15px; }
+.metric-pill-subtext {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: #7c8aa3;
+}
 .metric-pill.sentiment-positive .metric-pill-value,
 .details-metric-value.sentiment-positive,
 .details-rule.pass .details-rule-status { color: #22c55e; }
