@@ -828,8 +828,8 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 .mobile-library-panel {
   position: absolute;
   inset: 0;
-  background: #ffffff;
-  color: #0f172a;
+  background: #020617;
+  color: #f8fafc;
   display: grid;
   grid-template-rows: auto auto auto 1fr;
 }
@@ -851,26 +851,26 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 }
 .mobile-library-new {
   min-height: 44px;
-  background: white;
-  color: #111827;
-  border-color: #d1d5db;
+  background: rgba(15, 23, 42, 0.92);
+  color: #f8fafc;
+  border-color: #475569;
 }
 .mobile-library-tabs {
   display: flex;
   gap: 20px;
   padding: 0 16px 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.5);
 }
 .mobile-library-tab {
   border: 0;
   background: transparent;
   padding: 0 0 10px;
   font-size: 18px;
-  color: #9ca3af;
+  color: #94a3b8;
 }
 .mobile-library-tab.active {
-  color: #111827;
-  border-bottom: 3px solid #2563eb;
+  color: #f8fafc;
+  border-bottom: 3px solid #8b5cf6;
 }
 .mobile-library-empty-state {
   display: grid;
@@ -886,7 +886,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 }
 .mobile-library-empty-state p {
   margin: 0;
-  color: #475569;
+  color: #94a3b8;
   line-height: 1.5;
 }
 .mobile-library-auth-actions {
@@ -905,26 +905,27 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 .mobile-library-card {
   padding: 10px;
   border-radius: 14px;
-  background: #f3f4f6;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(71, 85, 105, 0.45);
   display: grid;
   gap: 8px;
 }
 .mobile-library-card-thumb {
   aspect-ratio: 1.2 / 1;
   border-radius: 10px;
-  background: linear-gradient(135deg, #dbeafe, #e5e7eb);
-  border: 1px solid #d1d5db;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(139, 92, 246, 0.12));
+  border: 1px solid rgba(71, 85, 105, 0.45);
 }
 .mobile-library-card h4 {
   margin: 0;
   font-size: 14px;
-  color: #111827;
+  color: #f8fafc;
 }
 .mobile-library-card p,
 .mobile-library-card span {
   margin: 0;
   font-size: 12px;
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .auth-modal {
