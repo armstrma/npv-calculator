@@ -673,7 +673,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   }
   .container { margin-top: 124px; }
   .project-toolbar-condensed + .mobile-metrics-header + .container {
-    margin-top: 142px;
+    margin-top: 150px;
   }
   .mobile-metrics-header {
     top: 128px;
