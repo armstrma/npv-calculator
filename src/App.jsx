@@ -879,7 +879,6 @@ const App = () => {
           <span className="mobile-topbar-icon-glyph">☰</span>
         </button>
         <button type="button" className="mobile-topbar-action mobile-topbar-action-left mobile-topbar-save" onClick={() => saveProject(projectName)}>
-          <span className="mobile-topbar-icon-glyph">✎</span>
           <span>Save</span>
         </button>
         <div className="mobile-topbar-brand">

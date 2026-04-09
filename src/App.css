@@ -327,10 +327,6 @@ input[type="range"]::-moz-range-thumb {
 
 @media (max-width: 1024px) {
   .mobile-metrics-header {
-    position: fixed;
-    left: 0;
-    right: 0;
-    z-index: 1200;
     display: grid !important;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
@@ -775,12 +771,14 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     bottom: 12px;
     width: auto;
   }
-  .container { margin-top: 124px; }
+  .container { margin-top: 24px; }
   .project-toolbar-condensed + .mobile-metrics-header + .container {
-    margin-top: 150px;
+    margin-top: 32px;
   }
   .mobile-metrics-header {
+    position: sticky;
     top: 54px;
+    z-index: 1190;
   }
 }
 
