@@ -771,9 +771,9 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .container { margin-top: 24px; }
   .mobile-metrics-header {
     position: sticky;
-    top: 54px;
+    top: 62px;
     z-index: 1350;
-    margin: 0 -12px 12px;
+    margin: 8px -12px 12px;
   }
 }
 
