@@ -641,9 +641,6 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .left, .right { width: 100% !important; }
   .metrics-dock { position: static; top: auto; margin-top: 10px; }
   .metrics-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .mobile-metrics-header {
-    top: 96px;
-  }
   .mobile-metrics-header span {
     min-width: 0;
     text-align: center;
@@ -738,7 +735,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     padding: 0 12px;
   }
   .product-page-hero {
-    margin-top: 134px;
+    margin-top: 72px;
     padding-top: 48px;
   }
   .product-page-actions {
@@ -773,12 +770,12 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   }
   .container { margin-top: 24px; }
   .project-toolbar-condensed + .mobile-metrics-header + .container {
-    margin-top: 32px;
+    margin-top: 24px;
   }
   .mobile-metrics-header {
     position: sticky;
     top: 54px;
-    z-index: 1190;
+    z-index: 1350;
   }
 }
 
