@@ -72,14 +72,15 @@ input[type="range"]::-moz-range-thumb {
   transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 .button-primary {
-  background: rgba(124, 58, 237, 0.16);
-  color: #ede9fe;
-  border-color: rgba(139, 92, 246, 0.5);
-  box-shadow: none;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.58), rgba(109, 40, 217, 0.78));
+  color: #ffffff;
+  border-color: rgba(139, 92, 246, 0.72);
+  box-shadow: 0 6px 14px rgba(109, 40, 217, 0.16);
 }
 .button-primary:hover {
-  background: rgba(124, 58, 237, 0.24);
-  border-color: rgba(167, 139, 250, 0.7);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.72), rgba(124, 58, 237, 0.88));
+  border-color: rgba(196, 181, 253, 0.8);
+  box-shadow: 0 8px 18px rgba(109, 40, 217, 0.22);
   transform: translateY(-1px);
 }
 .button-secondary {
@@ -584,14 +585,15 @@ input[type="range"]::-moz-range-thumb {
     color: #f9fafb;
   }
   .button-primary {
-    background: rgba(124, 58, 237, 0.2);
-    border-color: rgba(139, 92, 246, 0.55);
-    color: #f5f3ff;
-    box-shadow: none;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.62), rgba(124, 58, 237, 0.82));
+    border-color: rgba(167, 139, 250, 0.72);
+    color: #f9fafb;
+    box-shadow: 0 6px 14px rgba(124, 58, 237, 0.22);
   }
   .button-primary:hover {
-    background: rgba(139, 92, 246, 0.28);
-    border-color: rgba(196, 181, 253, 0.75);
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.78), rgba(139, 92, 246, 0.9));
+    border-color: rgba(221, 214, 254, 0.84);
+    box-shadow: 0 8px 18px rgba(124, 58, 237, 0.28);
   }
   .button-secondary {
     background: rgba(17, 24, 39, 0.82);
