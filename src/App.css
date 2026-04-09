@@ -39,6 +39,7 @@ input[type="range"]::-moz-range-thumb {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
   gap: 20px;
+  margin-top: 72px;
   padding: 32px 20px 18px;
   background: radial-gradient(circle at top left, rgba(124, 58, 237, 0.28), transparent 40%), #020617;
   border-bottom: 1px solid rgba(71, 85, 105, 0.5);
@@ -579,6 +580,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 @media (max-width: 900px) {
   .product-page-hero {
     grid-template-columns: 1fr;
+    margin-top: 102px;
   }
   .container {
     display: flex;
@@ -605,6 +607,9 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .upgrade-modal-header {
     display: grid;
     grid-template-columns: 1fr;
+  }
+  .product-page-hero {
+    margin-top: 150px;
   }
   .project-toolbar {
     padding: 8px;

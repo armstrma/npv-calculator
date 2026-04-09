@@ -353,17 +353,6 @@ const App = () => {
   const discountRateForAnalysis = showHurdleRate ? hurdleRate : discount;
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 140) {
-        setShowProductHero(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
     const saved = localStorage.getItem('npvProjects');
     if (saved) setProjects(JSON.parse(saved));
 
