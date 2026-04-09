@@ -618,11 +618,16 @@ const App = () => {
     window.setTimeout(() => setCopiedProjectLink(false), 2000);
   };
 
+  const activeRateGradient = getGradient('discount');
+  const inactiveRateGradient = 'linear-gradient(to right, #525252, #525252)';
+
   let sliderCss = `
   .slider-initial::-webkit-slider-runnable-track { background: ${getGradient('initial')}; }
   .slider-initial::-moz-range-track { background: ${getGradient('initial')}; }
-  .slider-discount::-webkit-slider-runnable-track { background: ${getGradient('discount')}; }
-  .slider-discount::-moz-range-track { background: ${getGradient('discount')}; }
+  .slider-discount::-webkit-slider-runnable-track { background: ${showHurdleRate ? inactiveRateGradient : activeRateGradient}; }
+  .slider-discount::-moz-range-track { background: ${showHurdleRate ? inactiveRateGradient : activeRateGradient}; }
+  .slider-hurdle::-webkit-slider-runnable-track { background: ${showHurdleRate ? activeRateGradient : inactiveRateGradient}; }
+  .slider-hurdle::-moz-range-track { background: ${showHurdleRate ? activeRateGradient : inactiveRateGradient}; }
   `;
 
   cashflows.forEach((_, index) => {
@@ -824,6 +829,7 @@ const App = () => {
                   step={0.1}
                   value={hurdleRate}
                   onChange={(e) => setHurdleRate(Number(e.target.value))}
+                  className="slider-hurdle"
                 />
               </div>
             )}
