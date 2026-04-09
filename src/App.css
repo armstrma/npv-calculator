@@ -672,6 +672,9 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     width: auto;
   }
   .container { margin-top: 124px; }
+  .project-toolbar-condensed + .mobile-metrics-header + .container {
+    margin-top: 142px;
+  }
   .mobile-metrics-header {
     top: 128px;
   }
