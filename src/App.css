@@ -685,9 +685,12 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 .guide-modal {
   display: grid;
   gap: 12px;
+  width: min(680px, calc(100vw - 24px));
+  max-height: min(84vh, 760px);
+  overflow-y: auto;
 }
 .guide-modal .katex-display {
-  margin: 0.25rem 0 0.5rem;
+  margin: 0.15rem 0 0.4rem;
   overflow-x: auto;
   overflow-y: hidden;
   padding-bottom: 2px;
@@ -698,13 +701,28 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 }
 @media (max-width: 640px) {
   .guide-modal {
-    gap: 10px;
+    gap: 8px;
+    width: calc(100vw - 20px);
+    max-height: 78vh;
+    padding: 14px;
+  }
+  .guide-modal h2 {
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+  .guide-modal p {
+    font-size: 13px;
+    line-height: 1.45;
   }
   .guide-modal .katex {
-    font-size: 1.02em;
+    font-size: 0.92em;
   }
   .guide-modal .katex-display {
-    font-size: 1em;
+    font-size: 0.9em;
+    margin: 0.1rem 0 0.3rem;
+  }
+  .guide-modal .button-primary {
+    width: 100%;
   }
 }
 
