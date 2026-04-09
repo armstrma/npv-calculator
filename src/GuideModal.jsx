@@ -2,12 +2,12 @@ import React from 'react';
 import { BlockMath, InlineMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 
-const NPV_FORMULA = String.raw`NPV = -I_0 + \sum_{t=1}^{n} \frac{CF_t}{(1+r)^t}`;
-const IRR_FORMULA = String.raw`0 = -I_0 + \sum_{t=1}^{n} \frac{CF_t}{(1+IRR)^t}`;
-const DCF_FORMULA = String.raw`DCF_t = \frac{CF_t}{(1+r)^t}`;
-const ROI_FORMULA = String.raw`ROI = \frac{\text{Total Cash Inflows} - I_0}{I_0} \times 100\%`;
-const PI_FORMULA = String.raw`PI = \frac{NPV + I_0}{I_0}`;
-const PI_INLINE = String.raw`PI > 1`;
+const NPV_FORMULA = 'NPV = -I_0 + \\sum_{t=1}^{n} \\frac{CF_t}{(1+r)^t}';
+const IRR_FORMULA = '0 = -I_0 + \\sum_{t=1}^{n} \\frac{CF_t}{(1+IRR)^t}';
+const DCF_FORMULA = 'DCF_t = \\frac{CF_t}{(1+r)^t}';
+const ROI_FORMULA = 'ROI = \\frac{\\text{Total Cash Inflows} - I_0}{I_0} \\times 100\\%';
+const PI_FORMULA = 'PI = \\frac{NPV + I_0}{I_0}';
+const PI_INLINE = 'PI > 1';
 
 const GuideModal = ({ onClose }) => {
   return (
