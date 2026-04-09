@@ -324,6 +324,11 @@ input[type="range"]::-moz-range-thumb {
 .details-rule-status { display: block; font-size: 20px; font-weight: 800; line-height: 1.2; }
 .metrics-dock .recommendation { margin-top: 12px; font-weight: 600; font-size: 14px; line-height: 1.35; color: #e2e8f0; }
 .mobile-metrics-header { display: none; color: #f9fafb; }
+.mobile-metrics-header-pinned {
+  position: fixed;
+  left: 0;
+  right: 0;
+}
 
 @media (max-width: 1024px) {
   .mobile-metrics-header {
@@ -770,10 +775,12 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   }
   .container { margin-top: 24px; }
   .mobile-metrics-header {
-    position: sticky;
+    margin: 8px -12px 12px;
+  }
+  .mobile-metrics-header-pinned {
     top: 62px;
     z-index: 1350;
-    margin: 8px -12px 12px;
+    margin: 0;
   }
 }
 

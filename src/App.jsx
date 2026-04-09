@@ -390,6 +390,7 @@ const App = () => {
   const [showProductHero, setShowProductHero] = useState(true);
   const [showMobileLibrary, setShowMobileLibrary] = useState(false);
   const [mobileLibraryTab, setMobileLibraryTab] = useState('saved');
+  const [mobileMetricsPinned, setMobileMetricsPinned] = useState(false);
   const [returnToUpgradeAfterAuth, setReturnToUpgradeAfterAuth] = useState(false);
   const [authMode, setAuthMode] = useState('signin');
   const [authEmail, setAuthEmail] = useState('');
@@ -462,6 +463,30 @@ const App = () => {
       cashflow: getSliderBounds(cashflows, { minBase: -5000, maxBase: 10000 }),
     });
   }, [initial, cashflows]);
+
+  useEffect(() => {
+    const syncPinnedMetrics = () => {
+      if (window.innerWidth > 640) {
+        setMobileMetricsPinned(false);
+        return;
+      }
+
+      const banner = document.querySelector('.mobile-metrics-header-inline');
+      if (!banner) return;
+
+      const topBarOffset = 62;
+      const { top } = banner.getBoundingClientRect();
+      setMobileMetricsPinned(top <= topBarOffset);
+    };
+
+    syncPinnedMetrics();
+    window.addEventListener('scroll', syncPinnedMetrics, { passive: true });
+    window.addEventListener('resize', syncPinnedMetrics);
+    return () => {
+      window.removeEventListener('scroll', syncPinnedMetrics);
+      window.removeEventListener('resize', syncPinnedMetrics);
+    };
+  }, [showProductHero]);
 
   const handleRequireAuth = (mode = 'signin') => {
     setAuthMode(mode);
@@ -924,8 +949,19 @@ const App = () => {
         </select>
       </div>
 
+      {mobileMetricsPinned && (
+        <div className="mobile-metrics-header mobile-metrics-header-pinned">
+          <span>
+            <strong style={{ color: sentiment.tone === 'positive' ? '#16a34a' : sentiment.tone === 'caution' ? '#ca8a04' : '#dc2626' }}>{sentiment.label}</strong>
+          </span>
+          <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
+          <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>
+          <span>Payback <strong>{formatPaybackDisplay(payback)}</strong></span>
+        </div>
+      )}
+
       <div className="container">
-        <div className="mobile-metrics-header">
+        <div className="mobile-metrics-header mobile-metrics-header-inline">
           <span>
             <strong style={{ color: sentiment.tone === 'positive' ? '#16a34a' : sentiment.tone === 'caution' ? '#ca8a04' : '#dc2626' }}>{sentiment.label}</strong>
           </span>
