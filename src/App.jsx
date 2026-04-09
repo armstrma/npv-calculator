@@ -140,8 +140,8 @@ const productHighlights = [
 
 const pricingPlan = {
   name: 'NPV Calculator Pro',
-  price: '$9/month',
-  annual: '$79/year',
+  price: '$4.99/month',
+  annual: '$50/year',
   cta: 'Start checkout in app',
 };
 
@@ -212,9 +212,11 @@ const ProductModal = ({ open, onClose, title = 'Upgrade to Pro', isAuthenticated
               Unlock the premium workflow without leaving the calculator.
             </p>
           </div>
-          <button type="button" className="button-secondary upgrade-modal-close" onClick={onClose}>
-            Close
-          </button>
+        </div>
+
+        <div className="upgrade-account-state">
+          <span className="upgrade-account-label">Account</span>
+          <strong>{isAuthenticated ? userLabel : 'Not signed in yet'}</strong>
         </div>
 
         <div className="upgrade-pricing-card">
@@ -237,17 +239,15 @@ const ProductModal = ({ open, onClose, title = 'Upgrade to Pro', isAuthenticated
           </section>
         </div>
 
-        <div className="upgrade-account-state">
-          <span className="upgrade-account-label">Account</span>
-          <strong>{isAuthenticated ? userLabel : 'Not signed in yet'}</strong>
-        </div>
-
         <div className="upgrade-actions">
           <button type="button" className="button-primary" onClick={isAuthenticated ? onStartCheckout : onRequireAuth}>
             {isAuthenticated ? pricingPlan.cta : 'Sign in to continue'}
           </button>
           <button type="button" className="button-secondary" onClick={isAuthenticated ? onStartCheckout : onRequireAuth}>
             {isAuthenticated ? 'Open embedded checkout next' : 'Create free account'}
+          </button>
+          <button type="button" className="button-secondary upgrade-modal-close-bottom" onClick={onClose}>
+            Close
           </button>
         </div>
       </div>
