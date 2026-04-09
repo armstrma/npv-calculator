@@ -650,6 +650,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   }
   .product-page-hero {
     margin-top: 134px;
+    padding-top: 48px;
   }
   .project-toolbar {
     padding: 8px;
