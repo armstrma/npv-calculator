@@ -682,6 +682,20 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 }
 
 
+.guide-modal {
+  display: grid;
+  gap: 12px;
+}
+.guide-modal .katex-display {
+  margin: 0.25rem 0 0.5rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.guide-modal p {
+  margin: 0;
+  line-height: 1.55;
+}
+
 .auth-modal {
   display: grid;
   gap: 16px;
