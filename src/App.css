@@ -649,7 +649,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     grid-template-columns: 1fr;
   }
   .product-page-hero {
-    margin-top: 150px;
+    margin-top: 134px;
   }
   .project-toolbar {
     padding: 8px;
@@ -670,7 +670,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     bottom: 12px;
     width: auto;
   }
-  .container { margin-top: 188px; }
+  .container { margin-top: 154px; }
   .mobile-metrics-header {
     top: 128px;
   }
