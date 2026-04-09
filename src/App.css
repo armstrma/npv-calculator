@@ -72,13 +72,14 @@ input[type="range"]::-moz-range-thumb {
   transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 .button-primary {
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
-  color: #ffffff;
-  box-shadow: 0 8px 18px rgba(109, 40, 217, 0.22);
+  background: rgba(124, 58, 237, 0.16);
+  color: #ede9fe;
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: none;
 }
 .button-primary:hover {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  border-color: #6d28d9;
+  background: rgba(124, 58, 237, 0.24);
+  border-color: rgba(167, 139, 250, 0.7);
   transform: translateY(-1px);
 }
 .button-secondary {
@@ -583,13 +584,14 @@ input[type="range"]::-moz-range-thumb {
     color: #f9fafb;
   }
   .button-primary {
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-    border-color: #7c3aed;
-    color: #f9fafb;
-    box-shadow: 0 8px 18px rgba(124, 58, 237, 0.3);
+    background: rgba(124, 58, 237, 0.2);
+    border-color: rgba(139, 92, 246, 0.55);
+    color: #f5f3ff;
+    box-shadow: none;
   }
   .button-primary:hover {
-    background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+    background: rgba(139, 92, 246, 0.28);
+    border-color: rgba(196, 181, 253, 0.75);
   }
   .button-secondary {
     background: rgba(17, 24, 39, 0.82);
