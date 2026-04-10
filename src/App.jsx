@@ -850,7 +850,7 @@ const App = () => {
     <>
       <style>{`${sliderCss}`}</style>
 
-      {showProductHero && (
+      {showProductHero && !quickViewEnabled && (
       <section className="product-page-hero">
         <div className="product-page-copy">
           <div className="product-page-copy-top">
@@ -975,7 +975,7 @@ const App = () => {
         </div>
       )}
 
-      <div className={`app-shell-header ${showProductHero ? '' : 'app-shell-header-hidden-mobile'}`}>
+      <div className={`app-shell-header ${(showProductHero && !quickViewEnabled) ? '' : 'app-shell-header-hidden-mobile'}`}>
         <div className="app-shell-brand">
           <h1 className="app-title">NPV Lab</h1>
           <span className="app-shell-pro-badge">PRO</span>
@@ -1003,15 +1003,15 @@ const App = () => {
                 setInitialInput(formatNumberWithCommas(nextInitial));
               }} className="slider-initial" />
             </div>
-            <div className="quick-view-row">
+            <div className="quick-view-row quick-view-row-compact">
               <div className="quick-view-row-top quick-view-row-top-discount">
-                <span>Discount Rate</span>
-                <input type="text" value={discount.toFixed(1)} readOnly />
+                <span>{showHurdleRate ? 'Hurdle Rate' : 'Discount Rate'}</span>
+                <input type="text" value={(showHurdleRate ? hurdleRate : discount).toFixed(1)} readOnly />
                 <span>%</span>
                 <label className="quick-view-toggle"><input type="checkbox" checked={showHurdleRate} onChange={(e) => setShowHurdleRate(e.target.checked)} /> Hurdle</label>
                 <button type="button">×</button>
               </div>
-              <input type="range" min={0} max={30} step={0.1} value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="slider-discount" />
+              <input type="range" min={0} max={30} step={0.1} value={showHurdleRate ? hurdleRate : discount} onChange={(e) => showHurdleRate ? setHurdleRate(Number(e.target.value)) : setDiscount(Number(e.target.value))} className={showHurdleRate ? 'slider-hurdle' : 'slider-discount'} />
             </div>
             {cashflows.slice(0, 2).map((cf, index) => (
               <div key={index} className="quick-view-row quick-view-row-compact">
