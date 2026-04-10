@@ -870,20 +870,20 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     gap: 0;
     margin-top: 54px;
     min-height: calc(100vh - 54px);
-    background: #ffffff;
-    color: #111827;
+    background: #020617;
+    color: #f8fafc;
   }
   .quick-view-stage {
     position: relative;
     min-height: 280px;
     display: grid;
     place-items: center;
-    background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
-    border-bottom: 1px solid #dbe4f0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%);
+    border-bottom: 1px solid rgba(71, 85, 105, 0.5);
   }
   .quick-view-stage-title {
     font-size: 40px;
-    color: #334155;
+    color: #e2e8f0;
   }
   .quick-view-stage-nav {
     position: absolute;
@@ -891,28 +891,32 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     transform: translateY(-50%);
     width: 34px;
     height: 54px;
-    border: 1px solid #cbd5e1;
-    background: rgba(255,255,255,0.88);
-    color: #475569;
+    border: 1px solid rgba(71, 85, 105, 0.55);
+    background: rgba(15, 23, 42, 0.92);
+    color: #cbd5e1;
   }
   .quick-view-stage-nav-left { left: 12px; }
   .quick-view-stage-nav-right { right: 12px; }
   .quick-view-controls {
     display: grid;
     gap: 0;
-    background: #ffffff;
+    background: #020617;
   }
   .quick-view-row {
-    padding: 12px 12px 14px;
-    border-bottom: 1px solid #e5e7eb;
+    padding: 10px 12px 10px;
+    border-bottom: 1px solid rgba(71, 85, 105, 0.35);
+  }
+  .quick-view-row-compact {
+    padding-top: 8px;
+    padding-bottom: 8px;
   }
   .quick-view-row-top {
     display: grid;
     grid-template-columns: auto auto minmax(0, 1fr) auto;
     gap: 8px;
     align-items: center;
-    margin-bottom: 8px;
-    color: #111827;
+    margin-bottom: 6px;
+    color: #f8fafc;
   }
   .quick-view-row-top-discount {
     grid-template-columns: auto minmax(68px, 84px) auto auto auto;
@@ -922,15 +926,15 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     min-width: 0;
     height: 34px;
     border-radius: 8px;
-    border: 1px solid #cbd5e1;
+    border: 1px solid rgba(71, 85, 105, 0.55);
     padding: 0 10px;
-    background: #ffffff;
-    color: #111827;
+    background: rgba(15, 23, 42, 0.92);
+    color: #f8fafc;
   }
   .quick-view-row-top button {
     border: 0;
     background: transparent;
-    color: #64748b;
+    color: #94a3b8;
     font-size: 24px;
     line-height: 1;
   }
@@ -938,7 +942,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: #334155;
+    color: #cbd5e1;
     white-space: nowrap;
   }
 }

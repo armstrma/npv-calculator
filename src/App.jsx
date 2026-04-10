@@ -1014,9 +1014,9 @@ const App = () => {
               <input type="range" min={0} max={30} step={0.1} value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="slider-discount" />
             </div>
             {cashflows.slice(0, 2).map((cf, index) => (
-              <div key={index} className="quick-view-row">
+              <div key={index} className="quick-view-row quick-view-row-compact">
                 <div className="quick-view-row-top">
-                  <span>{`Period ${index + 1}`}</span>
+                  <span>{`Year ${index + 1}`}</span>
                   <span>{currency}</span>
                   <input type="text" value={cashflowInputs[index] ?? formatNumberWithCommas(cf)} readOnly />
                   <button type="button">×</button>
