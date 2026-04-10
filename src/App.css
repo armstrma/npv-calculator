@@ -671,7 +671,7 @@ input[type="range"]::-moz-range-thumb {
 .upgrade-modal-close { min-width: 84px; }
 table { width: 100%; border-collapse: collapse; margin-top: 8px; }
 th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
-@media (max-width: 900px) {
+@media (max-width: 1180px) {
   .product-page-hero {
     grid-template-columns: 1fr;
     margin-top: 102px;
@@ -682,7 +682,11 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     margin-top: 154px;
   }
   .left, .right { width: 100% !important; }
-  .metrics-dock { position: static; top: auto; margin-top: 10px; }
+  .metrics-dock {
+    position: static;
+    top: auto;
+    margin-top: 10px;
+  }
   .metrics-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mobile-metrics-header span {
     min-width: 0;
