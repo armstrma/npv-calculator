@@ -826,6 +826,11 @@ const App = () => {
           ? 'Cautious Project: The base case passes, but the downside scenario fails the fragility check.'
           : 'Accept Project: The base case and downside case both pass the required checks.';
 
+  const addQuickViewYear = () => {
+    setCashflows((current) => [...current, 0]);
+    setCashflowInputs((current) => [...current, formatNumberWithCommas(0)]);
+  };
+
   const sentiment = useMemo(() => getSentimentStatus({ viabilityPass, standardPass, fragilityPass }), [viabilityPass, standardPass, fragilityPass]);
   const npvColor = npv >= 0 ? '#16a34a' : '#dc2626';
 
@@ -1013,13 +1018,40 @@ const App = () => {
               </div>
               <input type="range" min={0} max={30} step={0.1} value={showHurdleRate ? hurdleRate : discount} onChange={(e) => showHurdleRate ? setHurdleRate(Number(e.target.value)) : setDiscount(Number(e.target.value))} className={showHurdleRate ? 'slider-hurdle' : 'slider-discount'} />
             </div>
-            {cashflows.slice(0, 2).map((cf, index) => (
+            {cashflows.map((cf, index) => (
               <div key={index} className="quick-view-row quick-view-row-compact">
                 <div className="quick-view-row-top">
                   <span>{`Year ${index + 1}`}</span>
                   <span>{currency}</span>
-                  <input type="text" value={cashflowInputs[index] ?? formatNumberWithCommas(cf)} readOnly />
-                  <button type="button">×</button>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    value={cashflowInputs[index] ?? formatNumberWithCommas(cf)}
+                    onChange={(e) => {
+                      const nextInputs = [...cashflowInputs];
+                      nextInputs[index] = e.target.value;
+                      setCashflowInputs(nextInputs);
+                      const parsed = parseNumericInput(e.target.value);
+                      if (parsed !== null) {
+                        const updated = [...cashflows];
+                        updated[index] = parsed;
+                        setCashflows(updated);
+                      }
+                    }}
+                    onBlur={() => {
+                      const nextInputs = [...cashflowInputs];
+                      nextInputs[index] = formatNumberWithCommas(cashflows[index] ?? 0);
+                      setCashflowInputs(nextInputs);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && index === cashflows.length - 1) {
+                        e.preventDefault();
+                        addQuickViewYear();
+                      }
+                    }}
+                  />
+                  <button type="button" onClick={() => removeYear(index)}>×</button>
                 </div>
                 <input type="range" min={sliderBounds.cashflow.min} max={sliderBounds.cashflow.max} step={100} value={cf} onChange={(e) => {
                   const updated = [...cashflows];
@@ -1029,6 +1061,9 @@ const App = () => {
                 }} className={`slider-cashflow-${index}`} />
               </div>
             ))}
+            <button type="button" className="quick-view-add-space" onClick={addQuickViewYear}>
+              Tap here to add another year
+            </button>
           </div>
         </div>
       ) : (
