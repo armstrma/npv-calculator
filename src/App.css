@@ -867,6 +867,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 @media (max-width: 640px) {
   .quick-view-shell {
     display: grid;
+    grid-template-rows: minmax(0, 42vh) minmax(0, 1fr);
     gap: 0;
     margin-top: 54px;
     height: calc(100vh - 54px);
@@ -877,12 +878,13 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .quick-view-stage {
     position: relative;
     min-height: 0;
-    height: 42vh;
+    height: 100%;
     display: grid;
     place-items: center;
     background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%);
     border-bottom: 1px solid rgba(71, 85, 105, 0.5);
-    flex: 0 0 auto;
+    overflow: hidden;
+    touch-action: none;
   }
   .quick-view-stage-title {
     font-size: 40px;
@@ -905,8 +907,10 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     gap: 0;
     background: #020617;
     overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     align-content: start;
+    min-height: 0;
   }
   .quick-view-row {
     padding: 8px 12px 8px;
