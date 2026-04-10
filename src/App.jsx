@@ -563,6 +563,7 @@ const App = () => {
   const [sliderBounds, setSliderBounds] = useState({ initial: { min: 0, max: 10000 }, cashflow: { min: -5000, max: 10000 } });
   const [copiedProjectLink, setCopiedProjectLink] = useState(false);
   const [initialInput, setInitialInput] = useState(formatNumberWithCommas(1000));
+  const [rateInput, setRateInput] = useState('10.0');
   const [cashflowInputs, setCashflowInputs] = useState([200, 300, 400, 500, 600].map(formatNumberWithCommas));
   const discountRateForAnalysis = showHurdleRate ? hurdleRate : discount;
 
@@ -588,7 +589,10 @@ const App = () => {
     }
     if (discountValue !== null) {
       const parsedDiscount = Number(discountValue);
-      if (Number.isFinite(parsedDiscount)) setDiscount(parsedDiscount);
+      if (Number.isFinite(parsedDiscount)) {
+        setDiscount(parsedDiscount);
+        if (!showHurdleRate) setRateInput(parsedDiscount.toFixed(1));
+      }
     }
     if (cashflowsParam) {
       const parsedCashflows = cashflowsParam.split(',').map((value) => Number(value)).filter((value) => Number.isFinite(value));
@@ -605,7 +609,10 @@ const App = () => {
     }
     if (hurdleRateParam !== null) {
       const parsedHurdleRate = Number(hurdleRateParam);
-      if (Number.isFinite(parsedHurdleRate)) setHurdleRate(parsedHurdleRate);
+      if (Number.isFinite(parsedHurdleRate)) {
+        setHurdleRate(parsedHurdleRate);
+        if (hurdleEnabledParam === 'true') setRateInput(parsedHurdleRate.toFixed(1));
+      }
     }
     if (projectParam) {
       setProjectName(projectParam);
@@ -616,6 +623,10 @@ const App = () => {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
+
+  useEffect(() => {
+    setRateInput((showHurdleRate ? hurdleRate : discount).toFixed(1));
+  }, [showHurdleRate, hurdleRate, discount]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return undefined;
@@ -1193,7 +1204,19 @@ const App = () => {
               <div className="quick-view-row-top">
                 <span>Initial</span>
                 <span>{currency}</span>
-                <input type="text" value={initialInput} readOnly />
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={initialInput}
+                  onChange={(e) => {
+                    const rawValue = e.target.value;
+                    setInitialInput(rawValue);
+                    const parsed = parseNumericInput(rawValue);
+                    if (parsed !== null) setInitial(parsed);
+                  }}
+                  onBlur={() => setInitialInput(formatNumberWithCommas(initial))}
+                />
                 <button type="button">×</button>
               </div>
               <input type="range" min={sliderBounds.initial.min} max={sliderBounds.initial.max} step={100} value={initial} onChange={(e) => {
@@ -1205,12 +1228,32 @@ const App = () => {
             <div className="quick-view-row quick-view-row-compact">
               <div className="quick-view-row-top quick-view-row-top-discount">
                 <span>{showHurdleRate ? 'Hurdle Rate' : 'Discount Rate'}</span>
-                <input type="text" value={(showHurdleRate ? hurdleRate : discount).toFixed(1)} readOnly />
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={rateInput}
+                  onChange={(e) => {
+                    const rawValue = e.target.value;
+                    setRateInput(rawValue);
+                    const parsed = Number.parseFloat(rawValue.replace(/[^0-9.-]/g, ''));
+                    if (Number.isFinite(parsed)) {
+                      if (showHurdleRate) setHurdleRate(parsed);
+                      else setDiscount(parsed);
+                    }
+                  }}
+                  onBlur={() => setRateInput((showHurdleRate ? hurdleRate : discount).toFixed(1))}
+                />
                 <span>%</span>
                 <label className="quick-view-toggle"><input type="checkbox" checked={showHurdleRate} onChange={(e) => setShowHurdleRate(e.target.checked)} /> Hurdle</label>
                 <button type="button">×</button>
               </div>
-              <input type="range" min={0} max={30} step={0.1} value={showHurdleRate ? hurdleRate : discount} onChange={(e) => showHurdleRate ? setHurdleRate(Number(e.target.value)) : setDiscount(Number(e.target.value))} className={showHurdleRate ? 'slider-hurdle' : 'slider-discount'} />
+              <input type="range" min={0} max={30} step={0.1} value={showHurdleRate ? hurdleRate : discount} onChange={(e) => {
+                const nextRate = Number(e.target.value);
+                if (showHurdleRate) setHurdleRate(nextRate);
+                else setDiscount(nextRate);
+                setRateInput(nextRate.toFixed(1));
+              }} className={showHurdleRate ? 'slider-hurdle' : 'slider-discount'} />
             </div>
             {cashflows.map((cf, index) => (
               <div key={index} className="quick-view-row quick-view-row-compact">
