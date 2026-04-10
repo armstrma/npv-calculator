@@ -391,6 +391,8 @@ const App = () => {
   const [showMobileLibrary, setShowMobileLibrary] = useState(false);
   const [mobileLibraryTab, setMobileLibraryTab] = useState('saved');
   const [mobileMetricsPinned, setMobileMetricsPinned] = useState(false);
+  const [showQuickViewMenu, setShowQuickViewMenu] = useState(false);
+  const [quickViewEnabled, setQuickViewEnabled] = useState(false);
   const [returnToUpgradeAfterAuth, setReturnToUpgradeAfterAuth] = useState(false);
   const [authMode, setAuthMode] = useState('signin');
   const [authEmail, setAuthEmail] = useState('');
@@ -910,12 +912,25 @@ const App = () => {
           <span className="mobile-topbar-title">NPV Lab</span>
           <span className="mobile-topbar-pro-badge">PRO</span>
         </div>
-        <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => handleRequireAuth(authUser ? 'signin' : 'register')} aria-label="Account">
-          <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5Z" />
-            <path d="M4 20a8 8 0 0 1 16 0" />
-          </svg>
-        </button>
+        <div className="mobile-topbar-menu-wrap">
+          <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => setShowQuickViewMenu((value) => !value)} aria-label="More options">
+            <span className="mobile-topbar-icon-glyph">…</span>
+          </button>
+          {showQuickViewMenu && (
+            <div className="mobile-topbar-menu">
+              <button
+                type="button"
+                className="mobile-topbar-menu-item"
+                onClick={() => {
+                  setQuickViewEnabled((value) => !value);
+                  setShowQuickViewMenu(false);
+                }}
+              >
+                {quickViewEnabled ? 'Exit Quick View' : 'Enter Quick View'}
+              </button>
+            </div>
+          )}
+        </div>
         <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={copyProjectLink} aria-label="Share project link">
           <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 16V5" />
@@ -967,6 +982,56 @@ const App = () => {
         </div>
       </div>
 
+      {quickViewEnabled ? (
+        <div className="quick-view-shell">
+          <div className="quick-view-stage">
+            <button type="button" className="quick-view-stage-nav quick-view-stage-nav-left">‹</button>
+            <div className="quick-view-stage-title">Graphs</div>
+            <button type="button" className="quick-view-stage-nav quick-view-stage-nav-right">›</button>
+          </div>
+          <div className="quick-view-controls">
+            <div className="quick-view-row">
+              <div className="quick-view-row-top">
+                <span>Initial</span>
+                <span>{currency}</span>
+                <input type="text" value={initialInput} readOnly />
+                <button type="button">×</button>
+              </div>
+              <input type="range" min={sliderBounds.initial.min} max={sliderBounds.initial.max} step={100} value={initial} onChange={(e) => {
+                const nextInitial = Number(e.target.value);
+                setInitial(nextInitial);
+                setInitialInput(formatNumberWithCommas(nextInitial));
+              }} className="slider-initial" />
+            </div>
+            <div className="quick-view-row">
+              <div className="quick-view-row-top quick-view-row-top-discount">
+                <span>Discount Rate</span>
+                <input type="text" value={discount.toFixed(1)} readOnly />
+                <span>%</span>
+                <label className="quick-view-toggle"><input type="checkbox" checked={showHurdleRate} onChange={(e) => setShowHurdleRate(e.target.checked)} /> Hurdle</label>
+                <button type="button">×</button>
+              </div>
+              <input type="range" min={0} max={30} step={0.1} value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="slider-discount" />
+            </div>
+            {cashflows.slice(0, 2).map((cf, index) => (
+              <div key={index} className="quick-view-row">
+                <div className="quick-view-row-top">
+                  <span>{`Period ${index + 1}`}</span>
+                  <span>{currency}</span>
+                  <input type="text" value={cashflowInputs[index] ?? formatNumberWithCommas(cf)} readOnly />
+                  <button type="button">×</button>
+                </div>
+                <input type="range" min={sliderBounds.cashflow.min} max={sliderBounds.cashflow.max} step={100} value={cf} onChange={(e) => {
+                  const updated = [...cashflows];
+                  updated[index] = Number(e.target.value);
+                  setCashflows(updated);
+                  setCashflowInputs(updated.map(formatNumberWithCommas));
+                }} className={`slider-cashflow-${index}`} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
       <div className="container">
         <div className="mobile-metrics-header mobile-metrics-header-inline">
           <span>
@@ -1330,6 +1395,7 @@ const App = () => {
           </section>
         </div>
       </div>
+      )}
 
       <button type="button" className="floating-upgrade-button button-primary" onClick={() => setShowUpgradeModal(true)}>
         Upgrade to Pro
