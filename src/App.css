@@ -568,6 +568,9 @@ input[type="range"]::-moz-range-thumb {
   z-index: 1400;
   min-width: 146px;
 }
+.quick-view-shell ~ .floating-upgrade-button {
+  display: none;
+}
 .modal {
   position: fixed;
   inset: 0;
@@ -974,12 +977,13 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .quick-view-row-top input {
     width: 100%;
     min-width: 0;
-    height: 32px;
+    height: 36px;
     border-radius: 8px;
     border: 1px solid rgba(71, 85, 105, 0.55);
     padding: 0 9px;
     background: rgba(15, 23, 42, 0.92);
     color: #f8fafc;
+    font-size: 16px;
   }
   .quick-view-add-space {
     min-height: 52px;
