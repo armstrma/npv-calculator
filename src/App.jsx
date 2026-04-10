@@ -618,6 +618,32 @@ const App = () => {
   }, []);
 
   useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+
+    const root = document.documentElement;
+    const body = document.body;
+    const previousHtmlOverflow = root.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyTouchAction = body.style.touchAction;
+
+    if (quickViewEnabled) {
+      root.style.overflow = 'hidden';
+      body.style.overflow = 'hidden';
+      body.style.touchAction = 'none';
+    } else {
+      root.style.overflow = previousHtmlOverflow;
+      body.style.overflow = previousBodyOverflow;
+      body.style.touchAction = previousBodyTouchAction;
+    }
+
+    return () => {
+      root.style.overflow = previousHtmlOverflow;
+      body.style.overflow = previousBodyOverflow;
+      body.style.touchAction = previousBodyTouchAction;
+    };
+  }, [quickViewEnabled]);
+
+  useEffect(() => {
     setSliderBounds({
       initial: getSliderBounds([initial], { minBase: 0, maxBase: 10000 }),
       cashflow: getSliderBounds(cashflows, { minBase: -5000, maxBase: 10000 }),
