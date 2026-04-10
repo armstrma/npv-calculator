@@ -48,10 +48,13 @@ input[type="range"]::-moz-range-thumb {
   display: grid;
   gap: 12px;
   align-content: start;
+  justify-items: center;
+  text-align: center;
 }
 .product-page-copy-top {
   display: grid;
   gap: 12px;
+  justify-items: center;
 }
 .product-page-actions-top {
   justify-content: center;
@@ -93,7 +96,7 @@ input[type="range"]::-moz-range-thumb {
 }
 .product-page-subtitle {
   margin: 0;
-  max-width: 700px;
+  max-width: 760px;
   color: #cbd5e1;
   line-height: 1.6;
   font-size: 15px;
