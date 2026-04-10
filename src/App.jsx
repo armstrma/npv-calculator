@@ -376,6 +376,164 @@ const MarginalSensitivityTooltip = ({ active, payload, label, currency }) => {
   );
 };
 
+const QuickViewCharts = ({
+  currency,
+  showSensitivity,
+  discountData,
+  barData,
+  marginalSensitivityData,
+  irr,
+  discount,
+  showHurdleRate,
+  hurdleRate,
+  cashflows,
+  pvBreakEvenInfo,
+}) => {
+  const [activeChart, setActiveChart] = useState('npv');
+
+  useEffect(() => {
+    setActiveChart((current) => {
+      if (current === 'cashflows' && cashflows.length === 0) return 'npv';
+      return current;
+    });
+  }, [cashflows.length]);
+
+  return (
+    <>
+      <div className="quick-view-stage-toolbar" role="tablist" aria-label="Quick view charts">
+        <button type="button" className={`quick-view-stage-tab ${activeChart === 'npv' ? 'active' : ''}`} onClick={() => setActiveChart('npv')}>
+          NPV Curve
+        </button>
+        <button type="button" className={`quick-view-stage-tab ${activeChart === 'cashflows' ? 'active' : ''}`} onClick={() => setActiveChart('cashflows')}>
+          Cash Flows
+        </button>
+        <button type="button" className={`quick-view-stage-tab ${activeChart === 'impact' ? 'active' : ''}`} onClick={() => setActiveChart('impact')}>
+          $1 Impact
+        </button>
+      </div>
+
+      <div className="quick-view-stage-chart">
+        {activeChart === 'npv' && (
+          <>
+            <div className="quick-view-stage-heading">
+              <h2>NPV vs Discount Rate</h2>
+              <p>Keep the chart fixed while controls scroll underneath.</p>
+            </div>
+            <div className="quick-view-chart-frame">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={discountData} margin={{ top: 14, right: 12, left: 0, bottom: 18 }}>
+                  <XAxis dataKey="discount" type="number" domain={[0, 30]} tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} width={48} />
+                  <Tooltip cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} />} />
+                  <Line type="monotone" dataKey="npv_pos" stroke="green" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
+                  <Line type="monotone" dataKey="npv_neg" stroke="red" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
+                  {!Number.isNaN(irr) && (
+                    <ReferenceLine x={irr} stroke="#7dd3fc" strokeDasharray="3 3" label={<Label value={`IRR ${irr.toFixed(2)}%`} position="insideTopRight" fill="#7dd3fc" dx={-6} dy={-4} fontSize={11} />} />
+                  )}
+                  {!showHurdleRate && (
+                    <ReferenceLine x={discount} stroke="#c084fc" strokeDasharray="3 3" label={<Label value={`Disc ${discount.toFixed(1)}%`} position="insideBottom" fill="#c084fc" dy={-2} fontSize={11} />} />
+                  )}
+                  {showHurdleRate && (
+                    <ReferenceLine x={hurdleRate} stroke="#22c55e" strokeDasharray="6 4" label={<Label value={`Hurdle ${hurdleRate.toFixed(1)}%`} position="insideBottom" fill="#22c55e" dy={-2} fontSize={11} />} />
+                  )}
+                  {showSensitivity && (
+                    <>
+                      <Line type="monotone" dataKey="high_npv_pos" stroke="#a78bfa" dot={false} activeDot={{ r: 3 }} strokeWidth={2} strokeDasharray="4 3" isAnimationActive={false} />
+                      <Line type="monotone" dataKey="high_npv_neg" stroke="#ef4444" dot={false} activeDot={{ r: 3 }} strokeWidth={2} strokeDasharray="4 3" isAnimationActive={false} />
+                      <Line type="monotone" dataKey="low_npv_pos" stroke="#f9a8d4" dot={false} activeDot={{ r: 3 }} strokeWidth={2} strokeDasharray="4 3" isAnimationActive={false} />
+                      <Line type="monotone" dataKey="low_npv_neg" stroke="#dc2626" dot={false} activeDot={{ r: 3 }} strokeWidth={3} strokeDasharray="4 3" isAnimationActive={false} />
+                    </>
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+
+        {activeChart === 'cashflows' && (
+          <>
+            <div className="quick-view-stage-heading">
+              <h2>Cash Flows</h2>
+              <p>Compare nominal and discounted recovery without moving the graph.</p>
+            </div>
+            <div className="quick-view-chart-frame">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={barData} barGap={-18} barCategoryGap="24%">
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 11 }} width={48} />
+                  <Tooltip content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} />} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} payload={[{ value: 'PV Cumulative', type: 'line', color: '#a78bfa' }, { value: 'Cash Cumulative', type: 'line', color: '#60a5fa' }]} />
+                  {cashflows.length > 0 && (
+                    <>
+                      {pvBreakEvenInfo.firstPositiveLabel ? (
+                        <>
+                          <ReferenceArea x1="Initial" x2={pvBreakEvenInfo.lastNegativeLabel || 'Initial'} fill="#ef4444" fillOpacity={0.08} ifOverflow="hidden" />
+                          <ReferenceArea x1={pvBreakEvenInfo.firstPositiveLabel} x2={`Year ${cashflows.length}`} fill="#22c55e" fillOpacity={0.08} ifOverflow="hidden" />
+                        </>
+                      ) : (
+                        <ReferenceArea x1="Initial" x2={`Year ${cashflows.length}`} fill="#ef4444" fillOpacity={0.08} ifOverflow="hidden" />
+                      )}
+                    </>
+                  )}
+                  <Bar dataKey="value" name="Cash Flow" legendType="none" fillOpacity={0.35} barSize={18}>
+                    {barData.map((entry, index) => {
+                      const isNpv = entry.name === 'NPV';
+                      const fill = isNpv ? (entry.value >= 0 ? '#22c55e' : '#ef4444') : '#3b82f6';
+                      return <Cell key={`quick-cash-cell-${index}`} fill={fill} />;
+                    })}
+                  </Bar>
+                  <Bar dataKey="pvValue" name="PV Cash Flow" legendType="none" barSize={10}>
+                    {barData.map((entry, index) => {
+                      if (entry.pvValue === null || entry.pvValue === undefined) return <Cell key={`quick-pv-cell-${index}`} fill="transparent" />;
+                      const isNpv = entry.name === 'NPV';
+                      const fill = isNpv ? (entry.value >= 0 ? '#16a34a' : '#dc2626') : '#8b5cf6';
+                      return <Cell key={`quick-pv-cell-${index}`} fill={fill} />;
+                    })}
+                  </Bar>
+                  {showSensitivity && (
+                    <>
+                      <Area type="monotone" dataKey="cumulativeLow" stackId="cashBand" legendType="none" stroke="none" fill="transparent" isAnimationActive={false} />
+                      <Area type="monotone" dataKey="cumulativeRange" stackId="cashBand" legendType="none" stroke="none" fill="#60a5fa" fillOpacity={0.16} isAnimationActive={false} />
+                      <Area type="monotone" dataKey="pvCumulativeLow" stackId="pvBand" legendType="none" stroke="none" fill="transparent" isAnimationActive={false} />
+                      <Area type="monotone" dataKey="pvCumulativeRange" stackId="pvBand" legendType="none" stroke="none" fill="#a78bfa" fillOpacity={0.16} isAnimationActive={false} />
+                    </>
+                  )}
+                  <Line type="monotone" dataKey="cumulative" name="Cash Cumulative" stroke="#60a5fa" dot={false} strokeWidth={2} strokeDasharray="5 3" />
+                  <Line type="monotone" dataKey="pvCumulative" name="PV Cumulative" stroke="#a78bfa" dot={false} strokeWidth={3} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+
+        {activeChart === 'impact' && (
+          <>
+            <div className="quick-view-stage-heading">
+              <h2>NPV Impact per $1 Change</h2>
+              <p>A tighter teaching view for marginal sensitivity.</p>
+            </div>
+            <div className="quick-view-chart-frame">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={marginalSensitivityData} margin={{ top: 10, right: 12, left: 12, bottom: 0 }}>
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis tickFormatter={(v) => `${currency}${Number(v).toFixed(2)}`} tick={{ fontSize: 11 }} width={60} />
+                  <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={2} />
+                  <Tooltip content={<MarginalSensitivityTooltip currency={currency} />} />
+                  <Bar dataKey="impactPerDollar" barSize={22} radius={[4, 4, 0, 0]}>
+                    {marginalSensitivityData.map((entry, index) => (
+                      <Cell key={`quick-marginal-${index}`} fill={entry.impactPerDollar >= 0 ? '#22c55e' : '#ef4444'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+};
+
 const App = () => {
   const [initial, setInitial] = useState(1000);
   const [discount, setDiscount] = useState(10);
@@ -990,9 +1148,19 @@ const App = () => {
       {quickViewEnabled ? (
         <div className="quick-view-shell">
           <div className="quick-view-stage">
-            <button type="button" className="quick-view-stage-nav quick-view-stage-nav-left">‹</button>
-            <div className="quick-view-stage-title">Graphs</div>
-            <button type="button" className="quick-view-stage-nav quick-view-stage-nav-right">›</button>
+            <QuickViewCharts
+              currency={currency}
+              showSensitivity={showSensitivity}
+              discountData={discountData}
+              barData={barData}
+              marginalSensitivityData={marginalSensitivityData}
+              irr={irr}
+              discount={discount}
+              showHurdleRate={showHurdleRate}
+              hurdleRate={hurdleRate}
+              cashflows={cashflows}
+              pvBreakEvenInfo={pvBreakEvenInfo}
+            />
           </div>
           <div className="quick-view-controls">
             <div className="quick-view-row">

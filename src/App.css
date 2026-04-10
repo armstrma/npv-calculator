@@ -867,7 +867,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 @media (max-width: 640px) {
   .quick-view-shell {
     display: grid;
-    grid-template-rows: minmax(0, 42vh) minmax(0, 1fr);
+    grid-template-rows: minmax(240px, 38vh) minmax(0, 1fr);
     gap: 0;
     margin-top: 54px;
     height: calc(100vh - 54px);
@@ -880,28 +880,65 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     min-height: 0;
     height: 100%;
     display: grid;
-    place-items: center;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-items: stretch;
     background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%);
     border-bottom: 1px solid rgba(71, 85, 105, 0.5);
     overflow: hidden;
-    touch-action: none;
   }
-  .quick-view-stage-title {
-    font-size: 40px;
-    color: #e2e8f0;
+  .quick-view-stage-toolbar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid rgba(71, 85, 105, 0.35);
+    background: rgba(2, 6, 23, 0.28);
   }
-  .quick-view-stage-nav {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 34px;
-    height: 54px;
+  .quick-view-stage-tab {
+    min-height: 32px;
+    border-radius: 999px;
     border: 1px solid rgba(71, 85, 105, 0.55);
-    background: rgba(15, 23, 42, 0.92);
-    color: #cbd5e1;
+    background: rgba(15, 23, 42, 0.75);
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 0 8px;
   }
-  .quick-view-stage-nav-left { left: 12px; }
-  .quick-view-stage-nav-right { right: 12px; }
+  .quick-view-stage-tab.active {
+    background: rgba(139, 92, 246, 0.22);
+    border-color: rgba(167, 139, 250, 0.55);
+    color: #f5f3ff;
+  }
+  .quick-view-stage-chart {
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 8px;
+    padding: 10px 12px 12px;
+    overflow: hidden;
+  }
+  .quick-view-stage-heading h2,
+  .quick-view-stage-heading p {
+    margin: 0;
+  }
+  .quick-view-stage-heading h2 {
+    font-size: 14px;
+    color: #f8fafc;
+  }
+  .quick-view-stage-heading p {
+    margin-top: 3px;
+    font-size: 11px;
+    line-height: 1.35;
+    color: #94a3b8;
+  }
+  .quick-view-chart-frame {
+    min-height: 0;
+    border-radius: 14px;
+    border: 1px solid rgba(71, 85, 105, 0.4);
+    background: rgba(2, 6, 23, 0.38);
+    padding: 8px 6px 4px;
+    overflow: hidden;
+  }
   .quick-view-controls {
     display: grid;
     gap: 0;
