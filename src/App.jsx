@@ -154,7 +154,7 @@ const exampleProjectCards = [
   { title: 'Campus EV Chargers', subtitle: 'Infrastructure decision', meta: 'Placeholder example' },
 ];
 
-const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, projects, onLoadProject, onRequestDeleteProject, projectPreviews }) => {
+const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, projects, onLoadProject, pendingDeleteProjectName, onRequestDeleteProject, onCancelDeleteProject, onConfirmDeleteProject, projectPreviews }) => {
   if (!open) return null;
 
   const savedProjectNames = Object.keys(projects || {});
@@ -214,14 +214,24 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
                             <span>Open local project</span>
                           )}
                         </button>
-                        <button
-                          type="button"
-                          className="mobile-library-saved-delete"
-                          onClick={() => onRequestDeleteProject(name)}
-                          aria-label={`Delete ${name}`}
-                        >
-                          Delete
-                        </button>
+                        {pendingDeleteProjectName === name ? (
+                          <div className="mobile-library-saved-confirm">
+                            <span>Delete?</span>
+                            <div className="mobile-library-saved-confirm-actions">
+                              <button type="button" className="mobile-library-saved-delete confirm" onClick={() => onConfirmDeleteProject(name)}>Yes</button>
+                              <button type="button" className="mobile-library-saved-delete cancel" onClick={onCancelDeleteProject}>No</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="mobile-library-saved-delete"
+                            onClick={() => onRequestDeleteProject(name)}
+                            aria-label={`Delete ${name}`}
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -1977,31 +1987,6 @@ const App = () => {
         </Suspense>
       )}
 
-      {pendingDeleteProjectName && (
-        <div className="modal modal-front" onClick={() => setPendingDeleteProjectName('')}>
-          <div className="modal-content auth-modal modal-compact modal-delete-compact" onClick={(e) => e.stopPropagation()}>
-            <div className="auth-card modal-delete-card">
-              <div className="local-save-warning delete-warning" role="alert">
-                Delete <strong>{pendingDeleteProjectName}</strong>?
-              </div>
-              <div className="auth-actions modal-delete-actions">
-                <button
-                  type="button"
-                  className="button-primary"
-                  onClick={() => {
-                    deleteProject(pendingDeleteProjectName);
-                    setPendingDeleteProjectName('');
-                  }}
-                >
-                  Delete
-                </button>
-                <button type="button" className="button-secondary" onClick={() => setPendingDeleteProjectName('')}>Cancel</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <MobileLibraryPanel
         open={showMobileLibrary}
         onClose={() => setShowMobileLibrary(false)}
@@ -2014,7 +1999,13 @@ const App = () => {
         }}
         projects={projects}
         onLoadProject={loadProject}
+        pendingDeleteProjectName={pendingDeleteProjectName}
         onRequestDeleteProject={setPendingDeleteProjectName}
+        onCancelDeleteProject={() => setPendingDeleteProjectName('')}
+        onConfirmDeleteProject={(name) => {
+          deleteProject(name);
+          setPendingDeleteProjectName('');
+        }}
         projectPreviews={projectPreviews}
       />
 
