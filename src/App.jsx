@@ -80,8 +80,8 @@ const getSentimentStatus = ({ viabilityPass, standardPass, fragilityPass }) => {
 };
 
 const formatMobileNpv = (value, currency = '$') => {
-  const roundedValue = Math.round(Number(value) || 0);
-  return `${currency}${roundedValue.toLocaleString()}`;
+  const numericValue = Number(value) || 0;
+  return `${currency}${numericValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 const formatMobileIrr = (value) => `${Math.round(Number(value) || 0)}%`;
