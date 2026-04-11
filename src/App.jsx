@@ -564,31 +564,19 @@ const QuickViewCharts = ({
                   </button>
                 </div>
                 <div className="quick-view-analysis-detail quick-view-analysis-inline-detail">
-                  {activeAnalysisCard === 'viability' && <p>NPV must stay above zero.</p>}
-                  {activeAnalysisCard === 'standard' && <p>IRR must clear the required bar.</p>}
-                  {activeAnalysisCard === 'fragility' && <p>Downside IRR must still pass.</p>}
+                  {activeAnalysisCard === 'viability' && <p>NPV &gt; 0 at {discountRateForAnalysis.toFixed(1)}%</p>}
+                  {activeAnalysisCard === 'standard' && <p>{showHurdleRate ? `IRR ≥ hurdle ${hurdleRate.toFixed(1)}%` : `IRR ≥ discount ${discount.toFixed(1)}%`}</p>}
+                  {activeAnalysisCard === 'fragility' && <p>{showHurdleRate ? `Downside IRR ≥ hurdle ${hurdleRate.toFixed(1)}%` : `Downside IRR ≥ discount ${discount.toFixed(1)}%`}</p>}
                 </div>
               </section>
 
               <section className="quick-view-analysis-column quick-view-analysis-facts">
                 <span className="details-metric-label">Breakeven Analysis</span>
                 <div className="quick-view-analysis-facts-list">
-                  <div className="quick-view-analysis-fact-pill">
-                    <span>IRR</span>
-                    <strong>{irr.toFixed(2)}%</strong>
-                  </div>
-                  <div className="quick-view-analysis-fact-pill">
-                    <span>Payback</span>
-                    <strong>{formatPaybackDisplay(payback)}</strong>
-                  </div>
-                  <div className="quick-view-analysis-fact-pill">
-                    <span>Uplift</span>
-                    <strong>{breakEvenCashflowUpliftPct === null ? 'N/A' : `${breakEvenCashflowUpliftPct >= 0 ? '+' : ''}${breakEvenCashflowUpliftPct.toFixed(1)}%`}</strong>
-                  </div>
-                  <div className="quick-view-analysis-fact-pill">
-                    <span>Max Initial</span>
-                    <strong>{currency}{maxInitialAtNpvZero.toFixed(2)}</strong>
-                  </div>
+                  <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>IRR</span><strong>{irr.toFixed(2)}%</strong></div>
+                  <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>Payback</span><strong>{formatPaybackDisplay(payback)}</strong></div>
+                  <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>Uplift</span><strong>{breakEvenCashflowUpliftPct === null ? 'N/A' : `${breakEvenCashflowUpliftPct >= 0 ? '+' : ''}${breakEvenCashflowUpliftPct.toFixed(1)}%`}</strong></div>
+                  <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>Max Initial</span><strong>{currency}{maxInitialAtNpvZero.toFixed(2)}</strong></div>
                 </div>
               </section>
             </div>

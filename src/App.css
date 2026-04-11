@@ -1037,6 +1037,13 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     border: 1px solid rgba(71, 85, 105, 0.36);
     background: rgba(15, 23, 42, 0.72);
   }
+  .quick-view-analysis-fact-pill-inline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 9px;
+  }
   .quick-view-analysis-fact-pill span {
     font-size: 10px;
     font-weight: 800;
@@ -1048,6 +1055,10 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     font-size: 13px;
     line-height: 1.15;
     color: #f8fafc;
+  }
+  .quick-view-analysis-fact-pill-inline span,
+  .quick-view-analysis-fact-pill-inline strong {
+    white-space: nowrap;
   }
   .quick-view-controls {
     display: grid;
