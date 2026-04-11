@@ -661,7 +661,7 @@ const QuickViewCharts = ({
                     <strong>{standardPass ? 'Pass' : 'Fail'}</strong>
                   </button>
                   <button type="button" className={`quick-view-analysis-rule ${activeAnalysisCard === 'fragility' ? 'active' : ''} ${fragilityPass ? 'pass' : 'fail'}`} onClick={() => setActiveAnalysisCard('fragility')}>
-                    <span>Durable Under Downside</span>
+                    <span>Durable</span>
                     <strong>{fragilityPass ? 'Pass' : 'Fail'}</strong>
                   </button>
                 </div>
@@ -1869,7 +1869,7 @@ const App = () => {
                       <span className="details-rule-subtext">{showHurdleRate ? `IRR ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `IRR ≥ discount (${discount.toFixed(1)}%)`}</span>
                     </div>
                     <div className={`details-rule ${fragilityPass ? 'pass' : 'fail'}`}>
-                      <span className="details-rule-name">Durable Under Downside</span>
+                      <span className="details-rule-name">Durable</span>
                       <span className="details-rule-status">{fragilityPass ? 'Pass' : 'Fail'}</span>
                       <span className="details-rule-subtext">
                         {showHurdleRate ? `Downside IRR (${downsideIrr.toFixed(2)}%) ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `Downside IRR (${downsideIrr.toFixed(2)}%) ≥ discount (${discount.toFixed(1)}%)`}
