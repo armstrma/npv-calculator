@@ -1148,6 +1148,25 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     color: #cbd5e1;
     white-space: nowrap;
   }
+  .mobile-topbar-menu-right {
+    right: 0;
+    left: auto;
+  }
+  .mobile-topbar-menu-item-select,
+  .mobile-topbar-menu-item-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .mobile-topbar-menu-item-select select {
+    min-width: 62px;
+    border-radius: 8px;
+    border: 1px solid rgba(71, 85, 105, 0.55);
+    background: rgba(15, 23, 42, 0.92);
+    color: #f8fafc;
+    padding: 4px 8px;
+  }
 }
 
 .guide-modal {

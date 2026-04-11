@@ -603,6 +603,7 @@ const App = () => {
   const [mobileLibraryTab, setMobileLibraryTab] = useState('saved');
   const [mobileMetricsPinned, setMobileMetricsPinned] = useState(false);
   const [showQuickViewMenu, setShowQuickViewMenu] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [quickViewEnabled, setQuickViewEnabled] = useState(false);
   const [returnToUpgradeAfterAuth, setReturnToUpgradeAfterAuth] = useState(false);
   const [authMode, setAuthMode] = useState('signin');
@@ -1186,7 +1187,10 @@ const App = () => {
           <span className="mobile-topbar-pro-badge">PRO</span>
         </div>
         <div className="mobile-topbar-menu-wrap">
-          <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => setShowQuickViewMenu((value) => !value)} aria-label="More options">
+          <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => {
+            setShowQuickViewMenu((value) => !value);
+            setShowShareMenu(false);
+          }} aria-label="More options">
             <span className="mobile-topbar-icon-glyph">…</span>
           </button>
           {showQuickViewMenu && (
@@ -1201,16 +1205,47 @@ const App = () => {
               >
                 {quickViewEnabled ? 'Exit Quick View' : 'Enter Quick View'}
               </button>
+              <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
+                <span>Currency</span>
+                <select value={currency} onChange={(e) => setCurrency(e.target.value)} title="Display currency (calculations unchanged)">
+                  <option>$</option>
+                  <option>€</option>
+                  <option>£</option>
+                </select>
+              </label>
+              <label className="mobile-topbar-menu-item mobile-topbar-menu-item-toggle">
+                <span>Sensitivity Analysis</span>
+                <input type="checkbox" checked={showSensitivity} onChange={(e) => setShowSensitivity(e.target.checked)} />
+              </label>
             </div>
           )}
         </div>
-        <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={copyProjectLink} aria-label="Share project link">
-          <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 16V5" />
-            <path d="m7 10 5-5 5 5" />
-            <path d="M5 19h14" />
-          </svg>
-        </button>
+        <div className="mobile-topbar-menu-wrap">
+          <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => {
+            setShowShareMenu((value) => !value);
+            setShowQuickViewMenu(false);
+          }} aria-label="Share options">
+            <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 16V5" />
+              <path d="m7 10 5-5 5 5" />
+              <path d="M5 19h14" />
+            </svg>
+          </button>
+          {showShareMenu && (
+            <div className="mobile-topbar-menu mobile-topbar-menu-right">
+              <button
+                type="button"
+                className="mobile-topbar-menu-item"
+                onClick={() => {
+                  copyProjectLink();
+                  setShowShareMenu(false);
+                }}
+              >
+                {copiedProjectLink ? 'Copied Project Link' : 'Copy Project Link'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className={`project-toolbar ${showProductHero ? '' : 'project-toolbar-condensed'}`}>
