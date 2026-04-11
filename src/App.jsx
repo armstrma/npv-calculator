@@ -1977,30 +1977,14 @@ const App = () => {
         </Suspense>
       )}
 
-      <MobileLibraryPanel
-        open={showMobileLibrary}
-        onClose={() => setShowMobileLibrary(false)}
-        activeTab={mobileLibraryTab}
-        setActiveTab={setMobileLibraryTab}
-        isAuthenticated={Boolean(authUser)}
-        onRequireAuth={(mode) => {
-          setShowMobileLibrary(false);
-          handleRequireAuth(mode);
-        }}
-        projects={projects}
-        onLoadProject={loadProject}
-        onRequestDeleteProject={setPendingDeleteProjectName}
-        projectPreviews={projectPreviews}
-      />
-
       {pendingDeleteProjectName && (
-        <div className="modal" onClick={() => setPendingDeleteProjectName('')}>
-          <div className="modal-content auth-modal modal-compact" onClick={(e) => e.stopPropagation()}>
-            <div className="auth-card">
+        <div className="modal modal-front" onClick={() => setPendingDeleteProjectName('')}>
+          <div className="modal-content auth-modal modal-compact modal-delete-compact" onClick={(e) => e.stopPropagation()}>
+            <div className="auth-card modal-delete-card">
               <div className="local-save-warning delete-warning" role="alert">
-                Delete <strong>{pendingDeleteProjectName}</strong> from local browser storage?
+                Delete <strong>{pendingDeleteProjectName}</strong>?
               </div>
-              <div className="auth-actions">
+              <div className="auth-actions modal-delete-actions">
                 <button
                   type="button"
                   className="button-primary"
@@ -2017,6 +2001,22 @@ const App = () => {
           </div>
         </div>
       )}
+
+      <MobileLibraryPanel
+        open={showMobileLibrary}
+        onClose={() => setShowMobileLibrary(false)}
+        activeTab={mobileLibraryTab}
+        setActiveTab={setMobileLibraryTab}
+        isAuthenticated={Boolean(authUser)}
+        onRequireAuth={(mode) => {
+          setShowMobileLibrary(false);
+          handleRequireAuth(mode);
+        }}
+        projects={projects}
+        onLoadProject={loadProject}
+        onRequestDeleteProject={setPendingDeleteProjectName}
+        projectPreviews={projectPreviews}
+      />
 
       {showSaveLocalModal && (
         <div className="modal" onClick={() => setShowSaveLocalModal(false)}>
