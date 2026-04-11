@@ -2028,7 +2028,7 @@ const App = () => {
             </div>
             <div className="auth-card">
               <div className="local-save-warning" role="alert">
-                Saved in this browser only. It may be lost if browser storage is cleared, the app data is reset, or you switch devices.
+                Saved in this browser only. Project may be lost if browser storage is cleared, the app data is reset, or you switch devices.
               </div>
               <label className="auth-field">
                 <span>Project name</span>
