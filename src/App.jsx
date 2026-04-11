@@ -154,7 +154,7 @@ const exampleProjectCards = [
   { title: 'Campus EV Chargers', subtitle: 'Infrastructure decision', meta: 'Placeholder example' },
 ];
 
-const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, projects, onLoadProject }) => {
+const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, projects, onLoadProject, projectPreviews }) => {
   if (!open) return null;
 
   const savedProjectNames = Object.keys(projects || {});
@@ -188,20 +188,34 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
               </div>
               {savedProjectNames.length ? (
                 <div className="mobile-library-saved-list">
-                  {savedProjectNames.map((name) => (
-                    <button
-                      key={name}
-                      type="button"
-                      className="mobile-library-saved-item"
-                      onClick={() => {
-                        onLoadProject(name);
-                        onClose();
-                      }}
-                    >
-                      <strong>{name}</strong>
-                      <span>Open local project</span>
-                    </button>
-                  ))}
+                  {savedProjectNames.map((name) => {
+                    const preview = projectPreviews?.[name];
+                    const previewTone = preview?.tone || 'neutral';
+
+                    return (
+                      <button
+                        key={name}
+                        type="button"
+                        className={`mobile-library-saved-item tone-${previewTone}`}
+                        onClick={() => {
+                          onLoadProject(name);
+                          onClose();
+                        }}
+                      >
+                        <strong>{name}</strong>
+                        {preview ? (
+                          <div className="mobile-library-saved-metrics">
+                            <span className={`tone-${previewTone}`}>{preview.label}</span>
+                            <span style={{ color: preview.npv >= 0 ? '#22c55e' : '#ef4444' }}>NPV {formatMobileNpv(preview.npv, preview.currency)}</span>
+                            <span>IRR {formatMobileIrr(preview.irr)}</span>
+                            <span>Payback {formatPaybackDisplay(preview.payback)}</span>
+                          </div>
+                        ) : (
+                          <span>Open local project</span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="mobile-library-empty-state compact">
@@ -657,6 +671,9 @@ const App = () => {
   const [showMetricsDetails, setShowMetricsDetails] = useState(false);
   const [sliderBounds, setSliderBounds] = useState({ initial: { min: 0, max: 10000 }, cashflow: { min: -5000, max: 10000 } });
   const [copiedProjectLink, setCopiedProjectLink] = useState(false);
+  const [showSaveLocalModal, setShowSaveLocalModal] = useState(false);
+  const [saveLocalName, setSaveLocalName] = useState('');
+  const [projectPreviews, setProjectPreviews] = useState({});
   const [initialInput, setInitialInput] = useState(formatNumberWithCommas(1000));
   const [rateInput, setRateInput] = useState('10.0');
   const [cashflowInputs, setCashflowInputs] = useState([200, 300, 400, 500, 600].map(formatNumberWithCommas));
@@ -830,11 +847,15 @@ const App = () => {
   };
 
   const handleSaveLocally = () => {
-    const suggestedName = projectName?.trim() || loadedProjectName?.trim() || '';
-    const promptedName = window.prompt('Save project locally as:', suggestedName);
-    if (!promptedName?.trim()) return;
-    saveProject(promptedName);
+    setSaveLocalName(projectName?.trim() || loadedProjectName?.trim() || '');
+    setShowSaveLocalModal(true);
     setShowSaveMenu(false);
+  };
+
+  const handleConfirmLocalSave = () => {
+    if (!saveLocalName?.trim()) return;
+    saveProject(saveLocalName);
+    setShowSaveLocalModal(false);
   };
 
   const loadProject = (name) => {
@@ -1111,6 +1132,32 @@ const App = () => {
     setCopiedProjectLink(true);
     window.setTimeout(() => setCopiedProjectLink(false), 2000);
   };
+
+  useEffect(() => {
+    if (!showMobileLibrary) return;
+
+    const previews = Object.entries(projects || {}).reduce((acc, [name, project]) => {
+      const previewNpv = calculateNPV(project.initial, project.discount, project.cashflows);
+      const previewIrr = findIRR(project.initial, project.cashflows);
+      const previewPayback = calculatePayback(project.initial, project.discount, project.cashflows);
+      const viability = previewNpv > 0;
+      const standard = previewIrr >= project.discount;
+      const fragility = findIRR(project.initial, project.cashflows.map((cf) => cf * 0.9)) >= project.discount;
+      const previewSentiment = getSentimentStatus({ viabilityPass: viability, standardPass: standard, fragilityPass: fragility });
+
+      acc[name] = {
+        npv: previewNpv,
+        irr: previewIrr,
+        payback: previewPayback,
+        label: previewSentiment.label,
+        tone: previewSentiment.tone,
+        currency,
+      };
+      return acc;
+    }, {});
+
+    setProjectPreviews(previews);
+  }, [showMobileLibrary, projects, currency]);
 
   const activeRateGradient = getGradient('discount');
   const inactiveRateGradient = 'linear-gradient(to right, #525252, #525252)';
@@ -1932,7 +1979,40 @@ const App = () => {
         }}
         projects={projects}
         onLoadProject={loadProject}
+        projectPreviews={projectPreviews}
       />
+
+      {showSaveLocalModal && (
+        <div className="modal" onClick={() => setShowSaveLocalModal(false)}>
+          <div className="modal-content auth-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="upgrade-modal-header">
+              <div>
+                <h2>Save locally</h2>
+                <p>Name this project for this browser.</p>
+              </div>
+              <button type="button" className="button-secondary upgrade-modal-close" onClick={() => setShowSaveLocalModal(false)}>
+                Close
+              </button>
+            </div>
+            <div className="auth-card">
+              <label className="auth-field">
+                <span>Project name</span>
+                <input
+                  type="text"
+                  value={saveLocalName}
+                  onChange={(e) => setSaveLocalName(e.target.value)}
+                  placeholder="My NPV Project"
+                  autoFocus
+                />
+              </label>
+              <div className="auth-actions">
+                <button type="button" className="button-primary" onClick={handleConfirmLocalSave}>Save Locally</button>
+                <button type="button" className="button-secondary" onClick={() => setShowSaveLocalModal(false)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AuthModal
         open={showAuthModal}
