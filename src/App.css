@@ -1492,6 +1492,14 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   font-size: 12px;
   line-height: 1.4;
 }
+.delete-warning {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(127, 29, 29, 0.22);
+  color: #fecaca;
+}
+.modal-compact {
+  width: min(420px, calc(100vw - 24px));
+}
 .auth-actions {
   display: flex;
   gap: 10px;

@@ -154,7 +154,7 @@ const exampleProjectCards = [
   { title: 'Campus EV Chargers', subtitle: 'Infrastructure decision', meta: 'Placeholder example' },
 ];
 
-const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, projects, onLoadProject, onDeleteProject, projectPreviews }) => {
+const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, projects, onLoadProject, onRequestDeleteProject, projectPreviews }) => {
   if (!open) return null;
 
   const savedProjectNames = Object.keys(projects || {});
@@ -217,7 +217,7 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
                         <button
                           type="button"
                           className="mobile-library-saved-delete"
-                          onClick={() => onDeleteProject(name)}
+                          onClick={() => onRequestDeleteProject(name)}
                           aria-label={`Delete ${name}`}
                         >
                           Delete
@@ -682,6 +682,7 @@ const App = () => {
   const [copiedProjectLink, setCopiedProjectLink] = useState(false);
   const [showSaveLocalModal, setShowSaveLocalModal] = useState(false);
   const [saveLocalName, setSaveLocalName] = useState('');
+  const [pendingDeleteProjectName, setPendingDeleteProjectName] = useState('');
   const [projectPreviews, setProjectPreviews] = useState({});
   const [initialInput, setInitialInput] = useState(formatNumberWithCommas(1000));
   const [rateInput, setRateInput] = useState('10.0');
@@ -1988,9 +1989,34 @@ const App = () => {
         }}
         projects={projects}
         onLoadProject={loadProject}
-        onDeleteProject={deleteProject}
+        onRequestDeleteProject={setPendingDeleteProjectName}
         projectPreviews={projectPreviews}
       />
+
+      {pendingDeleteProjectName && (
+        <div className="modal" onClick={() => setPendingDeleteProjectName('')}>
+          <div className="modal-content auth-modal modal-compact" onClick={(e) => e.stopPropagation()}>
+            <div className="auth-card">
+              <div className="local-save-warning delete-warning" role="alert">
+                Delete <strong>{pendingDeleteProjectName}</strong> from local browser storage?
+              </div>
+              <div className="auth-actions">
+                <button
+                  type="button"
+                  className="button-primary"
+                  onClick={() => {
+                    deleteProject(pendingDeleteProjectName);
+                    setPendingDeleteProjectName('');
+                  }}
+                >
+                  Delete
+                </button>
+                <button type="button" className="button-secondary" onClick={() => setPendingDeleteProjectName('')}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showSaveLocalModal && (
         <div className="modal" onClick={() => setShowSaveLocalModal(false)}>
