@@ -857,7 +857,16 @@ const App = () => {
   const saveProject = (name) => {
     if (!name?.trim()) return;
     const trimmedName = name.trim();
-    const newProjects = { ...projects, [trimmedName]: { initial, discount, cashflows } };
+    const newProjects = {
+      ...projects,
+      [trimmedName]: {
+        initial,
+        discount,
+        cashflows,
+        showHurdleRate,
+        hurdleRate,
+      },
+    };
     setProjects(newProjects);
     localStorage.setItem('npvProjects', JSON.stringify(newProjects));
     setProjectName(trimmedName);
@@ -884,6 +893,8 @@ const App = () => {
       setInitial(project.initial);
       setDiscount(project.discount);
       setCashflows(project.cashflows);
+      setShowHurdleRate(Boolean(project.showHurdleRate));
+      setHurdleRate(typeof project.hurdleRate === 'number' ? project.hurdleRate : 12);
       setInitialInput(formatNumberWithCommas(project.initial));
       setCashflowInputs(project.cashflows.map(formatNumberWithCommas));
       setProjectName(name);
@@ -1157,12 +1168,13 @@ const App = () => {
     if (!showMobileLibrary) return;
 
     const previews = Object.entries(projects || {}).reduce((acc, [name, project]) => {
-      const previewNpv = calculateNPV(project.initial, project.discount, project.cashflows);
+      const previewRate = project.showHurdleRate ? (typeof project.hurdleRate === 'number' ? project.hurdleRate : project.discount) : project.discount;
+      const previewNpv = calculateNPV(project.initial, previewRate, project.cashflows);
       const previewIrr = findIRR(project.initial, project.cashflows);
-      const previewPayback = calculatePayback(project.initial, project.discount, project.cashflows);
+      const previewPayback = calculatePayback(project.initial, previewRate, project.cashflows);
       const viability = previewNpv > 0;
-      const standard = previewIrr >= project.discount;
-      const fragility = findIRR(project.initial, project.cashflows.map((cf) => cf * 0.9)) >= project.discount;
+      const standard = previewIrr >= previewRate;
+      const fragility = findIRR(project.initial, project.cashflows.map((cf) => cf * 0.9)) >= previewRate;
       const previewSentiment = getSentimentStatus({ viabilityPass: viability, standardPass: standard, fragilityPass: fragility });
 
       acc[name] = {
