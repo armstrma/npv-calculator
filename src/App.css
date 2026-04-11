@@ -924,6 +924,9 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     padding: 10px 12px 12px;
     overflow: hidden;
   }
+  .quick-view-analysis-panel-compact {
+    padding-top: 0;
+  }
   .quick-view-stage-heading h2,
   .quick-view-stage-heading p {
     margin: 0;
@@ -948,50 +951,50 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     min-height: 0;
     height: 100%;
     display: grid;
-    gap: 10px;
+    gap: 6px;
   }
   .quick-view-analysis-two-column {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
   }
   .quick-view-analysis-column {
     min-width: 0;
     display: grid;
-    gap: 8px;
-    padding: 10px;
-    border-radius: 14px;
-    border: 1px solid rgba(71, 85, 105, 0.4);
-    background: rgba(2, 6, 23, 0.38);
+    gap: 6px;
+    padding: 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(71, 85, 105, 0.32);
+    background: rgba(2, 6, 23, 0.34);
   }
   .quick-view-analysis-headline {
     display: grid;
-    gap: 2px;
+    gap: 1px;
   }
   .quick-view-analysis-decision {
-    font-size: 18px;
-    line-height: 1.1;
+    font-size: 16px;
+    line-height: 1.05;
   }
   .quick-view-analysis-rules-list {
     display: grid;
-    gap: 6px;
+    gap: 4px;
   }
   .quick-view-analysis-rule {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    padding: 8px 9px;
-    border-radius: 10px;
-    border: 1px solid rgba(71, 85, 105, 0.45);
-    background: rgba(15, 23, 42, 0.72);
+    gap: 6px;
+    padding: 6px 7px;
+    border-radius: 9px;
+    border: 1px solid rgba(71, 85, 105, 0.4);
+    background: rgba(15, 23, 42, 0.68);
     color: #e2e8f0;
     text-align: left;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
   }
   .quick-view-analysis-rule.active {
-    border-color: rgba(167, 139, 250, 0.7);
-    background: rgba(76, 29, 149, 0.22);
+    border-color: rgba(167, 139, 250, 0.6);
+    background: rgba(76, 29, 149, 0.18);
   }
   .quick-view-analysis-rule.pass strong {
     color: #22c55e;
@@ -1001,21 +1004,21 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   }
   .quick-view-analysis-detail {
     min-height: 0;
-    border-radius: 10px;
-    border: 1px solid rgba(71, 85, 105, 0.35);
-    background: rgba(15, 23, 42, 0.6);
-    padding: 8px 9px;
+    border-radius: 9px;
+    border: 1px solid rgba(71, 85, 105, 0.28);
+    background: rgba(15, 23, 42, 0.54);
+    padding: 6px 7px;
   }
   .quick-view-analysis-inline-detail p,
   .quick-view-analysis-copy p {
     margin: 0;
-    font-size: 11px;
-    line-height: 1.35;
+    font-size: 10px;
+    line-height: 1.28;
     color: #e2e8f0;
   }
   .quick-view-analysis-facts-list {
     display: grid;
-    gap: 8px;
+    gap: 6px;
   }
   .quick-view-controls {
     display: grid;

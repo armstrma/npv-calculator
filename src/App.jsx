@@ -543,10 +543,7 @@ const QuickViewCharts = ({
 
         {activeChart === 'analysis' && (
           <>
-            <div className="quick-view-stage-heading">
-              <h2>Analyze</h2>
-            </div>
-            <div className="quick-view-analysis-panel quick-view-analysis-two-column">
+            <div className="quick-view-analysis-panel quick-view-analysis-two-column quick-view-analysis-panel-compact">
               <section className="quick-view-analysis-column quick-view-analysis-summary">
                 <div className="quick-view-analysis-headline">
                   <span className="details-metric-label">Decision Summary</span>
