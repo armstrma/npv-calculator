@@ -1027,13 +1027,13 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   }
   .quick-view-analysis-facts-list {
     display: grid;
-    gap: 8px;
+    gap: 5px;
   }
   .quick-view-analysis-fact-pill {
     display: grid;
     gap: 3px;
-    padding: 8px 9px;
-    border-radius: 10px;
+    padding: 6px 7px;
+    border-radius: 9px;
     border: 1px solid rgba(71, 85, 105, 0.36);
     background: rgba(15, 23, 42, 0.72);
   }
@@ -1041,19 +1041,19 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    padding: 7px 9px;
+    gap: 6px;
+    padding: 5px 7px;
   }
   .quick-view-analysis-fact-pill span {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #94a3b8;
   }
   .quick-view-analysis-fact-pill strong {
-    font-size: 13px;
-    line-height: 1.15;
+    font-size: 12px;
+    line-height: 1.1;
     color: #f8fafc;
   }
   .quick-view-analysis-fact-pill-inline span,
