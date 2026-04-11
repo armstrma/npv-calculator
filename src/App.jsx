@@ -2011,7 +2011,6 @@ const App = () => {
                   value={saveLocalName}
                   onChange={(e) => setSaveLocalName(e.target.value)}
                   placeholder="My NPV Project"
-                  autoFocus
                   className="local-save-input"
                 />
               </label>
