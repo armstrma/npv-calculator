@@ -548,7 +548,6 @@ const QuickViewCharts = ({
                 <div className="quick-view-analysis-headline">
                   <span className="details-metric-label">Decision Summary</span>
                   <strong className={`quick-view-analysis-decision sentiment-${sentiment.tone}`}>{sentiment.label}</strong>
-                  <span className="details-metric-subtext">{sentiment.detail}</span>
                 </div>
                 <div className="quick-view-analysis-rules-list">
                   <button type="button" className={`quick-view-analysis-rule ${activeAnalysisCard === 'viability' ? 'active' : ''} ${viabilityPass ? 'pass' : 'fail'}`} onClick={() => setActiveAnalysisCard('viability')}>

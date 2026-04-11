@@ -974,6 +974,15 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     font-size: 16px;
     line-height: 1.05;
   }
+  .quick-view-analysis-decision.sentiment-positive {
+    color: #22c55e;
+  }
+  .quick-view-analysis-decision.sentiment-caution {
+    color: #f59e0b;
+  }
+  .quick-view-analysis-decision.sentiment-negative {
+    color: #ef4444;
+  }
   .quick-view-analysis-rules-list {
     display: grid;
     gap: 4px;
