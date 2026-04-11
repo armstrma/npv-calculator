@@ -388,8 +388,19 @@ const QuickViewCharts = ({
   hurdleRate,
   cashflows,
   pvBreakEvenInfo,
+  sentiment,
+  recommendation,
+  viabilityPass,
+  standardPass,
+  fragilityPass,
+  discountRateForAnalysis,
+  downsideIrr,
+  payback,
+  breakEvenCashflowUpliftPct,
+  maxInitialAtNpvZero,
 }) => {
   const [activeChart, setActiveChart] = useState('npv');
+  const [activeAnalysisCard, setActiveAnalysisCard] = useState('rules');
 
   useEffect(() => {
     setActiveChart((current) => {
@@ -409,6 +420,9 @@ const QuickViewCharts = ({
         </button>
         <button type="button" className={`quick-view-stage-tab ${activeChart === 'impact' ? 'active' : ''}`} onClick={() => setActiveChart('impact')}>
           $1 Impact
+        </button>
+        <button type="button" className={`quick-view-stage-tab ${activeChart === 'analysis' ? 'active' : ''}`} onClick={() => setActiveChart('analysis')}>
+          Analysis
         </button>
       </div>
 
@@ -523,6 +537,93 @@ const QuickViewCharts = ({
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          </>
+        )}
+
+        {activeChart === 'analysis' && (
+          <>
+            <div className="quick-view-stage-heading">
+              <h2>Analysis</h2>
+            </div>
+            <div className="quick-view-analysis-panel">
+              <div className="quick-view-analysis-grid">
+                <button type="button" className={`quick-view-analysis-card ${activeAnalysisCard === 'rules' ? 'active' : ''}`} onClick={() => setActiveAnalysisCard('rules')}>
+                  <span className="quick-view-analysis-card-label">Rules</span>
+                  <strong className={`sentiment-${sentiment.tone}`}>{sentiment.label}</strong>
+                  <span>{recommendation}</span>
+                </button>
+                <button type="button" className={`quick-view-analysis-card ${activeAnalysisCard === 'quadrants' ? 'active' : ''}`} onClick={() => setActiveAnalysisCard('quadrants')}>
+                  <span className="quick-view-analysis-card-label">Quadrants</span>
+                  <strong>{showHurdleRate ? 'Hurdle lens' : 'Discount lens'}</strong>
+                  <span>View thresholds and tradeoffs</span>
+                </button>
+                <button type="button" className={`quick-view-analysis-card ${activeAnalysisCard === 'breakeven' ? 'active' : ''}`} onClick={() => setActiveAnalysisCard('breakeven')}>
+                  <span className="quick-view-analysis-card-label">Breakeven</span>
+                  <strong>{irr.toFixed(2)}%</strong>
+                  <span>IRR and uplift needs</span>
+                </button>
+                <button type="button" className={`quick-view-analysis-card ${activeAnalysisCard === 'fragility' ? 'active' : ''}`} onClick={() => setActiveAnalysisCard('fragility')}>
+                  <span className="quick-view-analysis-card-label">Fragility</span>
+                  <strong>{downsideIrr.toFixed(2)}%</strong>
+                  <span>Downside resilience check</span>
+                </button>
+              </div>
+
+              <div className="quick-view-analysis-detail">
+                {activeAnalysisCard === 'rules' && (
+                  <div className="quick-view-analysis-stack">
+                    <div className="details-discount-source-badge" role="status">
+                      Discounting source: {showHurdleRate ? `Hurdle rate (${hurdleRate.toFixed(1)}%)` : `Discount rate (${discount.toFixed(1)}%)`}
+                    </div>
+                    <div className="details-rule-list">
+                      <div className={`details-rule ${viabilityPass ? 'pass' : 'fail'}`}>
+                        <span className="details-rule-name">Viability</span>
+                        <span className="details-rule-status">{viabilityPass ? 'Pass' : 'Fail'}</span>
+                        <span className="details-rule-subtext">NPV &gt; 0 using {discountRateForAnalysis.toFixed(1)}%</span>
+                      </div>
+                      <div className={`details-rule ${standardPass ? 'pass' : 'fail'}`}>
+                        <span className="details-rule-name">Standard</span>
+                        <span className="details-rule-status">{standardPass ? 'Pass' : 'Fail'}</span>
+                        <span className="details-rule-subtext">{showHurdleRate ? `IRR ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `IRR ≥ discount (${discount.toFixed(1)}%)`}</span>
+                      </div>
+                      <div className={`details-rule ${fragilityPass ? 'pass' : 'fail'}`}>
+                        <span className="details-rule-name">Fragility</span>
+                        <span className="details-rule-status">{fragilityPass ? 'Pass' : 'Fail'}</span>
+                        <span className="details-rule-subtext">{showHurdleRate ? `Downside IRR (${downsideIrr.toFixed(2)}%) ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `Downside IRR (${downsideIrr.toFixed(2)}%) ≥ discount (${discount.toFixed(1)}%)`}</span>
+                      </div>
+                    </div>
+                    <p className="recommendation quick-view-analysis-copy">{recommendation}</p>
+                  </div>
+                )}
+
+                {activeAnalysisCard === 'quadrants' && (
+                  <div className="quick-view-analysis-stack quick-view-analysis-copy">
+                    <p><strong>Quadrant 1:</strong> Positive NPV and rule pass, the project clears both value creation and the required rate.</p>
+                    <p><strong>Quadrant 2:</strong> Positive NPV but standard fail, value exists but not enough for the required return.</p>
+                    <p><strong>Quadrant 3:</strong> Positive base case but fragile downside, acceptable on paper, weak under stress.</p>
+                    <p><strong>Quadrant 4:</strong> Negative NPV, reject unless assumptions change materially.</p>
+                  </div>
+                )}
+
+                {activeAnalysisCard === 'breakeven' && (
+                  <div className="quick-view-analysis-stack quick-view-analysis-copy">
+                    <p>Break-even discount rate (IRR): <strong>{irr.toFixed(2)}%</strong></p>
+                    <p>Discounted payback at {discountRateForAnalysis.toFixed(1)}%: <strong>{formatPaybackDisplay(payback)}</strong></p>
+                    <p>Required cash flow uplift: <strong>{breakEvenCashflowUpliftPct === null ? 'N/A' : `${breakEvenCashflowUpliftPct >= 0 ? '+' : ''}${breakEvenCashflowUpliftPct.toFixed(1)}%`}</strong></p>
+                    <p>Max initial investment at current rate: <strong>{currency}{maxInitialAtNpvZero.toFixed(2)}</strong></p>
+                  </div>
+                )}
+
+                {activeAnalysisCard === 'fragility' && (
+                  <div className="quick-view-analysis-stack quick-view-analysis-copy">
+                    <p>Downside IRR: <strong>{downsideIrr.toFixed(2)}%</strong></p>
+                    <p>Threshold to beat: <strong>{showHurdleRate ? `${hurdleRate.toFixed(1)}% hurdle` : `${discount.toFixed(1)}% discount`}</strong></p>
+                    <p>Fragility result: <strong className={fragilityPass ? 'sentiment-positive' : 'sentiment-negative'}>{fragilityPass ? 'Pass' : 'Fail'}</strong></p>
+                    <p>{fragilityPass ? 'The downside case still clears the required bar.' : 'The downside case drops below the required bar and needs stronger cushions.'}</p>
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}
@@ -1214,6 +1315,16 @@ const App = () => {
               hurdleRate={hurdleRate}
               cashflows={cashflows}
               pvBreakEvenInfo={pvBreakEvenInfo}
+              sentiment={sentiment}
+              recommendation={recommendation}
+              viabilityPass={viabilityPass}
+              standardPass={standardPass}
+              fragilityPass={fragilityPass}
+              discountRateForAnalysis={discountRateForAnalysis}
+              downsideIrr={downsideIrr}
+              payback={payback}
+              breakEvenCashflowUpliftPct={breakEvenCashflowUpliftPct}
+              maxInitialAtNpvZero={maxInitialAtNpvZero}
             />
           </div>
           <div className="quick-view-controls">
