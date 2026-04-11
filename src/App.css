@@ -950,7 +950,8 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     background: #020617;
     overflow-y: auto;
     overflow-x: hidden;
-    overscroll-behavior: contain;
+    overscroll-behavior-y: contain;
+    overscroll-behavior-x: none;
     -webkit-overflow-scrolling: touch;
     align-content: start;
     min-height: 0;
