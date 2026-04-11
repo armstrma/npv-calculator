@@ -804,6 +804,10 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     background: rgba(15, 23, 42, 0.98);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
   }
+  .mobile-topbar-menu-left {
+    left: 0;
+    right: auto;
+  }
   .mobile-topbar-menu-item {
     width: 100%;
     border: 0;
@@ -812,6 +816,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     text-align: left;
     padding: 10px 12px;
     border-radius: 10px;
+    font-size: 12px;
   }
   .mobile-topbar-menu-item:hover {
     background: rgba(30, 41, 59, 0.95);
@@ -1158,6 +1163,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     align-items: center;
     justify-content: space-between;
     gap: 10px;
+    font-size: 12px;
   }
   .mobile-topbar-menu-item-select select {
     min-width: 62px;

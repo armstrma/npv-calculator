@@ -603,6 +603,7 @@ const App = () => {
   const [mobileLibraryTab, setMobileLibraryTab] = useState('saved');
   const [mobileMetricsPinned, setMobileMetricsPinned] = useState(false);
   const [showQuickViewMenu, setShowQuickViewMenu] = useState(false);
+  const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [quickViewEnabled, setQuickViewEnabled] = useState(false);
   const [returnToUpgradeAfterAuth, setReturnToUpgradeAfterAuth] = useState(false);
@@ -709,6 +710,14 @@ const App = () => {
   }, [initial, cashflows]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.innerWidth <= 640) {
+      setQuickViewEnabled(true);
+      setShowProductHero(false);
+    }
+  }, []);
+
+  useEffect(() => {
     const syncPinnedMetrics = () => {
       if (window.innerWidth > 640) {
         setMobileMetricsPinned(false);
@@ -763,6 +772,14 @@ const App = () => {
     setLoadedProjectName(trimmedName);
     setInitialInput(formatNumberWithCommas(initial));
     setCashflowInputs(cashflows.map(formatNumberWithCommas));
+  };
+
+  const handleSaveLocally = () => {
+    const suggestedName = projectName?.trim() || loadedProjectName?.trim() || '';
+    const promptedName = window.prompt('Save project locally as:', suggestedName);
+    if (!promptedName?.trim()) return;
+    saveProject(promptedName);
+    setShowSaveMenu(false);
   };
 
   const loadProject = (name) => {
@@ -1179,9 +1196,26 @@ const App = () => {
         >
           <span className="mobile-topbar-icon-glyph">☰</span>
         </button>
-        <button type="button" className="mobile-topbar-action mobile-topbar-action-left mobile-topbar-save" onClick={() => saveProject(projectName)}>
-          <span>Save</span>
-        </button>
+        <div className="mobile-topbar-menu-wrap">
+          <button type="button" className="mobile-topbar-action mobile-topbar-action-left mobile-topbar-save" onClick={() => {
+            setShowSaveMenu((value) => !value);
+            setShowQuickViewMenu(false);
+            setShowShareMenu(false);
+          }}>
+            <span>Save</span>
+          </button>
+          {showSaveMenu && (
+            <div className="mobile-topbar-menu mobile-topbar-menu-left">
+              <button
+                type="button"
+                className="mobile-topbar-menu-item"
+                onClick={handleSaveLocally}
+              >
+                Save Locally
+              </button>
+            </div>
+          )}
+        </div>
         <div className="mobile-topbar-brand">
           <span className="mobile-topbar-title">NPV Lab</span>
           <span className="mobile-topbar-pro-badge">PRO</span>
@@ -1189,6 +1223,7 @@ const App = () => {
         <div className="mobile-topbar-menu-wrap">
           <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => {
             setShowQuickViewMenu((value) => !value);
+            setShowSaveMenu(false);
             setShowShareMenu(false);
           }} aria-label="More options">
             <span className="mobile-topbar-icon-glyph">…</span>
@@ -1223,6 +1258,7 @@ const App = () => {
         <div className="mobile-topbar-menu-wrap">
           <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => {
             setShowShareMenu((value) => !value);
+            setShowSaveMenu(false);
             setShowQuickViewMenu(false);
           }} aria-label="Share options">
             <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
