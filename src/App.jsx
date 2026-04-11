@@ -1329,9 +1329,9 @@ const App = () => {
               <button
                 type="button"
                 className={`mobile-topbar-menu-item ${copiedProjectLink ? 'mobile-topbar-menu-item-success' : ''}`}
-                onClick={() => {
-                  copyProjectLink();
-                  setShowShareMenu(false);
+                onClick={async () => {
+                  await copyProjectLink();
+                  window.setTimeout(() => setShowShareMenu(false), 1000);
                 }}
               >
                 {copiedProjectLink ? '✓ Copied Project Link' : 'Copy Project Link'}
