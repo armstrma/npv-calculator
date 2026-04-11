@@ -997,7 +997,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .quick-view-metrics-header {
     display: grid;
     position: sticky;
-    top: 0;
+    top: -2px;
     z-index: 2;
     margin: 0;
     padding: 10px 12px;
