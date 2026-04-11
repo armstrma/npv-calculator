@@ -1491,8 +1491,8 @@ const App = () => {
           </div>
           <div className="quick-view-controls">
             <div className="mobile-metrics-header mobile-metrics-header-inline quick-view-metrics-header">
-              <span>
-                <strong style={{ color: sentiment.tone === 'positive' ? '#16a34a' : sentiment.tone === 'caution' ? '#ca8a04' : '#dc2626' }}>{sentiment.label}</strong>
+              <span className="mobile-sentiment-dot-wrap">
+                <span className={`mobile-sentiment-dot sentiment-${sentiment.tone}`} aria-label={sentiment.label} title={sentiment.label} />
               </span>
               <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
               <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>
@@ -1617,8 +1617,8 @@ const App = () => {
       ) : (
       <div className="container">
         <div className="mobile-metrics-header mobile-metrics-header-inline">
-          <span>
-            <strong style={{ color: sentiment.tone === 'positive' ? '#16a34a' : sentiment.tone === 'caution' ? '#ca8a04' : '#dc2626' }}>{sentiment.label}</strong>
+          <span className="mobile-sentiment-dot-wrap">
+            <span className={`mobile-sentiment-dot sentiment-${sentiment.tone}`} aria-label={sentiment.label} title={sentiment.label} />
           </span>
           <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
           <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>

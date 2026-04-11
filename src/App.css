@@ -368,6 +368,27 @@ input[type="range"]::-moz-range-thumb {
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .mobile-sentiment-dot-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mobile-sentiment-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #64748b;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.06);
+  }
+  .mobile-sentiment-dot.sentiment-positive {
+    background: #22c55e;
+  }
+  .mobile-sentiment-dot.sentiment-caution {
+    background: #f59e0b;
+  }
+  .mobile-sentiment-dot.sentiment-negative {
+    background: #ef4444;
+  }
 }
 .chart-section {
   margin-top: 0;
