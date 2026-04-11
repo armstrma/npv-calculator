@@ -956,6 +956,9 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
+  .quick-view-analysis-grid-quadrants {
+    gap: 6px;
+  }
   .quick-view-analysis-card {
     display: grid;
     gap: 4px;
@@ -965,6 +968,11 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     border: 1px solid rgba(71, 85, 105, 0.45);
     background: rgba(15, 23, 42, 0.72);
     color: #e2e8f0;
+  }
+  .quick-view-analysis-quadrant {
+    min-height: 74px;
+    padding: 8px;
+    gap: 3px;
   }
   .quick-view-analysis-card.active {
     border-color: rgba(167, 139, 250, 0.7);
@@ -977,14 +985,24 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     letter-spacing: 0.05em;
     color: #94a3b8;
   }
+  .quick-view-analysis-quadrant .quick-view-analysis-card-label {
+    font-size: 9px;
+  }
   .quick-view-analysis-card strong {
     font-size: 13px;
     color: #f8fafc;
+  }
+  .quick-view-analysis-quadrant strong {
+    font-size: 12px;
   }
   .quick-view-analysis-card span:last-child {
     font-size: 11px;
     line-height: 1.3;
     color: #cbd5e1;
+  }
+  .quick-view-analysis-quadrant span:last-child {
+    font-size: 10px;
+    line-height: 1.2;
   }
   .quick-view-analysis-detail {
     min-height: 0;
