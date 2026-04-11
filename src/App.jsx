@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useMemo, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useMemo, useEffect, useRef } from 'react';
 import './App.css';
 import { calculateNPV, findIRR, calculatePayback, calculateROI, calculatePI } from './lib/finance.js';
 import { formatNumberWithCommas, parseNumericInput } from './lib/input.js';
@@ -417,7 +417,6 @@ const QuickViewCharts = ({
           <>
             <div className="quick-view-stage-heading">
               <h2>NPV vs Discount Rate</h2>
-              <p>Keep the chart fixed while controls scroll underneath.</p>
             </div>
             <div className="quick-view-chart-frame">
               <ResponsiveContainer width="100%" height="100%">
@@ -454,7 +453,6 @@ const QuickViewCharts = ({
           <>
             <div className="quick-view-stage-heading">
               <h2>Cash Flows</h2>
-              <p>Compare nominal and discounted recovery without moving the graph.</p>
             </div>
             <div className="quick-view-chart-frame">
               <ResponsiveContainer width="100%" height="100%">
@@ -510,7 +508,6 @@ const QuickViewCharts = ({
           <>
             <div className="quick-view-stage-heading">
               <h2>NPV Impact per $1 Change</h2>
-              <p>A tighter teaching view for marginal sensitivity.</p>
             </div>
             <div className="quick-view-chart-frame">
               <ResponsiveContainer width="100%" height="100%">
@@ -565,6 +562,8 @@ const App = () => {
   const [initialInput, setInitialInput] = useState(formatNumberWithCommas(1000));
   const [rateInput, setRateInput] = useState('10.0');
   const [cashflowInputs, setCashflowInputs] = useState([200, 300, 400, 500, 600].map(formatNumberWithCommas));
+  const quickViewInputRefs = useRef([]);
+  const pendingQuickViewFocusIndex = useRef(null);
   const discountRateForAnalysis = showHurdleRate ? hurdleRate : discount;
 
   useEffect(() => {
@@ -1026,8 +1025,35 @@ const App = () => {
     setCashflowInputs((current) => [...current, formatNumberWithCommas(0)]);
   };
 
+  const insertQuickViewYearAfter = (index) => {
+    const insertAt = index + 1;
+    pendingQuickViewFocusIndex.current = insertAt;
+    setCashflows((current) => {
+      const next = [...current];
+      next.splice(insertAt, 0, 0);
+      return next;
+    });
+    setCashflowInputs((current) => {
+      const next = [...current];
+      next.splice(insertAt, 0, '');
+      return next;
+    });
+  };
+
   const sentiment = useMemo(() => getSentimentStatus({ viabilityPass, standardPass, fragilityPass }), [viabilityPass, standardPass, fragilityPass]);
   const npvColor = npv >= 0 ? '#16a34a' : '#dc2626';
+
+  useEffect(() => {
+    const focusIndex = pendingQuickViewFocusIndex.current;
+    if (focusIndex === null) return;
+
+    const nextInput = quickViewInputRefs.current[focusIndex];
+    if (nextInput) {
+      nextInput.focus();
+      nextInput.select();
+      pendingQuickViewFocusIndex.current = null;
+    }
+  }, [cashflows.length]);
 
   const pvBreakEvenInfo = useMemo(() => {
     const yearlyRows = barData.filter((row) => row.name !== 'NPV' && row.pvCumulative !== null && row.pvCumulative !== undefined);
@@ -1200,8 +1226,16 @@ const App = () => {
             />
           </div>
           <div className="quick-view-controls">
+            <div className="mobile-metrics-header mobile-metrics-header-inline quick-view-metrics-header">
+              <span>
+                <strong style={{ color: sentiment.tone === 'positive' ? '#16a34a' : sentiment.tone === 'caution' ? '#ca8a04' : '#dc2626' }}>{sentiment.label}</strong>
+              </span>
+              <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
+              <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>
+              <span>Payback <strong>{formatPaybackDisplay(payback)}</strong></span>
+            </div>
             <div className="quick-view-row">
-              <div className="quick-view-row-top">
+              <div className="quick-view-row-top quick-view-row-top-static">
                 <span>Initial</span>
                 <span>{currency}</span>
                 <input
@@ -1216,8 +1250,13 @@ const App = () => {
                     if (parsed !== null) setInitial(parsed);
                   }}
                   onBlur={() => setInitialInput(formatNumberWithCommas(initial))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      insertQuickViewYearAfter(-1);
+                    }
+                  }}
                 />
-                <button type="button">×</button>
               </div>
               <input type="range" min={sliderBounds.initial.min} max={sliderBounds.initial.max} step={100} value={initial} onChange={(e) => {
                 const nextInitial = Number(e.target.value);
@@ -1226,7 +1265,7 @@ const App = () => {
               }} className="slider-initial" />
             </div>
             <div className="quick-view-row quick-view-row-compact">
-              <div className="quick-view-row-top quick-view-row-top-discount">
+              <div className="quick-view-row-top quick-view-row-top-discount quick-view-row-top-static">
                 <span>{showHurdleRate ? 'Hurdle Rate' : 'Discount Rate'}</span>
                 <input
                   type="text"
@@ -1243,10 +1282,15 @@ const App = () => {
                     }
                   }}
                   onBlur={() => setRateInput((showHurdleRate ? hurdleRate : discount).toFixed(1))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      insertQuickViewYearAfter(-1);
+                    }
+                  }}
                 />
                 <span>%</span>
                 <label className="quick-view-toggle"><input type="checkbox" checked={showHurdleRate} onChange={(e) => setShowHurdleRate(e.target.checked)} /> Hurdle</label>
-                <button type="button">×</button>
               </div>
               <input type="range" min={0} max={30} step={0.1} value={showHurdleRate ? hurdleRate : discount} onChange={(e) => {
                 const nextRate = Number(e.target.value);
@@ -1281,10 +1325,13 @@ const App = () => {
                       nextInputs[index] = formatNumberWithCommas(cashflows[index] ?? 0);
                       setCashflowInputs(nextInputs);
                     }}
+                    ref={(node) => {
+                      quickViewInputRefs.current[index] = node;
+                    }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && index === cashflows.length - 1) {
+                      if (e.key === 'Enter') {
                         e.preventDefault();
-                        addQuickViewYear();
+                        insertQuickViewYearAfter(index);
                       }
                     }}
                   />
