@@ -564,19 +564,31 @@ const QuickViewCharts = ({
                   </button>
                 </div>
                 <div className="quick-view-analysis-detail quick-view-analysis-inline-detail">
-                  {activeAnalysisCard === 'viability' && <p>Viability asks whether NPV stays above zero at {discountRateForAnalysis.toFixed(1)}%.</p>}
-                  {activeAnalysisCard === 'standard' && <p>Standard asks whether IRR clears the required bar, {showHurdleRate ? `the ${hurdleRate.toFixed(1)}% hurdle` : `the ${discount.toFixed(1)}% discount rate`}.</p>}
-                  {activeAnalysisCard === 'fragility' && <p>Fragility asks whether the downside IRR of {downsideIrr.toFixed(2)}% still clears the required bar.</p>}
+                  {activeAnalysisCard === 'viability' && <p>NPV must stay above zero.</p>}
+                  {activeAnalysisCard === 'standard' && <p>IRR must clear the required bar.</p>}
+                  {activeAnalysisCard === 'fragility' && <p>Downside IRR must still pass.</p>}
                 </div>
               </section>
 
               <section className="quick-view-analysis-column quick-view-analysis-facts">
                 <span className="details-metric-label">Breakeven Analysis</span>
-                <div className="quick-view-analysis-facts-list quick-view-analysis-copy">
-                  <p>IRR: <strong>{irr.toFixed(2)}%</strong></p>
-                  <p>Discounted payback: <strong>{formatPaybackDisplay(payback)}</strong></p>
-                  <p>Cash flow uplift: <strong>{breakEvenCashflowUpliftPct === null ? 'N/A' : `${breakEvenCashflowUpliftPct >= 0 ? '+' : ''}${breakEvenCashflowUpliftPct.toFixed(1)}%`}</strong></p>
-                  <p>Max initial: <strong>{currency}{maxInitialAtNpvZero.toFixed(2)}</strong></p>
+                <div className="quick-view-analysis-facts-list">
+                  <div className="quick-view-analysis-fact-pill">
+                    <span>IRR</span>
+                    <strong>{irr.toFixed(2)}%</strong>
+                  </div>
+                  <div className="quick-view-analysis-fact-pill">
+                    <span>Payback</span>
+                    <strong>{formatPaybackDisplay(payback)}</strong>
+                  </div>
+                  <div className="quick-view-analysis-fact-pill">
+                    <span>Uplift</span>
+                    <strong>{breakEvenCashflowUpliftPct === null ? 'N/A' : `${breakEvenCashflowUpliftPct >= 0 ? '+' : ''}${breakEvenCashflowUpliftPct.toFixed(1)}%`}</strong>
+                  </div>
+                  <div className="quick-view-analysis-fact-pill">
+                    <span>Max Initial</span>
+                    <strong>{currency}{maxInitialAtNpvZero.toFixed(2)}</strong>
+                  </div>
                 </div>
               </section>
             </div>
