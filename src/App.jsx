@@ -1987,14 +1987,13 @@ const App = () => {
           <div className="modal-content auth-modal" onClick={(e) => e.stopPropagation()}>
             <div className="upgrade-modal-header">
               <div>
-                <h2>Save locally</h2>
-                <p>Name this project for this browser.</p>
+                <h2>Local Save</h2>
               </div>
-              <button type="button" className="button-secondary upgrade-modal-close" onClick={() => setShowSaveLocalModal(false)}>
-                Close
-              </button>
             </div>
             <div className="auth-card">
+              <div className="local-save-warning" role="alert">
+                Saved in this browser only. It may be lost if browser storage is cleared, the app data is reset, or you switch devices.
+              </div>
               <label className="auth-field">
                 <span>Project name</span>
                 <input
@@ -2003,6 +2002,7 @@ const App = () => {
                   onChange={(e) => setSaveLocalName(e.target.value)}
                   placeholder="My NPV Project"
                   autoFocus
+                  className="local-save-input"
                 />
               </label>
               <div className="auth-actions">
