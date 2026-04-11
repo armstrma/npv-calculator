@@ -154,8 +154,10 @@ const exampleProjectCards = [
   { title: 'Campus EV Chargers', subtitle: 'Infrastructure decision', meta: 'Placeholder example' },
 ];
 
-const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth }) => {
+const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, projects, onLoadProject }) => {
   if (!open) return null;
+
+  const savedProjectNames = Object.keys(projects || {});
 
   return (
     <div className="mobile-library-overlay" onClick={onClose}>
@@ -178,17 +180,54 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
         </div>
 
         {activeTab === 'saved' ? (
-          <div className="mobile-library-empty-state">
-            <h3>{isAuthenticated ? 'Your saved projects will live here' : 'Create your free account'}</h3>
-            <p>
-              {isAuthenticated
-                ? 'Project organization, recent work, and saved scenarios are coming here next.'
-                : 'Log in to save, share, and organize your NPV Lab projects.'}
-            </p>
-            <div className="mobile-library-auth-actions">
-              <button type="button" className="button-secondary" onClick={() => onRequireAuth('signin')}>Log In</button>
-              <button type="button" className="button-primary" onClick={() => onRequireAuth('register')}>Sign Up</button>
-            </div>
+          <div className="mobile-library-saved-view">
+            <section className="mobile-library-saved-section">
+              <div className="mobile-library-section-header">
+                <h3>Saved Locally</h3>
+                <span>{savedProjectNames.length}</span>
+              </div>
+              {savedProjectNames.length ? (
+                <div className="mobile-library-saved-list">
+                  {savedProjectNames.map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      className="mobile-library-saved-item"
+                      onClick={() => {
+                        onLoadProject(name);
+                        onClose();
+                      }}
+                    >
+                      <strong>{name}</strong>
+                      <span>Open local project</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="mobile-library-empty-state compact">
+                  <h3>No local projects yet</h3>
+                  <p>Use Save → Save Locally to keep projects in this browser.</p>
+                </div>
+              )}
+            </section>
+
+            <section className="mobile-library-saved-section">
+              <div className="mobile-library-section-header">
+                <h3>Cloud Access</h3>
+              </div>
+              <div className="mobile-library-empty-state compact">
+                <h3>{isAuthenticated ? 'Your cross-device library is coming' : 'Log in to access your projects anywhere'}</h3>
+                <p>
+                  {isAuthenticated
+                    ? 'Cloud sync, shared history, and access across devices will show up here.'
+                    : 'Sign in so your saved work can follow you across devices later.'}
+                </p>
+                <div className="mobile-library-auth-actions">
+                  <button type="button" className="button-secondary" onClick={() => onRequireAuth('signin')}>Log In</button>
+                  <button type="button" className="button-primary" onClick={() => onRequireAuth('register')}>Sign Up</button>
+                </div>
+              </div>
+            </section>
           </div>
         ) : (
           <div className="mobile-library-grid">
@@ -1210,7 +1249,9 @@ const App = () => {
           }}
           aria-label="Open project library"
         >
-          <span className="mobile-topbar-icon-glyph">☰</span>
+          <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.379a1.5 1.5 0 0 1 1.06.44l1.242 1.242A1.5 1.5 0 0 0 12.242 8h7.258A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5v-10Z" />
+          </svg>
         </button>
         <div className="mobile-topbar-menu-wrap">
           <button type="button" className="mobile-topbar-action mobile-topbar-action-left mobile-topbar-save" onClick={() => {
@@ -1889,6 +1930,8 @@ const App = () => {
           setShowMobileLibrary(false);
           handleRequireAuth(mode);
         }}
+        projects={projects}
+        onLoadProject={loadProject}
       />
 
       <AuthModal
