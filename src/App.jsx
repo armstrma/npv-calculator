@@ -154,7 +154,7 @@ const exampleProjectCards = [
   { title: 'Campus EV Chargers', subtitle: 'Infrastructure decision', meta: 'Placeholder example' },
 ];
 
-const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, projects, onLoadProject, projectPreviews }) => {
+const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, projects, onLoadProject, onDeleteProject, projectPreviews }) => {
   if (!open) return null;
 
   const savedProjectNames = Object.keys(projects || {});
@@ -193,27 +193,36 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
                     const previewTone = preview?.tone || 'neutral';
 
                     return (
-                      <button
-                        key={name}
-                        type="button"
-                        className={`mobile-library-saved-item tone-${previewTone}`}
-                        onClick={() => {
-                          onLoadProject(name);
-                          onClose();
-                        }}
-                      >
-                        <strong>{name}</strong>
-                        {preview ? (
-                          <div className="mobile-library-saved-metrics">
-                            <span className={`tone-${previewTone}`}>{preview.label}</span>
-                            <span style={{ color: preview.npv >= 0 ? '#22c55e' : '#ef4444' }}>NPV {formatMobileNpv(preview.npv, preview.currency)}</span>
-                            <span>IRR {formatMobileIrr(preview.irr)}</span>
-                            <span>Payback {formatPaybackDisplay(preview.payback)}</span>
-                          </div>
-                        ) : (
-                          <span>Open local project</span>
-                        )}
-                      </button>
+                      <div key={name} className={`mobile-library-saved-item tone-${previewTone}`}>
+                        <button
+                          type="button"
+                          className="mobile-library-saved-open"
+                          onClick={() => {
+                            onLoadProject(name);
+                            onClose();
+                          }}
+                        >
+                          <strong>{name}</strong>
+                          {preview ? (
+                            <div className="mobile-library-saved-metrics">
+                              <span className={`tone-${previewTone}`}>{preview.label}</span>
+                              <span style={{ color: preview.npv >= 0 ? '#22c55e' : '#ef4444' }}>NPV {formatMobileNpv(preview.npv, preview.currency)}</span>
+                              <span>IRR {formatMobileIrr(preview.irr)}</span>
+                              <span>Payback {formatPaybackDisplay(preview.payback)}</span>
+                            </div>
+                          ) : (
+                            <span>Open local project</span>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          className="mobile-library-saved-delete"
+                          onClick={() => onDeleteProject(name)}
+                          aria-label={`Delete ${name}`}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -1979,6 +1988,7 @@ const App = () => {
         }}
         projects={projects}
         onLoadProject={loadProject}
+        onDeleteProject={deleteProject}
         projectPreviews={projectPreviews}
       />
 
