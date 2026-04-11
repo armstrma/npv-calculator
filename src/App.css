@@ -821,6 +821,10 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .mobile-topbar-menu-item:hover {
     background: rgba(30, 41, 59, 0.95);
   }
+  .mobile-topbar-menu-item-success {
+    color: #86efac;
+    background: rgba(34, 197, 94, 0.12);
+  }
   .product-page-hero {
     margin-top: 72px;
     padding-top: 48px;

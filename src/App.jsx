@@ -606,6 +606,7 @@ const App = () => {
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [quickViewEnabled, setQuickViewEnabled] = useState(false);
+  const mobileTopbarRef = useRef(null);
   const [returnToUpgradeAfterAuth, setReturnToUpgradeAfterAuth] = useState(false);
   const [authMode, setAuthMode] = useState('signin');
   const [authEmail, setAuthEmail] = useState('');
@@ -740,6 +741,21 @@ const App = () => {
       window.removeEventListener('resize', syncPinnedMetrics);
     };
   }, [showProductHero]);
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!mobileTopbarRef.current?.contains(event.target)) {
+        setShowQuickViewMenu(false);
+        setShowSaveMenu(false);
+        setShowShareMenu(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, []);
 
   const handleRequireAuth = (mode = 'signin') => {
     setAuthMode(mode);
@@ -1184,7 +1200,7 @@ const App = () => {
       </section>
       )}
 
-      <div className="mobile-topbar-shell">
+      <div className="mobile-topbar-shell" ref={mobileTopbarRef}>
         <button
           type="button"
           className="mobile-topbar-action mobile-topbar-action-left"
@@ -1271,13 +1287,13 @@ const App = () => {
             <div className="mobile-topbar-menu mobile-topbar-menu-right">
               <button
                 type="button"
-                className="mobile-topbar-menu-item"
+                className={`mobile-topbar-menu-item ${copiedProjectLink ? 'mobile-topbar-menu-item-success' : ''}`}
                 onClick={() => {
                   copyProjectLink();
                   setShowShareMenu(false);
                 }}
               >
-                {copiedProjectLink ? 'Copied Project Link' : 'Copy Project Link'}
+                {copiedProjectLink ? '✓ Copied Project Link' : 'Copy Project Link'}
               </button>
             </div>
           )}
