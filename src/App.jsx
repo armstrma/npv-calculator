@@ -389,7 +389,7 @@ const ProductModal = ({ open, onClose, title = 'Upgrade to Pro', isAuthenticated
   );
 };
 
-const NpvTooltip = ({ active, payload, label, currency, showSensitivity }) => {
+const NpvTooltip = ({ active, payload, label, currency, showSensitivity, sensitivityPercent }) => {
   if (!active || !payload || !payload.length) return null;
 
   const row = payload[0]?.payload || {};
@@ -403,13 +403,13 @@ const NpvTooltip = ({ active, payload, label, currency, showSensitivity }) => {
         Discount: <strong>{Number(label).toFixed(1)}%</strong>
       </div>
       {baseNpv !== null && <div style={{ color: baseNpv >= 0 ? '#86efac' : '#fca5a5' }}>NPV: {currency}{baseNpv.toFixed(2)}</div>}
-      {showSensitivity && highNpv !== null && <div style={{ color: '#c4b5fd' }}>High (+10% CF): {currency}{highNpv.toFixed(2)}</div>}
-      {showSensitivity && lowNpv !== null && <div style={{ color: '#f9a8d4' }}>Low (-10% CF): {currency}{lowNpv.toFixed(2)}</div>}
+      {showSensitivity && highNpv !== null && <div style={{ color: '#c4b5fd' }}>High (+{sensitivityPercent}% CF): {currency}{highNpv.toFixed(2)}</div>}
+      {showSensitivity && lowNpv !== null && <div style={{ color: '#f9a8d4' }}>Low (-{sensitivityPercent}% CF): {currency}{lowNpv.toFixed(2)}</div>}
     </div>
   );
 };
 
-const CashflowTooltip = ({ active, payload, label, currency, showSensitivity }) => {
+const CashflowTooltip = ({ active, payload, label, currency, showSensitivity, sensitivityPercent }) => {
   if (!active || !payload || !payload.length) return null;
   const row = payload[0]?.payload || {};
 
@@ -422,7 +422,7 @@ const CashflowTooltip = ({ active, payload, label, currency, showSensitivity }) 
       {row.pvValue !== null && row.pvValue !== undefined && <div style={{ color: '#c4b5fd' }}>PV Cash Flow: {currency}{Number(row.pvValue).toFixed(2)}</div>}
       {showSensitivity && row.pvLow !== null && row.pvLow !== undefined && row.pvHigh !== null && row.pvHigh !== undefined && (
         <div style={{ color: '#ddd6fe' }}>
-          PV Sensitivity Range: {currency}{Number(row.pvLow).toFixed(2)} → {currency}{Number(row.pvHigh).toFixed(2)}
+          PV Sensitivity Range (±{sensitivityPercent}%): {currency}{Number(row.pvLow).toFixed(2)} → {currency}{Number(row.pvHigh).toFixed(2)}
         </div>
       )}
       {row.cumulative !== null && row.cumulative !== undefined && <div style={{ color: '#60a5fa' }}>Cash Cumulative: {currency}{Number(row.cumulative).toFixed(2)}</div>}
@@ -451,6 +451,8 @@ const MarginalSensitivityTooltip = ({ active, payload, label, currency }) => {
 const QuickViewCharts = ({
   currency,
   showSensitivity,
+  sensitivityPercent,
+  setSensitivityPercent,
   discountData,
   barData,
   marginalSensitivityData,
@@ -501,15 +503,29 @@ const QuickViewCharts = ({
       <div className="quick-view-stage-chart">
         {activeChart === 'npv' && (
           <>
-            <div className="quick-view-stage-heading">
+            <div className="quick-view-stage-heading quick-view-stage-heading-with-control">
               <h2>NPV vs Discount Rate</h2>
+              <label className="quick-view-stage-control">
+                <span>Sensitivity</span>
+                <select value={showSensitivity ? String(sensitivityPercent) : 'off'} onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === 'off') {
+                    return;
+                  }
+                  setSensitivityPercent(Number(value));
+                }}>
+                  <option value="5">5%</option>
+                  <option value="10">10%</option>
+                  <option value="20">20%</option>
+                </select>
+              </label>
             </div>
             <div className="quick-view-chart-frame">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={discountData} margin={{ top: 14, right: 12, left: 0, bottom: 18 }}>
                   <XAxis dataKey="discount" type="number" domain={[0, 30]} tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} width={48} />
-                  <Tooltip cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} />} />
+                  <Tooltip cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
                   <Line type="monotone" dataKey="npv_pos" stroke="green" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
                   <Line type="monotone" dataKey="npv_neg" stroke="red" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
                   {!Number.isNaN(irr) && (
@@ -537,15 +553,29 @@ const QuickViewCharts = ({
 
         {activeChart === 'cashflows' && (
           <>
-            <div className="quick-view-stage-heading">
+            <div className="quick-view-stage-heading quick-view-stage-heading-with-control">
               <h2>Cash Flows</h2>
+              <label className="quick-view-stage-control">
+                <span>Sensitivity</span>
+                <select value={showSensitivity ? String(sensitivityPercent) : 'off'} onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === 'off') {
+                    return;
+                  }
+                  setSensitivityPercent(Number(value));
+                }}>
+                  <option value="5">5%</option>
+                  <option value="10">10%</option>
+                  <option value="20">20%</option>
+                </select>
+              </label>
             </div>
             <div className="quick-view-chart-frame">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={barData} barGap={-18} barCategoryGap="24%">
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} width={48} />
-                  <Tooltip content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} />} />
+                  <Tooltip content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} payload={[{ value: 'PV Cumulative', type: 'line', color: '#a78bfa' }, { value: 'Cash Cumulative', type: 'line', color: '#60a5fa' }]} />
                   {cashflows.length > 0 && (
                     <>
@@ -623,15 +653,15 @@ const QuickViewCharts = ({
                 </div>
                 <div className="quick-view-analysis-rules-list">
                   <button type="button" className={`quick-view-analysis-rule ${activeAnalysisCard === 'viability' ? 'active' : ''} ${viabilityPass ? 'pass' : 'fail'}`} onClick={() => setActiveAnalysisCard('viability')}>
-                    <span>Viability</span>
+                    <span>Creates Value</span>
                     <strong>{viabilityPass ? 'Pass' : 'Fail'}</strong>
                   </button>
                   <button type="button" className={`quick-view-analysis-rule ${activeAnalysisCard === 'standard' ? 'active' : ''} ${standardPass ? 'pass' : 'fail'}`} onClick={() => setActiveAnalysisCard('standard')}>
-                    <span>Standard</span>
+                    <span>Meets Target</span>
                     <strong>{standardPass ? 'Pass' : 'Fail'}</strong>
                   </button>
                   <button type="button" className={`quick-view-analysis-rule ${activeAnalysisCard === 'fragility' ? 'active' : ''} ${fragilityPass ? 'pass' : 'fail'}`} onClick={() => setActiveAnalysisCard('fragility')}>
-                    <span>Fragility</span>
+                    <span>Durable Under Downside</span>
                     <strong>{fragilityPass ? 'Pass' : 'Fail'}</strong>
                   </button>
                 </div>
@@ -664,7 +694,8 @@ const App = () => {
   const [discount, setDiscount] = useState(10);
   const [cashflows, setCashflows] = useState([200, 300, 400, 500, 600]);
   const [currency, setCurrency] = useState('$');
-  const [showSensitivity, setShowSensitivity] = useState(false);
+  const [showSensitivity, setShowSensitivity] = useState(true);
+  const [sensitivityPercent, setSensitivityPercent] = useState(10);
   const [showHurdleRate, setShowHurdleRate] = useState(false);
   const [hurdleRate, setHurdleRate] = useState(12);
   const [showGuideModal, setShowGuideModal] = useState(false);
@@ -931,8 +962,9 @@ const App = () => {
         npv_neg: npvVal < 0 ? npvVal : null,
       };
       if (showSensitivity) {
-        const lowCashflows = cashflows.map((cf) => cf * 0.9);
-        const highCashflows = cashflows.map((cf) => cf * 1.1);
+        const sensitivityFactor = sensitivityPercent / 100;
+        const lowCashflows = cashflows.map((cf) => cf * (1 - sensitivityFactor));
+        const highCashflows = cashflows.map((cf) => cf * (1 + sensitivityFactor));
         const lowNpv = calculateNPV(initial, r, lowCashflows);
         const highNpv = calculateNPV(initial, r, highCashflows);
 
@@ -946,7 +978,7 @@ const App = () => {
       data.push(entry);
     }
     return data;
-  }, [initial, cashflows, showSensitivity]);
+  }, [initial, cashflows, showSensitivity, sensitivityPercent]);
 
   const barData = useMemo(() => {
     let cumulative = -initial;
@@ -977,11 +1009,12 @@ const App = () => {
       },
       ...cashflows.map((cf, i) => {
         const pvValue = cf / Math.pow(1 + rate, i + 1);
-        const pvLow = (cf * 0.9) / Math.pow(1 + rate, i + 1);
-        const pvHigh = (cf * 1.1) / Math.pow(1 + rate, i + 1);
+        const sensitivityFactor = sensitivityPercent / 100;
+        const pvLow = (cf * (1 - sensitivityFactor)) / Math.pow(1 + rate, i + 1);
+        const pvHigh = (cf * (1 + sensitivityFactor)) / Math.pow(1 + rate, i + 1);
         cumulative += cf;
-        cumulativeLow += cf * 0.9;
-        cumulativeHigh += cf * 1.1;
+        cumulativeLow += cf * (1 - sensitivityFactor);
+        cumulativeHigh += cf * (1 + sensitivityFactor);
         pvCumulative += pvValue;
         pvCumulativeLow += pvLow;
         pvCumulativeHigh += pvHigh;
@@ -1022,15 +1055,15 @@ const App = () => {
         pvCumulativeRange: null,
       },
     ];
-  }, [initial, cashflows, npv, discountRateForAnalysis]);
+  }, [initial, cashflows, npv, discountRateForAnalysis, sensitivityPercent]);
 
   const sensitivityData = useMemo(() => {
-    const variations = [-10, 0, 10];
+    const variations = [-sensitivityPercent, 0, sensitivityPercent];
     return variations.map((varPct) => {
       const variedCashflows = cashflows.map((cf) => cf * (1 + varPct / 100));
       return { variation: varPct, npv: calculateNPV(initial, discountRateForAnalysis, variedCashflows) };
     });
-  }, [initial, discountRateForAnalysis, cashflows]);
+  }, [initial, discountRateForAnalysis, cashflows, sensitivityPercent]);
 
   const marginalSensitivityData = useMemo(() => {
     const rows = [
@@ -1053,9 +1086,9 @@ const App = () => {
   }, [cashflows, discountRateForAnalysis, currency]);
 
   const downsideIrr = useMemo(() => {
-    const lowCashflows = cashflows.map((cf) => cf * 0.9);
+    const lowCashflows = cashflows.map((cf) => cf * (1 - sensitivityPercent / 100));
     return findIRR(initial, lowCashflows);
-  }, [initial, cashflows]);
+  }, [initial, cashflows, sensitivityPercent]);
 
   const viabilityPass = npv > 0;
   const standardPass = showHurdleRate ? irr >= hurdleRate : irr >= discount;
@@ -1384,9 +1417,17 @@ const App = () => {
                   <option>£</option>
                 </select>
               </label>
-              <label className="mobile-topbar-menu-item mobile-topbar-menu-item-toggle">
-                <span>Sensitivity Analysis</span>
-                <input type="checkbox" checked={showSensitivity} onChange={(e) => setShowSensitivity(e.target.checked)} />
+              <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
+                <span>Sensitivity</span>
+                <select value={showSensitivity ? String(sensitivityPercent) : '10'} onChange={(e) => {
+                  setShowSensitivity(true);
+                  setSensitivityPercent(Number(e.target.value));
+                  setShowQuickViewMenu(false);
+                }}>
+                  <option value="5">5%</option>
+                  <option value="10">10%</option>
+                  <option value="20">20%</option>
+                </select>
               </label>
             </div>
           )}
@@ -1468,6 +1509,8 @@ const App = () => {
             <QuickViewCharts
               currency={currency}
               showSensitivity={showSensitivity}
+              sensitivityPercent={sensitivityPercent}
+              setSensitivityPercent={setSensitivityPercent}
               discountData={discountData}
               barData={barData}
               marginalSensitivityData={marginalSensitivityData}
@@ -1816,17 +1859,17 @@ const App = () => {
                   </div>
                   <div className="details-rule-list">
                     <div className={`details-rule ${viabilityPass ? 'pass' : 'fail'}`}>
-                      <span className="details-rule-name">Viability</span>
+                      <span className="details-rule-name">Creates Value</span>
                       <span className="details-rule-status">{viabilityPass ? 'Pass' : 'Fail'}</span>
                       <span className="details-rule-subtext">NPV &gt; 0 using {discountRateForAnalysis.toFixed(1)}%</span>
                     </div>
                     <div className={`details-rule ${standardPass ? 'pass' : 'fail'}`}>
-                      <span className="details-rule-name">Standard</span>
+                      <span className="details-rule-name">Meets Target</span>
                       <span className="details-rule-status">{standardPass ? 'Pass' : 'Fail'}</span>
                       <span className="details-rule-subtext">{showHurdleRate ? `IRR ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `IRR ≥ discount (${discount.toFixed(1)}%)`}</span>
                     </div>
                     <div className={`details-rule ${fragilityPass ? 'pass' : 'fail'}`}>
-                      <span className="details-rule-name">Fragility</span>
+                      <span className="details-rule-name">Durable Under Downside</span>
                       <span className="details-rule-status">{fragilityPass ? 'Pass' : 'Fail'}</span>
                       <span className="details-rule-subtext">
                         {showHurdleRate ? `Downside IRR (${downsideIrr.toFixed(2)}%) ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `Downside IRR (${downsideIrr.toFixed(2)}%) ≥ discount (${discount.toFixed(1)}%)`}
@@ -1855,7 +1898,15 @@ const App = () => {
           <button onClick={() => setShowGuideModal(true)} className="button-secondary button-full">Learn More (Educational Guide)</button>
 
           <label style={{ display: 'block', marginTop: 10 }}>
-            <input type="checkbox" checked={showSensitivity} onChange={(e) => setShowSensitivity(e.target.checked)} /> Show Sensitivity Analysis
+            Sensitivity{' '}
+            <select value={showSensitivity ? String(sensitivityPercent) : '10'} onChange={(e) => {
+              setShowSensitivity(true);
+              setSensitivityPercent(Number(e.target.value));
+            }}>
+              <option value="5">5%</option>
+              <option value="10">10%</option>
+              <option value="20">20%</option>
+            </select>
           </label>
 
           <div className="action-button-row">
@@ -1881,11 +1932,11 @@ const App = () => {
           <section className="chart-section">
             <h2 className="chart-title">NPV vs Discount Rate</h2>
             <p className="chart-subtitle">See how the project’s discounted value changes as the required rate rises, and where it crosses into unattractive territory.</p>
-            <ResponsiveContainer width="100%" height={210}>
+            <ResponsiveContainer width="100%" height={236}>
               <LineChart data={discountData} margin={{ top: 22, right: 18, left: 0, bottom: 28 }}>
                 <XAxis dataKey="discount" type="number" domain={[0, 30]} />
                 <YAxis />
-                <Tooltip cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} />} />
+                <Tooltip cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
                 <Line type="monotone" dataKey="npv_pos" stroke="green" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
                 <Line type="monotone" dataKey="npv_neg" stroke="red" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
                 {!Number.isNaN(irr) && (
@@ -1916,7 +1967,7 @@ const App = () => {
               <ComposedChart data={barData} barGap={-22} barCategoryGap="30%">
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} />} />
+                <Tooltip content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
                 <Legend payload={[{ value: 'PV Cumulative', type: 'line', color: '#a78bfa' }, { value: 'Cash Cumulative', type: 'line', color: '#60a5fa' }]} />
                 {cashflows.length > 0 && (
                   <>

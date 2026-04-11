@@ -957,6 +957,13 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .quick-view-analysis-panel-compact {
     padding-top: 0;
   }
+  .quick-view-stage-heading,
+  .quick-view-stage-heading-with-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
   .quick-view-stage-heading h2,
   .quick-view-stage-heading p {
     margin: 0;
@@ -964,6 +971,24 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .quick-view-stage-heading h2 {
     font-size: 14px;
     color: #f8fafc;
+  }
+  .quick-view-stage-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #cbd5e1;
+  }
+  .quick-view-stage-control select {
+    min-height: 26px;
+    border-radius: 999px;
+    border: 1px solid rgba(71, 85, 105, 0.55);
+    background: rgba(15, 23, 42, 0.86);
+    color: #f8fafc;
+    padding: 0 8px;
+    font-size: 10px;
+    font-weight: 700;
   }
   .quick-view-stage-heading p {
     display: none;
@@ -974,7 +999,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     border-radius: 14px;
     border: 1px solid rgba(71, 85, 105, 0.4);
     background: rgba(2, 6, 23, 0.38);
-    padding: 8px 6px 4px;
+    padding: 10px 6px 6px;
     overflow: hidden;
   }
   .quick-view-analysis-panel {
