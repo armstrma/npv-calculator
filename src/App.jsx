@@ -794,6 +794,11 @@ const App = () => {
   }, [showHurdleRate, hurdleRate, discount]);
 
   useEffect(() => {
+    const activeProjectName = loadedProjectName?.trim() || projectName?.trim();
+    document.title = activeProjectName ? `NPV Lab | ${activeProjectName}` : 'NPV Lab';
+  }, [projectName, loadedProjectName]);
+
+  useEffect(() => {
     if (typeof document === 'undefined') return undefined;
 
     const root = document.documentElement;
