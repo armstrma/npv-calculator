@@ -865,6 +865,7 @@ const App = () => {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [quickViewEnabled, setQuickViewEnabled] = useState(false);
   const mobileTopbarRef = useRef(null);
+  const projectToolbarRef = useRef(null);
   const [returnToUpgradeAfterAuth, setReturnToUpgradeAfterAuth] = useState(false);
   const [authMode, setAuthMode] = useState('signin');
   const [authEmail, setAuthEmail] = useState('');
@@ -1021,7 +1022,10 @@ const App = () => {
 
   useEffect(() => {
     const handlePointerDown = (event) => {
-      if (!mobileTopbarRef.current?.contains(event.target)) {
+      const insideMobileTopbar = mobileTopbarRef.current?.contains(event.target);
+      const insideProjectToolbar = projectToolbarRef.current?.contains(event.target);
+
+      if (!insideMobileTopbar && !insideProjectToolbar) {
         setShowQuickViewMenu(false);
         setShowSaveMenu(false);
         setShowShareMenu(false);
@@ -1631,7 +1635,7 @@ const App = () => {
         </div>
       </div>
 
-      <div className={`project-toolbar ${showProductHero ? '' : 'project-toolbar-condensed'}`}>
+      <div className={`project-toolbar ${showProductHero ? '' : 'project-toolbar-condensed'}`} ref={projectToolbarRef}>
         <div className="project-toolbar-brand">
           <span className="project-toolbar-title">NPV Lab</span>
           <span className="project-toolbar-pro-badge">PRO</span>
@@ -1689,20 +1693,17 @@ const App = () => {
 
         <div className="project-toolbar-menu-wrap">
           <button type="button" className="project-toolbar-button" onClick={() => {
-            setShowQuickViewMenu((value) => !value);
+            setQuickViewEnabled((value) => !value);
             setShowSaveMenu(false);
             setShowShareMenu(false);
           }}>
-            {quickViewEnabled ? 'Quick View On' : 'Quick View Off'}
+            {quickViewEnabled ? 'Exit Quick View' : 'Quick View'}
           </button>
           {showQuickViewMenu && (
             <div className="project-toolbar-menu">
-              <button type="button" className="project-toolbar-menu-item" onClick={() => {
-                setQuickViewEnabled((value) => !value);
-                setShowQuickViewMenu(false);
-              }}>
-                {quickViewEnabled ? 'Exit Quick View' : 'Enter Quick View'}
-              </button>
+              <div className="project-toolbar-menu-item project-toolbar-menu-item-static">
+                Quick View is {quickViewEnabled ? 'On' : 'Off'}
+              </div>
               <label className="project-toolbar-menu-item project-toolbar-menu-item-select">
                 <span>Currency</span>
                 <select value={currency} onChange={(e) => setCurrency(e.target.value)} title="Display currency (calculations unchanged)">

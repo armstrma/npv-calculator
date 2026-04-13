@@ -240,6 +240,11 @@ input[type="range"]::-moz-range-thumb {
   font-size: 12px;
   text-align: left;
 }
+.project-toolbar-menu-item-static {
+  display: flex;
+  align-items: center;
+  color: #cbd5e1;
+}
 .project-toolbar-menu-item-select {
   display: grid;
   gap: 4px;
