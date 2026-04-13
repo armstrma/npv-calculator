@@ -1008,6 +1008,8 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
+  padding-right: 10px;
+  scrollbar-gutter: stable;
 }
 .quick-view-shell-desktop .quick-view-stage {
   order: 2;
@@ -1048,6 +1050,24 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 }
 .quick-view-shell-desktop .quick-view-metrics-header {
   top: 0;
+  grid-template-columns: 12px minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+}
+.quick-view-shell-desktop .quick-view-metrics-header span {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+.quick-view-shell-desktop .quick-view-metrics-header strong {
+  font-size: 11px;
+}
+.quick-view-shell-desktop .mobile-sentiment-dot-wrap {
+  justify-content: flex-start;
 }
 .quick-view-shell-desktop .quick-view-row-top input {
   font-size: 14px;
