@@ -146,35 +146,76 @@ input[type="range"]::-moz-range-thumb {
   left: 0;
   right: 0;
   z-index: 1300;
-  display: flex;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) auto auto auto auto auto auto;
+  gap: 8px;
   align-items: center;
-  flex-wrap: wrap;
-  padding: 8px 12px;
+  padding: 10px 14px;
   backdrop-filter: blur(12px);
-  background: rgba(2, 6, 23, 0.84);
+  background: rgba(2, 6, 23, 0.9);
   border-bottom: 1px solid rgba(71, 85, 105, 0.55);
 }
 .project-toolbar-condensed {
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
 }
-.project-toolbar input,
+.project-toolbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.project-toolbar-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #f8fafc;
+}
+.project-toolbar-pro-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.18);
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  color: #ddd6fe;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.project-toolbar-name,
 .project-toolbar select,
-.project-toolbar button,
+.project-toolbar-button,
 .cashflow-number-input {
-  height: 34px;
+  height: 36px;
   border-radius: 10px;
   border: 1px solid #475569;
   padding: 0 10px;
   font-size: 12px;
 }
-.project-toolbar input,
+.project-toolbar-name,
 .project-toolbar select {
   background: rgba(15, 23, 42, 0.92);
   color: #f8fafc;
 }
-.project-toolbar button {
+.project-toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.92);
+  color: #f8fafc;
   cursor: pointer;
+}
+.project-toolbar-button-share {
+  min-width: 96px;
+}
+.project-toolbar-select-wrap {
+  display: inline-grid;
+  gap: 4px;
+  min-width: 92px;
+  color: #cbd5e1;
+  font-size: 10px;
+  font-weight: 700;
 }
 .button-primary,
 .button-secondary {

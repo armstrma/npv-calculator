@@ -1632,27 +1632,67 @@ const App = () => {
       </div>
 
       <div className={`project-toolbar ${showProductHero ? '' : 'project-toolbar-condensed'}`}>
-        <input placeholder="Project Name" value={projectName} onChange={(e) => setProjectName(e.target.value)} style={{ minWidth: 170, flex: '1 1 180px' }} />
-        <button onClick={() => saveProject(projectName)} className="button-primary">Save Project</button>
+        <div className="project-toolbar-brand">
+          <span className="project-toolbar-title">NPV Lab</span>
+          <span className="project-toolbar-pro-badge">PRO</span>
+        </div>
 
-        <select
-          onChange={(e) => loadProject(e.target.value)}
-          value={loadedProjectName && !projects[loadedProjectName] ? '__unsaved__' : loadedProjectName || '__placeholder__'}
-          style={{ minWidth: 150, flex: '1 1 160px' }}
-        >
-          <option value="__placeholder__" disabled>Load Project</option>
-          {loadedProjectName && !projects[loadedProjectName] && <option value="__unsaved__">{loadedProjectName} (Unsaved)</option>}
-          {Object.keys(projects).map((name) => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </select>
+        <input className="project-toolbar-name" placeholder="Project Name" value={projectName} onChange={(e) => setProjectName(e.target.value)} />
 
-        <select onChange={(e) => deleteProject(e.target.value)} defaultValue="Delete Project" style={{ minWidth: 155, flex: '1 1 160px' }}>
-          <option disabled>Delete Project</option>
-          {Object.keys(projects).map((name) => (
-            <option key={name}>{name}</option>
-          ))}
-        </select>
+        <button type="button" className="project-toolbar-button" onClick={() => setQuickViewEnabled((value) => !value)}>
+          {quickViewEnabled ? 'Exit Quick View' : 'Quick View'}
+        </button>
+
+        <label className="project-toolbar-select-wrap">
+          <span>Currency</span>
+          <select value={currency} onChange={(e) => setCurrency(e.target.value)} title="Display currency (calculations unchanged)">
+            <option>$</option>
+            <option>€</option>
+            <option>£</option>
+          </select>
+        </label>
+
+        <label className="project-toolbar-select-wrap">
+          <span>Sensitivity</span>
+          <select value={String(sensitivityPercent)} onChange={(e) => {
+            setShowSensitivity(true);
+            setSensitivityPercent(Number(e.target.value));
+          }}>
+            <option value="5">5%</option>
+            <option value="10">10%</option>
+            <option value="20">20%</option>
+          </select>
+        </label>
+
+        <button type="button" className="project-toolbar-button" onClick={handleSaveLocally}>Save</button>
+
+        <label className="project-toolbar-select-wrap">
+          <span>Load</span>
+          <select
+            onChange={(e) => loadProject(e.target.value)}
+            value={loadedProjectName && !projects[loadedProjectName] ? '__unsaved__' : loadedProjectName || '__placeholder__'}
+          >
+            <option value="__placeholder__" disabled>Load Project</option>
+            {loadedProjectName && !projects[loadedProjectName] && <option value="__unsaved__">{loadedProjectName} (Unsaved)</option>}
+            {Object.keys(projects).map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="project-toolbar-select-wrap">
+          <span>Delete</span>
+          <select onChange={(e) => deleteProject(e.target.value)} defaultValue="Delete Project">
+            <option disabled>Delete Project</option>
+            {Object.keys(projects).map((name) => (
+              <option key={name}>{name}</option>
+            ))}
+          </select>
+        </label>
+
+        <button type="button" className="project-toolbar-button project-toolbar-button-share" onClick={copyProjectLink}>
+          {copiedProjectLink ? 'Copied Link' : 'Copy Link'}
+        </button>
       </div>
 
       {mobileMetricsPinned && (
