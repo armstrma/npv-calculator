@@ -147,7 +147,7 @@ input[type="range"]::-moz-range-thumb {
   right: 0;
   z-index: 1300;
   display: grid;
-  grid-template-columns: auto minmax(160px, 1fr) auto auto auto auto auto auto;
+  grid-template-columns: auto minmax(180px, 1fr) auto auto auto;
   gap: 6px;
   align-items: center;
   padding: 8px 10px;
@@ -205,17 +205,53 @@ input[type="range"]::-moz-range-thumb {
   background: rgba(15, 23, 42, 0.92);
   color: #f8fafc;
   cursor: pointer;
+  min-width: 72px;
 }
 .project-toolbar-button-share {
-  min-width: 84px;
+  min-width: 68px;
 }
-.project-toolbar-select-wrap {
-  display: inline-grid;
-  gap: 2px;
-  min-width: 84px;
+.project-toolbar-menu-wrap {
+  position: relative;
+}
+.project-toolbar-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  background: rgba(2, 6, 23, 0.98);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.32);
+}
+.project-toolbar-menu-right {
+  right: 0;
+  left: auto;
+}
+.project-toolbar-menu-item {
+  min-height: 34px;
+  border-radius: 9px;
+  border: 0;
+  background: rgba(15, 23, 42, 0.9);
+  color: #f8fafc;
+  padding: 0 10px;
+  font-size: 12px;
+  text-align: left;
+}
+.project-toolbar-menu-item-select {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+}
+.project-toolbar-menu-item-select span {
   color: #cbd5e1;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
+}
+.project-toolbar-menu-item-success {
+  color: #86efac;
 }
 .button-primary,
 .button-secondary {

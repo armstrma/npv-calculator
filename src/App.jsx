@@ -1639,60 +1639,112 @@ const App = () => {
 
         <input className="project-toolbar-name" placeholder="Project Name" value={projectName} onChange={(e) => setProjectName(e.target.value)} />
 
-        <button type="button" className="project-toolbar-button" onClick={() => setQuickViewEnabled((value) => !value)}>
-          {quickViewEnabled ? 'Exit Quick View' : 'Quick View'}
-        </button>
-
-        <label className="project-toolbar-select-wrap">
-          <span>Currency</span>
-          <select value={currency} onChange={(e) => setCurrency(e.target.value)} title="Display currency (calculations unchanged)">
-            <option>$</option>
-            <option>€</option>
-            <option>£</option>
-          </select>
-        </label>
-
-        <label className="project-toolbar-select-wrap">
-          <span>Sensitivity</span>
-          <select value={String(sensitivityPercent)} onChange={(e) => {
-            setShowSensitivity(true);
-            setSensitivityPercent(Number(e.target.value));
+        <div className="project-toolbar-menu-wrap">
+          <button type="button" className="project-toolbar-button" onClick={() => {
+            setShowSaveMenu((value) => !value);
+            setShowQuickViewMenu(false);
+            setShowShareMenu(false);
           }}>
-            <option value="5">5%</option>
-            <option value="10">10%</option>
-            <option value="20">20%</option>
-          </select>
-        </label>
+            Save
+          </button>
+          {showSaveMenu && (
+            <div className="project-toolbar-menu">
+              <button type="button" className="project-toolbar-menu-item" onClick={() => {
+                handleSaveLocally();
+                setShowSaveMenu(false);
+              }}>
+                Save Locally
+              </button>
+              <label className="project-toolbar-menu-item project-toolbar-menu-item-select">
+                <span>Load</span>
+                <select
+                  onChange={(e) => {
+                    loadProject(e.target.value);
+                    setShowSaveMenu(false);
+                  }}
+                  value={loadedProjectName && !projects[loadedProjectName] ? '__unsaved__' : loadedProjectName || '__placeholder__'}
+                >
+                  <option value="__placeholder__" disabled>Load Project</option>
+                  {loadedProjectName && !projects[loadedProjectName] && <option value="__unsaved__">{loadedProjectName} (Unsaved)</option>}
+                  {Object.keys(projects).map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="project-toolbar-menu-item project-toolbar-menu-item-select">
+                <span>Delete</span>
+                <select onChange={(e) => {
+                  deleteProject(e.target.value);
+                  setShowSaveMenu(false);
+                }} defaultValue="Delete Project">
+                  <option disabled>Delete Project</option>
+                  {Object.keys(projects).map((name) => (
+                    <option key={name}>{name}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
+        </div>
 
-        <button type="button" className="project-toolbar-button" onClick={handleSaveLocally}>Save</button>
+        <div className="project-toolbar-menu-wrap">
+          <button type="button" className="project-toolbar-button" onClick={() => {
+            setShowQuickViewMenu((value) => !value);
+            setShowSaveMenu(false);
+            setShowShareMenu(false);
+          }}>
+            {quickViewEnabled ? 'Quick View On' : 'Quick View Off'}
+          </button>
+          {showQuickViewMenu && (
+            <div className="project-toolbar-menu">
+              <button type="button" className="project-toolbar-menu-item" onClick={() => {
+                setQuickViewEnabled((value) => !value);
+                setShowQuickViewMenu(false);
+              }}>
+                {quickViewEnabled ? 'Exit Quick View' : 'Enter Quick View'}
+              </button>
+              <label className="project-toolbar-menu-item project-toolbar-menu-item-select">
+                <span>Currency</span>
+                <select value={currency} onChange={(e) => setCurrency(e.target.value)} title="Display currency (calculations unchanged)">
+                  <option>$</option>
+                  <option>€</option>
+                  <option>£</option>
+                </select>
+              </label>
+              <label className="project-toolbar-menu-item project-toolbar-menu-item-select">
+                <span>Sensitivity</span>
+                <select value={String(sensitivityPercent)} onChange={(e) => {
+                  setShowSensitivity(true);
+                  setSensitivityPercent(Number(e.target.value));
+                }}>
+                  <option value="5">5%</option>
+                  <option value="10">10%</option>
+                  <option value="20">20%</option>
+                </select>
+              </label>
+            </div>
+          )}
+        </div>
 
-        <label className="project-toolbar-select-wrap">
-          <span>Load</span>
-          <select
-            onChange={(e) => loadProject(e.target.value)}
-            value={loadedProjectName && !projects[loadedProjectName] ? '__unsaved__' : loadedProjectName || '__placeholder__'}
-          >
-            <option value="__placeholder__" disabled>Load Project</option>
-            {loadedProjectName && !projects[loadedProjectName] && <option value="__unsaved__">{loadedProjectName} (Unsaved)</option>}
-            {Object.keys(projects).map((name) => (
-              <option key={name} value={name}>{name}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="project-toolbar-select-wrap">
-          <span>Delete</span>
-          <select onChange={(e) => deleteProject(e.target.value)} defaultValue="Delete Project">
-            <option disabled>Delete Project</option>
-            {Object.keys(projects).map((name) => (
-              <option key={name}>{name}</option>
-            ))}
-          </select>
-        </label>
-
-        <button type="button" className="project-toolbar-button project-toolbar-button-share" onClick={copyProjectLink}>
-          {copiedProjectLink ? 'Copied Link' : 'Copy Link'}
-        </button>
+        <div className="project-toolbar-menu-wrap">
+          <button type="button" className="project-toolbar-button project-toolbar-button-share" onClick={() => {
+            setShowShareMenu((value) => !value);
+            setShowQuickViewMenu(false);
+            setShowSaveMenu(false);
+          }}>
+            Share
+          </button>
+          {showShareMenu && (
+            <div className="project-toolbar-menu project-toolbar-menu-right">
+              <button type="button" className={`project-toolbar-menu-item ${copiedProjectLink ? 'project-toolbar-menu-item-success' : ''}`} onClick={async () => {
+                await copyProjectLink();
+                window.setTimeout(() => setShowShareMenu(false), 1000);
+              }}>
+                {copiedProjectLink ? '✓ Copied Project Link' : 'Copy Project Link'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {mobileMetricsPinned && (
