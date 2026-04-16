@@ -704,6 +704,20 @@ Potential product implication:
 - make premium sample projects feel like publicly accessible lesson-kit previews, which keeps the freemium story aligned with the classroom architecture
 - use lesson kits as the bridge between individual premium analysis features and instructor-grade classroom workflows, reducing future product fragmentation
 
+### Freemium collaboration boundary refinement
+A useful next boundary decision is whether free users can share a live project link for viewing only, while premium controls collaboration-grade sharing and copy workflows.
+
+Why this matters:
+- sharing is one of the fastest ways an educational tool spreads, so making it fully premium may choke word of mouth
+- at the same time, durable collaboration and classroom distribution are valuable enough to reserve for paid tiers
+- this creates a clearer ladder from solo exploration to assignment-ready workflow rather than a blunt save-or-no-save split
+
+Potential product implication:
+- allow free users to generate a basic view-only share link or device-local snapshot link with clear limitations
+- reserve editable shared copies, managed class distribution, and instructor-controlled duplication for premium or classroom tiers
+- treat share permissions as separate from save permissions inside the entitlement model, so the product can support public preview, personal persistence, and classroom handoff as distinct states
+- use sharing boundaries to reinforce the product story: free helps users learn and show work, paid helps them organize, reuse, and orchestrate that work at scale
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
