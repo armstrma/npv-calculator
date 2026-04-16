@@ -718,6 +718,20 @@ Potential product implication:
 - treat share permissions as separate from save permissions inside the entitlement model, so the product can support public preview, personal persistence, and classroom handoff as distinct states
 - use sharing boundaries to reinforce the product story: free helps users learn and show work, paid helps them organize, reuse, and orchestrate that work at scale
 
+### Entitlement fallback and graceful degradation refinement
+A useful scaffolding decision is to define what the product should do when a user opens a project or lesson context that references features outside their current entitlement.
+
+Why this matters:
+- real usage will create downgrade and mismatch cases, such as a paid-created project opened by a free user or a classroom assignment viewed after access expires
+- harsh failure states can make the product feel broken, while overly permissive fallback can quietly erase the freemium boundary
+- a clear degradation model will reduce UI confusion and make entitlement behavior feel intentional instead of brittle
+
+Potential product implication:
+- decide per feature whether the fallback should be view-only, hidden-with-explanation, frozen-at-last-value, or replaced with a simplified free equivalent
+- preserve analytical outputs where possible so users can still learn from shared or expired contexts, even if premium controls are no longer editable
+- attach user-facing reason codes to downgraded states, so the UI can explain whether a limitation comes from plan level, assignment rules, or expired classroom access
+- treat graceful degradation as part of the premium architecture, especially for shared lesson kits, previews, and reopened student work
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
