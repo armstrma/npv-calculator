@@ -760,6 +760,20 @@ Potential product implication:
 - distinguish between teacher-authoring actions and learner continuity actions in the entitlement system, so trial expiration does not unintentionally break active coursework
 - use the conversion moment to emphasize operational continuity and class safety, not just feature loss, because that is likely the strongest instructor buying trigger
 
+### Classroom procurement-light adoption refinement
+A useful pricing and workflow refinement is to design an intermediate adoption path between solo instructor payment and full institutional procurement.
+
+Why this matters:
+- many instructors can justify trying a classroom tool, but cannot quickly navigate department purchasing or annual contract paperwork
+- if the product jumps straight from individual use to institution-heavy sales motion, adoption may stall right when classroom interest appears
+- a procurement-light path can help the product win real usage first, then expand into department or campus deals later
+
+Potential product implication:
+- support a self-serve classroom starter tier with clear student caps, simple invoicing or card payment, and minimal setup overhead
+- let instructors begin with one course or limited seat pool before needing department-wide procurement structures
+- make entitlement and billing architecture flexible enough to grow from instructor-owned classes into org-owned plans without forcing data migration chaos
+- position institutional plans as scale, admin, and procurement upgrades, rather than the only credible way to use the classroom product
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
