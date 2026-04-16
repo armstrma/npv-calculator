@@ -732,6 +732,20 @@ Potential product implication:
 - attach user-facing reason codes to downgraded states, so the UI can explain whether a limitation comes from plan level, assignment rules, or expired classroom access
 - treat graceful degradation as part of the premium architecture, especially for shared lesson kits, previews, and reopened student work
 
+### Premium feature bundling refinement
+A useful next monetization question is whether premium should be sold as one flat upgrade or as a small number of purpose-built bundles that mirror actual user intent.
+
+Why this matters:
+- the roadmap now spans individual analysis depth, presentation workflows, saving/sharing, and classroom orchestration, which may be too broad for a single undifferentiated premium story
+- bundling can clarify why a learner pays versus why an instructor pays, without requiring a huge plan matrix
+- a better package structure can also protect the freemium boundary by grouping features around outcomes instead of arbitrary locks
+
+Potential product implication:
+- consider a simple two-track structure such as Pro Analysis for individuals and Classroom for instructors, even if billing is initially handled manually
+- group premium features by completed job, such as save/compare/present for individuals and assign/lock/review for classroom users
+- keep the public plan structure compact, but model internal entitlements in a way that supports bundles cleanly if pricing evolves later
+- use bundles to make upgrade messaging more legible, so users understand what workflow they are unlocking rather than just seeing a long gated-feature list
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
