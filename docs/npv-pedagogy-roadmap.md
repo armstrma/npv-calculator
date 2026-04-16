@@ -746,6 +746,20 @@ Potential product implication:
 - keep the public plan structure compact, but model internal entitlements in a way that supports bundles cleanly if pricing evolves later
 - use bundles to make upgrade messaging more legible, so users understand what workflow they are unlocking rather than just seeing a long gated-feature list
 
+### Instructor trial-to-paid conversion refinement
+A useful classroom monetization refinement is to define what happens at the exact moment an instructor trial ends, especially if classes or assignments are already live.
+
+Why this matters:
+- classroom tools create real dependency once an instructor has distributed links or students have started work, so a hard lock at trial end may feel punitive and risky
+- the transition from evaluation to paid usage is one of the highest-friction moments in an education product
+- a thoughtful conversion model can protect revenue while still signaling that the product is classroom-safe and trustworthy
+
+Potential product implication:
+- preserve student access to already-open assignments for a short grace period or in restricted continuity mode, while gating new class creation or new assignment publishing
+- let instructors continue viewing existing class state and conversion prompts, rather than dropping them into a dead-end lockout
+- distinguish between teacher-authoring actions and learner continuity actions in the entitlement system, so trial expiration does not unintentionally break active coursework
+- use the conversion moment to emphasize operational continuity and class safety, not just feature loss, because that is likely the strongest instructor buying trigger
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
