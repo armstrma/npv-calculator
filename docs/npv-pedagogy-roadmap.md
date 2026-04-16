@@ -690,6 +690,20 @@ Potential product implication:
 - checklists should disappear quickly once value is reached, not become a nagging dashboard element
 - completion steps can double as product analytics for where users get stuck, without needing invasive tracking
 
+### Instructor packaging and assignable lesson-kit refinement
+A useful scaffolding idea is to package classroom content as reusable lesson kits rather than treating each assignment as a one-off project configuration.
+
+Why this matters:
+- instructors often want to reuse a teaching asset across sections, semesters, or modalities with only light edits
+- a lesson kit can bundle the case, teaching prompt, visible graphs, lock rules, and presentation flow into one reusable object
+- this creates a cleaner premium boundary because the product is selling teachable packaged experiences, not just deeper calculator controls
+
+Potential product implication:
+- define a reusable lesson-kit layer above raw projects, with fields for case summary, student instructions, lock profile, visible analysis surfaces, and optional presentation sequence
+- allow instructors to instantiate a lesson kit into a specific class assignment with dates, versioning, and section-specific overrides
+- make premium sample projects feel like publicly accessible lesson-kit previews, which keeps the freemium story aligned with the classroom architecture
+- use lesson kits as the bridge between individual premium analysis features and instructor-grade classroom workflows, reducing future product fragmentation
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
