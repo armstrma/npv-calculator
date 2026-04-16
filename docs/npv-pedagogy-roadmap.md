@@ -774,6 +774,20 @@ Potential product implication:
 - make entitlement and billing architecture flexible enough to grow from instructor-owned classes into org-owned plans without forcing data migration chaos
 - position institutional plans as scale, admin, and procurement upgrades, rather than the only credible way to use the classroom product
 
+### Classroom access-window packaging refinement
+A useful classroom workflow and pricing refinement is to decide whether access should be packaged around academic time windows rather than only around raw subscription duration.
+
+Why this matters:
+- instructors often think in terms like summer session, semester, quarter, or module, not generic monthly SaaS time
+- academic calendars create natural start and end points for assignment access, renewal, and student continuity
+- aligning packaging with teaching rhythms may make pricing feel more legible and reduce awkward mid-term expiration problems
+
+Potential product implication:
+- support plan constructs such as per-course term access, semester-bound classroom access, or instructor plans that include one or more active teaching windows
+- let entitlement logic distinguish subscription billing period from learner access window, so classes can remain stable through a term even if account billing changes later
+- use access-window concepts in assignment and trial messaging, especially for instructors who need confidence that a live course will not expire at the wrong moment
+- keep implementation flexible enough that time-window packaging can coexist with ordinary annual plans and future institutional contracts
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
