@@ -723,6 +723,7 @@ const QuickViewVariablePanel = ({
       <span className="mobile-sentiment-dot-wrap quick-view-sentiment-dot-wrap">
         <span className={`mobile-sentiment-dot sentiment-${sentiment.tone}`} aria-label={sentiment.label} title={sentiment.label} />
       </span>
+      <span className={`quick-view-sentiment-label sentiment-${sentiment.tone}`}>{sentiment.label}</span>
       <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
       <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>
       <span>Payback <strong>{formatPaybackDisplay(payback)}</strong></span>
@@ -1890,14 +1891,9 @@ const App = () => {
 
           <div className="metrics-dock">
             <div className="metrics-summary">
-              <div className="metric-pill metric-pill-sentiment-inline">
+              <div className={`metric-pill metric-pill-sentiment-inline sentiment-${sentiment.tone}`}>
                 <span className="metric-pill-label">Sentiment</span>
-                <span className="metric-pill-value metric-pill-value-sentiment-inline">
-                  <span className="mobile-sentiment-dot-wrap">
-                    <span className={`mobile-sentiment-dot sentiment-${sentiment.tone}`} aria-label={sentiment.label} title={sentiment.label} />
-                  </span>
-                  <span>{sentiment.label}</span>
-                </span>
+                <span className="metric-pill-value metric-pill-value-sentiment-inline">{sentiment.label}</span>
                 <span className="metric-pill-subtext">{sentiment.detail}</span>
               </div>
               <div className="metric-pill">
