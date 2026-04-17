@@ -1525,225 +1525,134 @@ const App = () => {
       </section>
       )}
 
-      <div className="mobile-topbar-shell" ref={mobileTopbarRef}>
-        <button
-          type="button"
-          className="mobile-topbar-action mobile-topbar-action-left"
-          onClick={() => {
-            setMobileLibraryTab('saved');
-            setShowMobileLibrary(true);
-          }}
-          aria-label="Open project library"
-        >
-          <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.379a1.5 1.5 0 0 1 1.06.44l1.242 1.242A1.5 1.5 0 0 0 12.242 8h7.258A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5v-10Z" />
-          </svg>
-        </button>
-        <div className="mobile-topbar-menu-wrap">
-          <button type="button" className="mobile-topbar-action mobile-topbar-action-left mobile-topbar-save" onClick={() => {
-            setShowSaveMenu((value) => !value);
-            setShowQuickViewMenu(false);
-            setShowShareMenu(false);
-          }}>
-            <span>Save</span>
-          </button>
-          {showSaveMenu && (
-            <div className="mobile-topbar-menu mobile-topbar-menu-left">
-              <button
-                type="button"
-                className="mobile-topbar-menu-item"
-                onClick={handleSaveLocally}
-              >
-                Save Locally
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="mobile-topbar-brand">
-          <span className="mobile-topbar-title">NPV Lab</span>
-          <span className="mobile-topbar-pro-badge">PRO</span>
-        </div>
-        <div className="mobile-topbar-menu-wrap">
-          <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => {
-            setShowQuickViewMenu((value) => !value);
-            setShowSaveMenu(false);
-            setShowShareMenu(false);
-          }} aria-label="More options">
-            <span className="mobile-topbar-icon-glyph">…</span>
-          </button>
-          {showQuickViewMenu && (
-            <div className="mobile-topbar-menu">
-              <button
-                type="button"
-                className="mobile-topbar-menu-item"
-                onClick={() => {
-                  setQuickViewEnabled((value) => !value);
-                  setShowQuickViewMenu(false);
-                }}
-              >
-                {quickViewEnabled ? 'Exit Quick View' : 'Enter Quick View'}
-              </button>
-              <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
-                <span>Currency</span>
-                <select value={currency} onChange={(e) => setCurrency(e.target.value)} title="Display currency (calculations unchanged)">
-                  <option>$</option>
-                  <option>€</option>
-                  <option>£</option>
-                </select>
-              </label>
-              <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
-                <span>Sensitivity</span>
-                <select value={showSensitivity ? String(sensitivityPercent) : '10'} onChange={(e) => {
-                  setShowSensitivity(true);
-                  setSensitivityPercent(Number(e.target.value));
-                  setShowQuickViewMenu(false);
-                }}>
-                  <option value="5">5%</option>
-                  <option value="10">10%</option>
-                  <option value="20">20%</option>
-                </select>
-              </label>
-            </div>
-          )}
-        </div>
-        <div className="mobile-topbar-menu-wrap">
-          <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => {
-            setShowShareMenu((value) => !value);
-            setShowSaveMenu(false);
-            setShowQuickViewMenu(false);
-          }} aria-label="Share options">
+      {[
+        { key: 'mobile', className: 'mobile-topbar-shell', ref: mobileTopbarRef },
+        { key: 'desktop', className: 'mobile-topbar-shell mobile-topbar-shell-desktop', ref: projectToolbarRef },
+      ].map(({ key, className, ref }) => (
+        <div key={key} className={className} ref={ref}>
+          <button
+            type="button"
+            className="mobile-topbar-action mobile-topbar-action-left"
+            onClick={() => {
+              setMobileLibraryTab('saved');
+              setShowMobileLibrary(true);
+              setShowSaveMenu(false);
+              setShowQuickViewMenu(false);
+              setShowShareMenu(false);
+            }}
+            aria-label="Open project library"
+          >
             <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 16V5" />
-              <path d="m7 10 5-5 5 5" />
-              <path d="M5 19h14" />
+              <path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.379a1.5 1.5 0 0 1 1.06.44l1.242 1.242A1.5 1.5 0 0 0 12.242 8h7.258A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5v-10Z" />
             </svg>
           </button>
-          {showShareMenu && (
-            <div className="mobile-topbar-menu mobile-topbar-menu-right">
-              <button
-                type="button"
-                className={`mobile-topbar-menu-item ${copiedProjectLink ? 'mobile-topbar-menu-item-success' : ''}`}
-                onClick={async () => {
-                  await copyProjectLink();
-                  window.setTimeout(() => setShowShareMenu(false), 1000);
-                }}
-              >
-                {copiedProjectLink ? '✓ Copied Project Link' : 'Copy Project Link'}
-              </button>
-            </div>
-          )}
+          <div className="mobile-topbar-menu-wrap">
+            <button type="button" className="mobile-topbar-action mobile-topbar-action-left mobile-topbar-save" onClick={() => {
+              setShowSaveMenu((value) => !value);
+              setShowQuickViewMenu(false);
+              setShowShareMenu(false);
+            }} aria-label="Save options">
+              <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 4.75h11.5l2.75 2.75v11A1.5 1.5 0 0 1 17.75 20h-11.5A1.5 1.5 0 0 1 4.75 18.5v-12A1.75 1.75 0 0 1 6.5 4.75Z" />
+                <path d="M8 4.75v5.5h7v-4" />
+                <path d="M8.25 20v-5.5h7.5V20" />
+              </svg>
+            </button>
+            {showSaveMenu && (
+              <div className="mobile-topbar-menu mobile-topbar-menu-left">
+                <button
+                  type="button"
+                  className="mobile-topbar-menu-item"
+                  onClick={() => {
+                    handleSaveLocally();
+                    setShowSaveMenu(false);
+                  }}
+                >
+                  Save Locally
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="mobile-topbar-brand">
+            <span className="mobile-topbar-title">NPV Lab</span>
+            <span className="mobile-topbar-pro-badge">PRO</span>
+          </div>
+          <div className="mobile-topbar-menu-wrap">
+            <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => {
+              setShowQuickViewMenu((value) => !value);
+              setShowSaveMenu(false);
+              setShowShareMenu(false);
+            }} aria-label="More options">
+              <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5.5a1.25 1.25 0 1 0 0 .01" />
+                <path d="M12 12a1.25 1.25 0 1 0 0 .01" />
+                <path d="M12 18.5a1.25 1.25 0 1 0 0 .01" />
+              </svg>
+            </button>
+            {showQuickViewMenu && (
+              <div className="mobile-topbar-menu">
+                <button
+                  type="button"
+                  className="mobile-topbar-menu-item"
+                  onClick={() => {
+                    setQuickViewEnabled((value) => !value);
+                    setShowQuickViewMenu(false);
+                  }}
+                >
+                  {quickViewEnabled ? 'Exit Quick View' : 'Enter Quick View'}
+                </button>
+                <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
+                  <span>Currency</span>
+                  <select value={currency} onChange={(e) => setCurrency(e.target.value)} title="Display currency (calculations unchanged)">
+                    <option>$</option>
+                    <option>€</option>
+                    <option>£</option>
+                  </select>
+                </label>
+                <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
+                  <span>Sensitivity</span>
+                  <select value={showSensitivity ? String(sensitivityPercent) : '10'} onChange={(e) => {
+                    setShowSensitivity(true);
+                    setSensitivityPercent(Number(e.target.value));
+                    setShowQuickViewMenu(false);
+                  }}>
+                    <option value="5">5%</option>
+                    <option value="10">10%</option>
+                    <option value="20">20%</option>
+                  </select>
+                </label>
+              </div>
+            )}
+          </div>
+          <div className="mobile-topbar-menu-wrap">
+            <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => {
+              setShowShareMenu((value) => !value);
+              setShowSaveMenu(false);
+              setShowQuickViewMenu(false);
+            }} aria-label="Share options">
+              <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 16V5" />
+                <path d="m7 10 5-5 5 5" />
+                <path d="M5 19h14" />
+              </svg>
+            </button>
+            {showShareMenu && (
+              <div className="mobile-topbar-menu mobile-topbar-menu-right">
+                <button
+                  type="button"
+                  className={`mobile-topbar-menu-item ${copiedProjectLink ? 'mobile-topbar-menu-item-success' : ''}`}
+                  onClick={async () => {
+                    await copyProjectLink();
+                    window.setTimeout(() => setShowShareMenu(false), 1000);
+                  }}
+                >
+                  {copiedProjectLink ? '✓ Copied Project Link' : 'Copy Project Link'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-
-      <div className="mobile-topbar-shell mobile-topbar-shell-desktop" ref={projectToolbarRef}>
-        <button
-          type="button"
-          className="mobile-topbar-action mobile-topbar-action-left"
-          onClick={() => {
-            setMobileLibraryTab('saved');
-            setShowMobileLibrary(true);
-          }}
-          aria-label="Open project library"
-        >
-          <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.379a1.5 1.5 0 0 1 1.06.44l1.242 1.242A1.5 1.5 0 0 0 12.242 8h7.258A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5v-10Z" />
-          </svg>
-        </button>
-        <div className="mobile-topbar-menu-wrap">
-          <button type="button" className="mobile-topbar-action mobile-topbar-action-left mobile-topbar-save" onClick={() => {
-            setShowSaveMenu((value) => !value);
-            setShowQuickViewMenu(false);
-            setShowShareMenu(false);
-          }}>
-            <span>Save</span>
-          </button>
-          {showSaveMenu && (
-            <div className="mobile-topbar-menu mobile-topbar-menu-left">
-              <button
-                type="button"
-                className="mobile-topbar-menu-item"
-                onClick={handleSaveLocally}
-              >
-                Save Locally
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="mobile-topbar-brand">
-          <span className="mobile-topbar-title">NPV Lab</span>
-          <span className="mobile-topbar-pro-badge">PRO</span>
-        </div>
-        <div className="mobile-topbar-menu-wrap">
-          <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => {
-            setShowQuickViewMenu((value) => !value);
-            setShowSaveMenu(false);
-            setShowShareMenu(false);
-          }} aria-label="More options">
-            <span className="mobile-topbar-icon-glyph">…</span>
-          </button>
-          {showQuickViewMenu && (
-            <div className="mobile-topbar-menu">
-              <button
-                type="button"
-                className="mobile-topbar-menu-item"
-                onClick={() => {
-                  setQuickViewEnabled((value) => !value);
-                  setShowQuickViewMenu(false);
-                }}
-              >
-                {quickViewEnabled ? 'Exit Quick View' : 'Enter Quick View'}
-              </button>
-              <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
-                <span>Currency</span>
-                <select value={currency} onChange={(e) => setCurrency(e.target.value)} title="Display currency (calculations unchanged)">
-                  <option>$</option>
-                  <option>€</option>
-                  <option>£</option>
-                </select>
-              </label>
-              <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
-                <span>Sensitivity</span>
-                <select value={showSensitivity ? String(sensitivityPercent) : '10'} onChange={(e) => {
-                  setShowSensitivity(true);
-                  setSensitivityPercent(Number(e.target.value));
-                  setShowQuickViewMenu(false);
-                }}>
-                  <option value="5">5%</option>
-                  <option value="10">10%</option>
-                  <option value="20">20%</option>
-                </select>
-              </label>
-            </div>
-          )}
-        </div>
-        <div className="mobile-topbar-menu-wrap">
-          <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => {
-            setShowShareMenu((value) => !value);
-            setShowSaveMenu(false);
-            setShowQuickViewMenu(false);
-          }} aria-label="Share options">
-            <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 16V5" />
-              <path d="m7 10 5-5 5 5" />
-              <path d="M5 19h14" />
-            </svg>
-          </button>
-          {showShareMenu && (
-            <div className="mobile-topbar-menu mobile-topbar-menu-right">
-              <button
-                type="button"
-                className={`mobile-topbar-menu-item ${copiedProjectLink ? 'mobile-topbar-menu-item-success' : ''}`}
-                onClick={async () => {
-                  await copyProjectLink();
-                  window.setTimeout(() => setShowShareMenu(false), 1000);
-                }}
-              >
-                {copiedProjectLink ? '✓ Copied Project Link' : 'Copy Project Link'}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      ))}
 
       {mobileMetricsPinned && (
         <div className="mobile-metrics-header mobile-metrics-header-pinned">
