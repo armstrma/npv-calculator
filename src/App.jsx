@@ -86,7 +86,21 @@ const formatMobileNpv = (value, currency = '$') => {
 
 const formatMobileIrr = (value) => `${Math.round(Number(value) || 0)}%`;
 
-const formatPaybackDisplay = (value) => (typeof value === 'number' ? `${value.toFixed(1)}y` : value);
+const PERIOD_OPTIONS = {
+  months: { label: 'Months', singular: 'Month', short: 'mo' },
+  quarters: { label: 'Quarters', singular: 'Quarter', short: 'qtr' },
+  years: { label: 'Years', singular: 'Year', short: 'yr' },
+};
+
+const getPeriodMeta = (periodMode) => PERIOD_OPTIONS[periodMode] || PERIOD_OPTIONS.years;
+
+const getPeriodLabel = (periodMode, count) => `${getPeriodMeta(periodMode).singular} ${count}`;
+
+const getPeriodCollectionLabel = (periodMode) => getPeriodMeta(periodMode).label;
+
+const getAddPeriodLabel = (periodMode, isDesktopViewport) => `${isDesktopViewport ? 'Click' : 'Tap'} here to add another ${getPeriodMeta(periodMode).singular.toLowerCase()}`;
+
+const formatPaybackDisplay = (value, periodMode = 'years') => (typeof value === 'number' ? `${value.toFixed(1)} ${getPeriodMeta(periodMode).short}` : value);
 
 const getSliderBounds = (values, { minBase = -5000, maxBase = 10000 } = {}) => {
   const numericValues = values.map((value) => Number(value)).filter((value) => Number.isFinite(value));
@@ -472,6 +486,7 @@ const QuickViewCharts = ({
   payback,
   breakEvenCashflowUpliftPct,
   maxInitialAtNpvZero,
+  periodMode,
 }) => {
   const [activeChart, setActiveChart] = useState('npv');
   const [activeAnalysisCard, setActiveAnalysisCard] = useState('viability');
@@ -696,6 +711,8 @@ const QuickViewVariablePanel = ({
   currency,
   irr,
   payback,
+  periodMode,
+  isDesktopViewport,
   initialInput,
   setInitialInput,
   initial,
@@ -726,7 +743,7 @@ const QuickViewVariablePanel = ({
       <span className={`quick-view-sentiment-word sentiment-${sentiment.tone}`}>{sentiment.label}</span>
       <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
       <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>
-      <span>Payback <strong>{formatPaybackDisplay(payback)}</strong></span>
+      <span>Payback <strong>{formatPaybackDisplay(payback, periodMode)}</strong></span>
     </div>
     <div className="quick-view-row">
       <div className="quick-view-row-top quick-view-row-top-static">
@@ -796,7 +813,7 @@ const QuickViewVariablePanel = ({
     {cashflows.map((cf, index) => (
       <div key={index} className="quick-view-row quick-view-row-compact">
         <div className="quick-view-row-top">
-          <span>{`Year ${index + 1}`}</span>
+          <span>{getPeriodLabel(periodMode, index + 1)}</span>
           <span>{currency}</span>
           <input
             type="text"
@@ -840,7 +857,7 @@ const QuickViewVariablePanel = ({
       </div>
     ))}
     <button type="button" className="quick-view-add-space" onClick={addQuickViewYear}>
-      Tap here to add another year
+      {getAddPeriodLabel(periodMode, isDesktopViewport)}
     </button>
   </div>
 );
@@ -850,6 +867,7 @@ const App = () => {
   const [discount, setDiscount] = useState(10);
   const [cashflows, setCashflows] = useState([200, 300, 400, 500, 600]);
   const [currency, setCurrency] = useState('$');
+  const [periodMode, setPeriodMode] = useState('years');
   const [showSensitivity, setShowSensitivity] = useState(true);
   const [sensitivityPercent, setSensitivityPercent] = useState(10);
   const [showHurdleRate, setShowHurdleRate] = useState(false);
@@ -1608,6 +1626,17 @@ const App = () => {
                     <option>$</option>
                     <option>€</option>
                     <option>£</option>
+                  </select>
+                </label>
+                <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
+                  <span>Periods</span>
+                  <select value={periodMode} onChange={(e) => {
+                    setPeriodMode(e.target.value);
+                    setShowQuickViewMenu(false);
+                  }}>
+                    <option value="months">Months</option>
+                    <option value="quarters">Quarters</option>
+                    <option value="years">Years</option>
                   </select>
                 </label>
                 <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
