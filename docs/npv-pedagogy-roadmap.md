@@ -802,6 +802,20 @@ Potential product implication:
 - make entitlement resolution aware of both personal and org-backed coverage during transition periods, reducing mid-term access surprises
 - treat ownership transfer as a first-class growth path, because it connects bottom-up adoption to institutional expansion without forcing a restart
 
+### Classroom co-instructor and TA permissions refinement
+A useful classroom-scaffolding refinement is to define support for multi-adult teaching teams instead of assuming every class is owned and operated by a single instructor.
+
+Why this matters:
+- many real courses involve TAs, co-instructors, guest lecturers, or departmental staff who need some level of access without full billing or ownership rights
+- classroom operations become fragile if one professor account is the only place where assignments, roster fixes, or student support actions can happen
+- shared teaching roles also create a more realistic bridge toward department-scale adoption
+
+Potential product implication:
+- model role-based classroom permissions such as owner, co-instructor, TA, and maybe read-only support view
+- separate instructional actions like authoring, publishing, grading/reviewing, roster management, and billing administration so access can be delegated intentionally
+- ensure course continuity does not depend on one human account always being available, especially for live assignments and exception handling
+- align co-instructor permissions with the ownership-transfer and audit-trail ideas already in the roadmap, so collaboration does not become hidden admin chaos
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
