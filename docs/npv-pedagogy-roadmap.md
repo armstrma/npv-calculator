@@ -788,6 +788,20 @@ Potential product implication:
 - use access-window concepts in assignment and trial messaging, especially for instructors who need confidence that a live course will not expire at the wrong moment
 - keep implementation flexible enough that time-window packaging can coexist with ordinary annual plans and future institutional contracts
 
+### Department handoff and ownership-transfer refinement
+A useful adoption refinement is to plan for what happens when a classroom deployment that began as instructor-owned later gets absorbed into a department or institution-managed arrangement.
+
+Why this matters:
+- early adoption may start with one motivated professor paying directly, but successful classroom tools often need a path into shared departmental ownership later
+- if ownership transfer is messy, the product can create churn right when it should be expanding account value
+- course continuity, historical assignments, and entitlement inheritance all become sensitive during that transition
+
+Potential product implication:
+- separate billing ownership from course and content ownership in the underlying model, so plans can change without orphaning classes or assets
+- support a handoff flow where an instructor-owned workspace can be attached to an org account while preserving active courses, lesson kits, and learner continuity
+- make entitlement resolution aware of both personal and org-backed coverage during transition periods, reducing mid-term access surprises
+- treat ownership transfer as a first-class growth path, because it connects bottom-up adoption to institutional expansion without forcing a restart
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
