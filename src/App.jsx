@@ -163,11 +163,11 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
     <div className="mobile-library-overlay" onClick={onClose}>
       <div className="mobile-library-panel" onClick={(e) => e.stopPropagation()}>
         <div className="mobile-library-topbar">
-          <button type="button" className="mobile-library-close" onClick={onClose}>×</button>
-        </div>
-
-        <div className="mobile-library-toolbar">
-          <button type="button" className="mobile-library-new button-secondary">New Project ▾</button>
+          <div className="mobile-library-heading">
+            <h2>Open Project</h2>
+            <p>Browse local saves and example projects.</p>
+          </div>
+          <button type="button" className="mobile-library-close" onClick={onClose} aria-label="Close open project modal">×</button>
         </div>
 
         <div className="mobile-library-tabs">

@@ -1490,48 +1490,92 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .guide-modal .button-primary {
     width: 100%;
   }
+  .mobile-library-overlay {
+    padding: 0;
+  }
+  .mobile-library-panel {
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    border: 0;
+  }
+  .mobile-library-topbar {
+    padding: 14px 16px 10px;
+  }
+  .mobile-library-heading h2 {
+    font-size: 20px;
+  }
+  .mobile-library-heading p {
+    font-size: 13px;
+  }
+  .mobile-library-tabs {
+    padding: 0 16px 12px;
+  }
 }
 
 .mobile-library-overlay {
   position: fixed;
   inset: 0;
   z-index: 2000;
-  background: rgba(15, 23, 42, 0.28);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(10px);
 }
 .mobile-library-panel {
-  position: absolute;
-  inset: 0;
-  background: #020617;
+  width: min(920px, calc(100vw - 40px));
+  max-width: 100%;
+  max-height: min(86vh, 820px);
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.45);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(2, 6, 23, 0.98) 100%);
   color: #f8fafc;
   display: grid;
-  grid-template-rows: auto auto auto 1fr;
+  grid-template-rows: auto auto 1fr;
 }
 .mobile-library-topbar {
   display: flex;
-  justify-content: flex-end;
-  padding: 12px 14px;
-  background: #2d2d2d;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 12px;
+}
+.mobile-library-heading {
+  display: grid;
+  gap: 6px;
+}
+.mobile-library-heading h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #f8fafc;
+}
+.mobile-library-heading p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.45;
 }
 .mobile-library-close {
-  border: 0;
-  background: transparent;
-  color: white;
-  font-size: 34px;
-  line-height: 1;
-}
-.mobile-library-toolbar {
-  padding: 16px 16px 8px;
-}
-.mobile-library-new {
-  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(71, 85, 105, 0.55);
   background: rgba(15, 23, 42, 0.92);
-  color: #f8fafc;
-  border-color: #475569;
+  color: white;
+  font-size: 26px;
+  line-height: 1;
 }
 .mobile-library-tabs {
   display: flex;
   gap: 20px;
-  padding: 0 16px 12px;
+  padding: 0 22px 12px;
   border-bottom: 1px solid rgba(71, 85, 105, 0.5);
 }
 .mobile-library-tab {
