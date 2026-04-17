@@ -723,6 +723,7 @@ const QuickViewVariablePanel = ({
       <span className="mobile-sentiment-dot-wrap">
         <span className={`mobile-sentiment-dot sentiment-${sentiment.tone}`} aria-label={sentiment.label} title={sentiment.label} />
       </span>
+      <span>{sentiment.label}</span>
       <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
       <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>
       <span>Payback <strong>{formatPaybackDisplay(payback)}</strong></span>
