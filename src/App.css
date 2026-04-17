@@ -365,6 +365,20 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 12px;
   background: rgba(30, 41, 59, 0.62);
 }
+.metric-pill-sentiment-inline {
+  display: grid;
+  gap: 4px;
+}
+.metric-pill-value-sentiment-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.metric-pill-value-sentiment-inline .mobile-sentiment-dot-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .metric-pill-label,
 .metric-pill-subtext,
 .details-metric-label,

@@ -1890,9 +1890,14 @@ const App = () => {
 
           <div className="metrics-dock">
             <div className="metrics-summary">
-              <div className={`metric-pill sentiment-${sentiment.tone}`}>
+              <div className="metric-pill metric-pill-sentiment-inline">
                 <span className="metric-pill-label">Sentiment</span>
-                <span className="metric-pill-value">{sentiment.label}</span>
+                <span className="metric-pill-value metric-pill-value-sentiment-inline">
+                  <span className="mobile-sentiment-dot-wrap">
+                    <span className={`mobile-sentiment-dot sentiment-${sentiment.tone}`} aria-label={sentiment.label} title={sentiment.label} />
+                  </span>
+                  <span>{sentiment.label}</span>
+                </span>
                 <span className="metric-pill-subtext">{sentiment.detail}</span>
               </div>
               <div className="metric-pill">
