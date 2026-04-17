@@ -508,7 +508,7 @@ input[type="range"]::-moz-range-thumb {
 @media (max-width: 1024px) {
   .mobile-metrics-header {
     display: grid !important;
-    grid-template-columns: 10px minmax(0, 1.75fr) minmax(0, 0.82fr) minmax(0, 0.82fr);
+    grid-template-columns: 8px minmax(0, 1.75fr) minmax(0, 0.82fr) minmax(0, 0.82fr);
     gap: 5px;
     align-items: center;
     padding: 8px 8px;
@@ -520,7 +520,7 @@ input[type="range"]::-moz-range-thumb {
     font-weight: 700;
   }
   .quick-view-metrics-header {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
+    grid-template-columns: 8px minmax(0, 1fr) minmax(0, 1.55fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
   }
   .mobile-metrics-header span {
     min-width: 0;
@@ -533,6 +533,10 @@ input[type="range"]::-moz-range-thumb {
     display: flex;
     align-items: center;
     justify-content: flex-start;
+    width: 8px;
+    min-width: 8px;
+    padding: 0;
+    margin: 0;
   }
   .mobile-sentiment-dot {
     width: 8px;
@@ -1163,26 +1167,31 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   text-align: center;
 }
 .quick-view-shell-desktop .quick-view-metrics-header span:nth-child(1),
-.mobile-metrics-header span:nth-child(1) {
+.quick-view-shell-desktop .quick-view-metrics-header span:nth-child(2),
+.mobile-metrics-header span:nth-child(2) {
   text-align: left;
 }
 .quick-view-shell-desktop .quick-view-metrics-header strong {
   font-size: 11px;
 }
+.quick-view-sentiment-word {
+  display: none;
+}
 .quick-view-shell-desktop .quick-view-sentiment-dot-wrap {
   display: none;
 }
-.quick-view-shell-desktop .quick-view-sentiment-label {
+.quick-view-shell-desktop .quick-view-sentiment-word {
+  display: inline;
   font-size: 11px;
   font-weight: 700;
 }
-.quick-view-shell-desktop .quick-view-sentiment-label.sentiment-positive {
+.quick-view-shell-desktop .quick-view-sentiment-word.sentiment-positive {
   color: #16a34a;
 }
-.quick-view-shell-desktop .quick-view-sentiment-label.sentiment-caution {
+.quick-view-shell-desktop .quick-view-sentiment-word.sentiment-caution {
   color: #ca8a04;
 }
-.quick-view-shell-desktop .quick-view-sentiment-label.sentiment-negative {
+.quick-view-shell-desktop .quick-view-sentiment-word.sentiment-negative {
   color: #dc2626;
 }
 .quick-view-shell-desktop .quick-view-row-top input {
