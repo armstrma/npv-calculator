@@ -508,8 +508,8 @@ input[type="range"]::-moz-range-thumb {
 @media (max-width: 1024px) {
   .mobile-metrics-header {
     display: grid !important;
-    grid-template-columns: 12px minmax(0, 1.9fr) minmax(56px, 0.78fr) minmax(64px, 0.9fr);
-    gap: 4px;
+    grid-template-columns: 12px minmax(0, 1fr) max-content max-content;
+    gap: 8px;
     align-items: center;
     padding: 8px 8px;
     border-bottom: 1px solid #475569;
@@ -525,12 +525,10 @@ input[type="range"]::-moz-range-thumb {
   .mobile-metrics-header span:nth-child(3),
   .mobile-metrics-header span:nth-child(4) {
     text-align: right;
+    justify-self: end;
   }
   .quick-view-metrics-header {
-    grid-template-columns: 12px minmax(0, 1fr) minmax(0, 1.55fr) minmax(56px, 0.82fr) minmax(64px, 0.92fr);
-  }
-  .quick-view-metrics-header {
-    grid-template-columns: 8px minmax(0, 1fr) minmax(0, 1.55fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
+    grid-template-columns: 12px minmax(0, 1fr) max-content max-content;
   }
   .mobile-metrics-header span {
     min-width: 0;
@@ -538,6 +536,11 @@ input[type="range"]::-moz-range-thumb {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .mobile-metrics-header span:nth-child(3),
+  .mobile-metrics-header span:nth-child(4) {
+    overflow: visible;
+    text-overflow: clip;
   }
   .mobile-sentiment-dot-wrap {
     display: flex;
