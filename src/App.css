@@ -508,10 +508,10 @@ input[type="range"]::-moz-range-thumb {
 @media (max-width: 1024px) {
   .mobile-metrics-header {
     display: grid !important;
-    grid-template-columns: 14px minmax(0, 1.55fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
-    gap: 6px;
+    grid-template-columns: 10px minmax(0, 1.75fr) minmax(0, 0.82fr) minmax(0, 0.82fr);
+    gap: 5px;
     align-items: center;
-    padding: 8px 10px;
+    padding: 8px 8px;
     border-bottom: 1px solid #475569;
     background: rgba(17, 24, 39, 0.98);
     color: #f8fafc;
@@ -535,11 +535,11 @@ input[type="range"]::-moz-range-thumb {
     justify-content: flex-start;
   }
   .mobile-sentiment-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 999px;
     background: #64748b;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
   }
   .mobile-sentiment-dot.sentiment-positive {
     background: #22c55e;
