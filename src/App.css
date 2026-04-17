@@ -1432,13 +1432,20 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   }
   .mobile-topbar-menu-item-select,
   .mobile-topbar-menu-item-toggle {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
     gap: 10px;
+    width: 100%;
     font-size: 12px;
   }
+  .mobile-topbar-menu-item-select span,
+  .mobile-topbar-menu-item-toggle span {
+    min-width: 0;
+    text-align: left;
+  }
   .mobile-topbar-menu-item-select select {
+    justify-self: end;
     min-width: 62px;
     border-radius: 8px;
     border: 1px solid rgba(71, 85, 105, 0.55);
