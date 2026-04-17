@@ -520,7 +520,7 @@ input[type="range"]::-moz-range-thumb {
     font-weight: 700;
   }
   .quick-view-metrics-header {
-    grid-template-columns: 14px minmax(0, 1fr) minmax(0, 1.55fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
   }
   .mobile-metrics-header span {
     min-width: 0;
@@ -1037,10 +1037,10 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   display: grid;
   grid-template-columns: minmax(320px, 33vw) minmax(0, 1fr);
   gap: 0;
-  margin-top: 12px;
-  height: calc(100dvh - 96px);
+  margin-top: 8px;
+  height: calc(100dvh - 104px);
   min-height: 0;
-  max-height: calc(100dvh - 96px);
+  max-height: calc(100dvh - 104px);
   background: #020617;
   color: #f8fafc;
   border: 1px solid rgba(71, 85, 105, 0.4);
@@ -1163,8 +1163,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   text-align: center;
 }
 .quick-view-shell-desktop .quick-view-metrics-header span:nth-child(1),
-.quick-view-shell-desktop .quick-view-metrics-header span:nth-child(2),
-.mobile-metrics-header span:nth-child(2) {
+.mobile-metrics-header span:nth-child(1) {
   text-align: left;
 }
 .quick-view-shell-desktop .quick-view-metrics-header strong {
