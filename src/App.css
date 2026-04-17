@@ -1093,6 +1093,10 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 .quick-view-shell-desktop .quick-view-sentiment-dot-wrap .mobile-sentiment-dot {
   display: inline-block;
 }
+.quick-view-shell-desktop .quick-view-sentiment-label {
+  font-size: 11px;
+  font-weight: 700;
+}
 .quick-view-shell-desktop .quick-view-sentiment-label.sentiment-positive {
   color: #16a34a;
 }
