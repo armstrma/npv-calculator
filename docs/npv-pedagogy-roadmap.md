@@ -788,6 +788,20 @@ Potential product implication:
 - use access-window concepts in assignment and trial messaging, especially for instructors who need confidence that a live course will not expire at the wrong moment
 - keep implementation flexible enough that time-window packaging can coexist with ordinary annual plans and future institutional contracts
 
+### Classroom storefront and seat-purchase workflow refinement
+A useful product-scaffolding idea is to define a lightweight instructor-facing storefront flow for buying and provisioning classroom access without needing a sales call.
+
+Why this matters:
+- many instructors will want to try a classroom plan only if they can understand the package, pay quickly, and get a usable class setup immediately
+- education SaaS often loses momentum when pricing, seat counts, and activation steps live in separate disconnected flows
+- a simple storefront can turn classroom intent into actual adoption while still leaving room for larger institutional sales later
+
+Potential product implication:
+- support a purchase flow where an instructor chooses a classroom package by course size or active-seat band, then lands directly in course bootstrap instead of a generic billing portal
+- clearly show what happens after purchase: seat pool created, starter class available, and shareable student access path ready
+- allow add-on seat purchases or course-cap increases mid-term without forcing a plan reset or manual support dependency
+- keep the underlying billing model separate from classroom seat activation so paid capacity, activated seats, and actual learner usage remain understandable
+
 ### Department handoff and ownership-transfer refinement
 A useful adoption refinement is to plan for what happens when a classroom deployment that began as instructor-owned later gets absorbed into a department or institution-managed arrangement.
 

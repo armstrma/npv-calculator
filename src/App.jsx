@@ -1635,76 +1635,65 @@ const App = () => {
         </div>
       </div>
 
-      <div className={`project-toolbar ${showProductHero ? '' : 'project-toolbar-condensed'}`} ref={projectToolbarRef}>
-        <div className="project-toolbar-brand">
-          <span className="project-toolbar-title">NPV Lab</span>
-          <span className="project-toolbar-pro-badge">PRO</span>
-        </div>
-
-        <input className="project-toolbar-name" placeholder="Project Name" value={projectName} onChange={(e) => setProjectName(e.target.value)} />
-
-        <div className="project-toolbar-menu-wrap">
-          <button type="button" className="project-toolbar-button" onClick={() => {
+      <div className="mobile-topbar-shell mobile-topbar-shell-desktop" ref={projectToolbarRef}>
+        <button
+          type="button"
+          className="mobile-topbar-action mobile-topbar-action-left"
+          onClick={() => {
+            setMobileLibraryTab('saved');
+            setShowMobileLibrary(true);
+          }}
+          aria-label="Open project library"
+        >
+          <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.379a1.5 1.5 0 0 1 1.06.44l1.242 1.242A1.5 1.5 0 0 0 12.242 8h7.258A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5v-10Z" />
+          </svg>
+        </button>
+        <div className="mobile-topbar-menu-wrap">
+          <button type="button" className="mobile-topbar-action mobile-topbar-action-left mobile-topbar-save" onClick={() => {
             setShowSaveMenu((value) => !value);
             setShowQuickViewMenu(false);
             setShowShareMenu(false);
           }}>
-            Save
+            <span>Save</span>
           </button>
           {showSaveMenu && (
-            <div className="project-toolbar-menu">
-              <button type="button" className="project-toolbar-menu-item" onClick={() => {
-                handleSaveLocally();
-                setShowSaveMenu(false);
-              }}>
+            <div className="mobile-topbar-menu mobile-topbar-menu-left">
+              <button
+                type="button"
+                className="mobile-topbar-menu-item"
+                onClick={handleSaveLocally}
+              >
                 Save Locally
               </button>
-              <label className="project-toolbar-menu-item project-toolbar-menu-item-select">
-                <span>Load</span>
-                <select
-                  onChange={(e) => {
-                    loadProject(e.target.value);
-                    setShowSaveMenu(false);
-                  }}
-                  value={loadedProjectName && !projects[loadedProjectName] ? '__unsaved__' : loadedProjectName || '__placeholder__'}
-                >
-                  <option value="__placeholder__" disabled>Load Project</option>
-                  {loadedProjectName && !projects[loadedProjectName] && <option value="__unsaved__">{loadedProjectName} (Unsaved)</option>}
-                  {Object.keys(projects).map((name) => (
-                    <option key={name} value={name}>{name}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="project-toolbar-menu-item project-toolbar-menu-item-select">
-                <span>Delete</span>
-                <select onChange={(e) => {
-                  deleteProject(e.target.value);
-                  setShowSaveMenu(false);
-                }} defaultValue="Delete Project">
-                  <option disabled>Delete Project</option>
-                  {Object.keys(projects).map((name) => (
-                    <option key={name}>{name}</option>
-                  ))}
-                </select>
-              </label>
             </div>
           )}
         </div>
-
-        <div className="project-toolbar-menu-wrap">
-          <button type="button" className="project-toolbar-button" onClick={() => {
-            setQuickViewEnabled((value) => !value);
+        <div className="mobile-topbar-brand">
+          <span className="mobile-topbar-title">NPV Lab</span>
+          <span className="mobile-topbar-pro-badge">PRO</span>
+        </div>
+        <div className="mobile-topbar-menu-wrap">
+          <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => {
+            setShowQuickViewMenu((value) => !value);
             setShowSaveMenu(false);
             setShowShareMenu(false);
-          }}>
-            {quickViewEnabled ? 'Exit Quick View' : 'Quick View'}
+          }} aria-label="More options">
+            <span className="mobile-topbar-icon-glyph">…</span>
           </button>
           {showQuickViewMenu && (
-            <div className="project-toolbar-menu">
-              <div className="project-toolbar-menu-item project-toolbar-menu-item-static">
-                Quick View is {quickViewEnabled ? 'On' : 'Off'}
-              </div>
-              <label className="project-toolbar-menu-item project-toolbar-menu-item-select">
+            <div className="mobile-topbar-menu">
+              <button
+                type="button"
+                className="mobile-topbar-menu-item"
+                onClick={() => {
+                  setQuickViewEnabled((value) => !value);
+                  setShowQuickViewMenu(false);
+                }}
+              >
+                {quickViewEnabled ? 'Exit Quick View' : 'Enter Quick View'}
+              </button>
+              <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
                 <span>Currency</span>
                 <select value={currency} onChange={(e) => setCurrency(e.target.value)} title="Display currency (calculations unchanged)">
                   <option>$</option>
@@ -1712,11 +1701,12 @@ const App = () => {
                   <option>£</option>
                 </select>
               </label>
-              <label className="project-toolbar-menu-item project-toolbar-menu-item-select">
+              <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
                 <span>Sensitivity</span>
-                <select value={String(sensitivityPercent)} onChange={(e) => {
+                <select value={showSensitivity ? String(sensitivityPercent) : '10'} onChange={(e) => {
                   setShowSensitivity(true);
                   setSensitivityPercent(Number(e.target.value));
+                  setShowQuickViewMenu(false);
                 }}>
                   <option value="5">5%</option>
                   <option value="10">10%</option>
@@ -1726,21 +1716,28 @@ const App = () => {
             </div>
           )}
         </div>
-
-        <div className="project-toolbar-menu-wrap">
-          <button type="button" className="project-toolbar-button project-toolbar-button-share" onClick={() => {
+        <div className="mobile-topbar-menu-wrap">
+          <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => {
             setShowShareMenu((value) => !value);
-            setShowQuickViewMenu(false);
             setShowSaveMenu(false);
-          }}>
-            Share
+            setShowQuickViewMenu(false);
+          }} aria-label="Share options">
+            <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 16V5" />
+              <path d="m7 10 5-5 5 5" />
+              <path d="M5 19h14" />
+            </svg>
           </button>
           {showShareMenu && (
-            <div className="project-toolbar-menu project-toolbar-menu-right">
-              <button type="button" className={`project-toolbar-menu-item ${copiedProjectLink ? 'project-toolbar-menu-item-success' : ''}`} onClick={async () => {
-                await copyProjectLink();
-                window.setTimeout(() => setShowShareMenu(false), 1000);
-              }}>
+            <div className="mobile-topbar-menu mobile-topbar-menu-right">
+              <button
+                type="button"
+                className={`mobile-topbar-menu-item ${copiedProjectLink ? 'mobile-topbar-menu-item-success' : ''}`}
+                onClick={async () => {
+                  await copyProjectLink();
+                  window.setTimeout(() => setShowShareMenu(false), 1000);
+                }}
+              >
                 {copiedProjectLink ? '✓ Copied Project Link' : 'Copy Project Link'}
               </button>
             </div>
