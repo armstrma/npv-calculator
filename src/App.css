@@ -1066,34 +1066,80 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   overflow: hidden;
 }
 .quick-view-shell-desktop .quick-view-stage-toolbar {
+  display: grid;
   grid-template-columns: repeat(4, minmax(0, max-content));
   justify-content: start;
   gap: 10px;
-  padding: 14px 16px 10px;
-  background: rgba(2, 6, 23, 0.62);
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.35);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(2, 6, 23, 0.82) 100%);
 }
 .quick-view-shell-desktop .quick-view-stage-tab {
-  min-height: 36px;
-  padding: 0 12px;
+  min-height: 38px;
+  padding: 0 14px;
   font-size: 12px;
+  font-weight: 800;
+  border-radius: 999px;
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  background: rgba(15, 23, 42, 0.78);
+  color: #cbd5e1;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.quick-view-shell-desktop .quick-view-stage-tab.active {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.38), rgba(109, 40, 217, 0.22));
+  border-color: rgba(167, 139, 250, 0.62);
+  color: #f5f3ff;
+  box-shadow: 0 10px 20px rgba(76, 29, 149, 0.22);
 }
 .quick-view-shell-desktop .quick-view-stage-chart {
-  padding: 14px 16px 16px;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 18px;
   overflow: hidden;
+  background: radial-gradient(circle at top, rgba(30, 41, 59, 0.18), transparent 36%);
 }
 .quick-view-shell-desktop .quick-view-chart-frame {
-  padding: 12px 10px 8px;
   min-height: 0;
+  padding: 14px 12px 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(71, 85, 105, 0.42);
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.72) 0%, rgba(15, 23, 42, 0.62) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.quick-view-shell-desktop .quick-view-stage-heading,
+.quick-view-shell-desktop .quick-view-stage-heading-with-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.quick-view-shell-desktop .quick-view-stage-heading h2,
+.quick-view-shell-desktop .quick-view-stage-heading p {
+  margin: 0;
 }
 .quick-view-shell-desktop .quick-view-stage-heading h2 {
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #f8fafc;
 }
 .quick-view-shell-desktop .quick-view-stage-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 11px;
+  font-weight: 700;
+  color: #cbd5e1;
 }
 .quick-view-shell-desktop .quick-view-stage-control select {
-  min-height: 30px;
+  min-height: 32px;
   font-size: 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  background: rgba(15, 23, 42, 0.9);
+  color: #f8fafc;
+  padding: 0 10px;
 }
 .quick-view-shell-desktop .quick-view-metrics-header {
   top: 0;
@@ -1139,6 +1185,116 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 }
 .quick-view-shell-desktop .quick-view-add-space {
   min-height: 56px;
+}
+.quick-view-shell-desktop .quick-view-analysis-panel {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  gap: 12px;
+}
+.quick-view-shell-desktop .quick-view-analysis-two-column {
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  align-items: start;
+}
+.quick-view-shell-desktop .quick-view-analysis-column {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(71, 85, 105, 0.38);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.82) 0%, rgba(2, 6, 23, 0.7) 100%);
+}
+.quick-view-shell-desktop .quick-view-analysis-headline {
+  display: grid;
+  gap: 4px;
+}
+.quick-view-shell-desktop .quick-view-analysis-decision {
+  font-size: 24px;
+  line-height: 1.05;
+  font-weight: 800;
+}
+.quick-view-shell-desktop .quick-view-analysis-decision.sentiment-positive {
+  color: #22c55e;
+}
+.quick-view-shell-desktop .quick-view-analysis-decision.sentiment-caution {
+  color: #f59e0b;
+}
+.quick-view-shell-desktop .quick-view-analysis-decision.sentiment-negative {
+  color: #ef4444;
+}
+.quick-view-shell-desktop .quick-view-analysis-rules-list {
+  display: grid;
+  gap: 8px;
+}
+.quick-view-shell-desktop .quick-view-analysis-rule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(71, 85, 105, 0.42);
+  background: rgba(15, 23, 42, 0.68);
+  color: #e2e8f0;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+}
+.quick-view-shell-desktop .quick-view-analysis-rule.active {
+  border-color: rgba(167, 139, 250, 0.62);
+  background: rgba(76, 29, 149, 0.2);
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.12);
+}
+.quick-view-shell-desktop .quick-view-analysis-rule.pass strong {
+  color: #22c55e;
+}
+.quick-view-shell-desktop .quick-view-analysis-rule.fail strong {
+  color: #ef4444;
+}
+.quick-view-shell-desktop .quick-view-analysis-detail {
+  min-height: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  background: rgba(15, 23, 42, 0.54);
+  padding: 10px 12px;
+}
+.quick-view-shell-desktop .quick-view-analysis-inline-detail p,
+.quick-view-shell-desktop .quick-view-analysis-copy p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #e2e8f0;
+}
+.quick-view-shell-desktop .quick-view-analysis-facts-list {
+  display: grid;
+  gap: 8px;
+}
+.quick-view-shell-desktop .quick-view-analysis-fact-pill {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(71, 85, 105, 0.36);
+  background: rgba(15, 23, 42, 0.72);
+}
+.quick-view-shell-desktop .quick-view-analysis-fact-pill-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.quick-view-shell-desktop .quick-view-analysis-fact-pill span {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+.quick-view-shell-desktop .quick-view-analysis-fact-pill strong {
+  font-size: 16px;
+  line-height: 1.1;
+  color: #f8fafc;
 }
 .quick-view-controls {
   display: grid;
