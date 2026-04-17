@@ -1707,6 +1707,7 @@ const App = () => {
           <div className="quick-view-stage">
             <QuickViewCharts
               currency={currency}
+              periodMode={periodMode}
               showSensitivity={showSensitivity}
               sensitivityPercent={sensitivityPercent}
               setSensitivityPercent={setSensitivityPercent}
@@ -1733,6 +1734,8 @@ const App = () => {
           </div>
           <QuickViewVariablePanel
             sentiment={sentiment}
+            periodMode={periodMode}
+            isDesktopViewport={isDesktopViewport}
             npvColor={npvColor}
             npv={npv}
             currency={currency}
@@ -1769,7 +1772,7 @@ const App = () => {
           </span>
           <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
           <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>
-          <span>Payback <strong>{formatPaybackDisplay(payback)}</strong></span>
+          <span>Payback <strong>{formatPaybackDisplay(payback, periodMode)}</strong></span>
         </div>
         <div className="left" style={{ width: '50%' }}>
 
@@ -1854,13 +1857,13 @@ const App = () => {
           </div>
 
           <h3 className="factor-subheader">Cash Flows</h3>
-          <button onClick={addYear} className="button-secondary add-year-button">Add Year</button>
+          <button onClick={addYear} className="button-secondary add-year-button">Add {getPeriodMeta(periodMode).singular}</button>
 
           {cashflows.map((cf, index) => (
             <div key={index} className="cashflow-row">
               <div className="cashflow-slider-wrap input-stack">
                 <div className="cashflow-input-row">
-                  <div className="cashflow-input-segment">Year {index + 1}</div>
+                  <div className="cashflow-input-segment">{getPeriodLabel(periodMode, index + 1)}</div>
                   <div className="cashflow-input-segment currency">{currency}</div>
                   <input
                     type="text"
