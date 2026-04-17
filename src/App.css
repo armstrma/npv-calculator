@@ -508,8 +508,8 @@ input[type="range"]::-moz-range-thumb {
 @media (max-width: 1024px) {
   .mobile-metrics-header {
     display: grid !important;
-    grid-template-columns: 8px minmax(0, 1.75fr) minmax(0, 0.82fr) minmax(0, 0.82fr);
-    gap: 5px;
+    grid-template-columns: 12px minmax(0, 1.9fr) minmax(56px, 0.78fr) minmax(64px, 0.9fr);
+    gap: 4px;
     align-items: center;
     padding: 8px 8px;
     border-bottom: 1px solid #475569;
@@ -518,6 +518,16 @@ input[type="range"]::-moz-range-thumb {
     backdrop-filter: blur(6px);
     font-size: 12px;
     font-weight: 700;
+  }
+  .mobile-metrics-header span:nth-child(2) {
+    text-align: left;
+  }
+  .mobile-metrics-header span:nth-child(3),
+  .mobile-metrics-header span:nth-child(4) {
+    text-align: right;
+  }
+  .quick-view-metrics-header {
+    grid-template-columns: 12px minmax(0, 1fr) minmax(0, 1.55fr) minmax(56px, 0.82fr) minmax(64px, 0.92fr);
   }
   .quick-view-metrics-header {
     grid-template-columns: 8px minmax(0, 1fr) minmax(0, 1.55fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
@@ -533,9 +543,9 @@ input[type="range"]::-moz-range-thumb {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    width: 8px;
-    min-width: 8px;
-    padding: 0;
+    width: 12px;
+    min-width: 12px;
+    padding: 0 4px 0 0;
     margin: 0;
   }
   .mobile-sentiment-dot {
