@@ -816,6 +816,20 @@ Potential product implication:
 - ensure course continuity does not depend on one human account always being available, especially for live assignments and exception handling
 - align co-instructor permissions with the ownership-transfer and audit-trail ideas already in the roadmap, so collaboration does not become hidden admin chaos
 
+### LMS-gradebook interoperability boundary refinement
+A useful scope and adoption refinement is to decide how far the product should go in integrating with LMS gradebooks versus intentionally stopping short.
+
+Why this matters:
+- instructors may expect some connection to Canvas, Blackboard, Moodle, or similar systems once assignments become real classroom workflow objects
+- full LMS integration can dramatically expand implementation and support scope, which risks dragging the product toward LMS complexity too early
+- a clearly defined boundary can preserve the product's teaching focus while still reducing adoption friction where it matters most
+
+Potential product implication:
+- keep early interoperability lightweight, such as exportable submission summaries, CSVs, or shareable result links, rather than full bidirectional LMS sync
+- treat direct grade passback or LTI-style integration as a later expansion path, not a prerequisite for initial classroom value
+- make assignment and submission models clean enough that future interoperability remains possible without distorting the core product now
+- use the boundary deliberately in positioning: the product should complement an LMS first, not try to become one
+
 ## Persistence
 ### Free
 - maybe no persistence or ephemeral only
