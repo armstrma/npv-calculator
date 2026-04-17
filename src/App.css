@@ -1062,6 +1062,8 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   order: 2;
   min-width: 0;
   height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   border-bottom: 0;
   overflow: hidden;
 }
@@ -1102,6 +1104,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 }
 .quick-view-shell-desktop .quick-view-chart-frame {
   min-height: 0;
+  height: 100%;
   padding: 14px 12px 10px;
   border-radius: 18px;
   border: 1px solid rgba(71, 85, 105, 0.42);
