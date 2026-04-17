@@ -1038,8 +1038,9 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   grid-template-columns: minmax(320px, 33vw) minmax(0, 1fr);
   gap: 0;
   margin-top: 12px;
-  height: calc(100vh - 116px);
-  min-height: 620px;
+  height: calc(100dvh - 96px);
+  min-height: 0;
+  max-height: calc(100dvh - 96px);
   background: #020617;
   color: #f8fafc;
   border: 1px solid rgba(71, 85, 105, 0.4);
@@ -1049,6 +1050,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 .quick-view-shell-desktop .quick-view-controls {
   order: 1;
   min-width: 0;
+  min-height: 0;
   height: 100%;
   border-right: 1px solid rgba(71, 85, 105, 0.4);
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(2, 6, 23, 0.98) 100%);
@@ -1061,6 +1063,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 .quick-view-shell-desktop .quick-view-stage {
   order: 2;
   min-width: 0;
+  min-height: 0;
   height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
