@@ -1213,7 +1213,7 @@ const App = () => {
         pvCumulativeHigh += pvHigh;
 
         return {
-          name: `Year ${i + 1}`,
+          name: getPeriodLabel(periodMode, i + 1),
           value: cf,
           pvValue,
           pvLow,
@@ -1268,15 +1268,15 @@ const App = () => {
       ...cashflows.map((_, i) => {
         const impact = 1 / Math.pow(1 + discountRateForAnalysis / 100, i + 1);
         return {
-          name: `Year ${i + 1}`,
+          name: getPeriodLabel(periodMode, i + 1),
           impactPerDollar: impact,
-          note: `A $1 change in Year ${i + 1} cash flow changes NPV by about ${currency}${impact.toFixed(2)}.`,
+          note: `A $1 change in ${getPeriodLabel(periodMode, i + 1)} cash flow changes NPV by about ${currency}${impact.toFixed(2)}.`,
         };
       }),
     ];
 
     return rows;
-  }, [cashflows, discountRateForAnalysis, currency]);
+  }, [cashflows, discountRateForAnalysis, currency, periodMode]);
 
   const downsideIrr = useMemo(() => {
     const lowCashflows = cashflows.map((cf) => cf * (1 - sensitivityPercent / 100));
@@ -1888,7 +1888,7 @@ const App = () => {
                       newCashflowInputs[index] = formatNumberWithCommas(cashflows[index]);
                       setCashflowInputs(newCashflowInputs);
                     }}
-                    aria-label={`Year ${index + 1} cash flow value`}
+                    aria-label={`${getPeriodLabel(periodMode, index + 1)} cash flow value`}
                   />
                 </div>
                 <input
@@ -1909,7 +1909,7 @@ const App = () => {
                   className={`slider-cashflow-${index}`}
                 />
               </div>
-              <button onClick={() => removeYear(index)} className="delete-btn" title={`Delete Year ${index + 1}`} aria-label={`Delete Year ${index + 1}`}>
+              <button onClick={() => removeYear(index)} className="delete-btn" title={`Delete ${getPeriodLabel(periodMode, index + 1)}`} aria-label={`Delete ${getPeriodLabel(periodMode, index + 1)}`}>
                 <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M3 6h18" />
                   <path d="M8 6V4h8v2" />
@@ -1940,8 +1940,8 @@ const App = () => {
               </div>
               <div className="metric-pill">
                 <span className="metric-pill-label">Payback</span>
-                <span className="metric-pill-value">{formatPaybackDisplay(payback)}</span>
-                <span className="metric-pill-subtext">Years to recover investment</span>
+                <span className="metric-pill-value">{formatPaybackDisplay(payback, periodMode)}</span>
+                <span className="metric-pill-subtext">{getPeriodCollectionLabel(periodMode)} to recover investment</span>
               </div>
             </div>
 
@@ -2081,10 +2081,10 @@ const App = () => {
                     {pvBreakEvenInfo.firstPositiveLabel ? (
                       <>
                         <ReferenceArea x1="Initial" x2={pvBreakEvenInfo.lastNegativeLabel || 'Initial'} fill="#ef4444" fillOpacity={0.08} ifOverflow="hidden" />
-                        <ReferenceArea x1={pvBreakEvenInfo.firstPositiveLabel} x2={`Year ${cashflows.length}`} fill="#22c55e" fillOpacity={0.08} ifOverflow="hidden" />
+                        <ReferenceArea x1={pvBreakEvenInfo.firstPositiveLabel} x2={getPeriodLabel(periodMode, cashflows.length)} fill="#22c55e" fillOpacity={0.08} ifOverflow="hidden" />
                       </>
                     ) : (
-                      <ReferenceArea x1="Initial" x2={`Year ${cashflows.length}`} fill="#ef4444" fillOpacity={0.08} ifOverflow="hidden" />
+                      <ReferenceArea x1="Initial" x2={getPeriodLabel(periodMode, cashflows.length)} fill="#ef4444" fillOpacity={0.08} ifOverflow="hidden" />
                     )}
                   </>
                 )}
