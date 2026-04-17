@@ -1084,8 +1084,23 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 .quick-view-shell-desktop .quick-view-metrics-header strong {
   font-size: 11px;
 }
-.quick-view-shell-desktop .mobile-sentiment-dot-wrap {
-  justify-content: flex-start;
+.quick-view-shell-desktop .quick-view-sentiment-dot-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+.quick-view-shell-desktop .quick-view-sentiment-dot-wrap .mobile-sentiment-dot {
+  display: inline-block;
+}
+.quick-view-shell-desktop .quick-view-sentiment-label.sentiment-positive {
+  color: #16a34a;
+}
+.quick-view-shell-desktop .quick-view-sentiment-label.sentiment-caution {
+  color: #ca8a04;
+}
+.quick-view-shell-desktop .quick-view-sentiment-label.sentiment-negative {
+  color: #dc2626;
 }
 .quick-view-shell-desktop .quick-view-row-top input {
   font-size: 14px;
