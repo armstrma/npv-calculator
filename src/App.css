@@ -508,7 +508,7 @@ input[type="range"]::-moz-range-thumb {
 @media (max-width: 1024px) {
   .mobile-metrics-header {
     display: grid !important;
-    grid-template-columns: 14px minmax(0, 1.05fr) minmax(0, 1.45fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
+    grid-template-columns: 14px minmax(0, 1.55fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
     gap: 6px;
     align-items: center;
     padding: 8px 10px;
@@ -1094,7 +1094,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 }
 .quick-view-shell-desktop .quick-view-metrics-header {
   top: 0;
-  grid-template-columns: 12px minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
+  grid-template-columns: 12px minmax(0, 1.65fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
   align-items: center;
   gap: 6px;
   padding: 8px 8px;
@@ -1107,8 +1107,8 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   text-overflow: ellipsis;
   text-align: center;
 }
-.quick-view-shell-desktop .quick-view-metrics-header span:nth-child(3),
-.mobile-metrics-header span:nth-child(3) {
+.quick-view-shell-desktop .quick-view-metrics-header span:nth-child(2),
+.mobile-metrics-header span:nth-child(2) {
   text-align: left;
 }
 .quick-view-shell-desktop .quick-view-metrics-header strong {
