@@ -597,10 +597,10 @@ const QuickViewCharts = ({
                       {pvBreakEvenInfo.firstPositiveLabel ? (
                         <>
                           <ReferenceArea x1="Initial" x2={pvBreakEvenInfo.lastNegativeLabel || 'Initial'} fill="#ef4444" fillOpacity={0.08} ifOverflow="hidden" />
-                          <ReferenceArea x1={pvBreakEvenInfo.firstPositiveLabel} x2={`Year ${cashflows.length}`} fill="#22c55e" fillOpacity={0.08} ifOverflow="hidden" />
+                          <ReferenceArea x1={pvBreakEvenInfo.firstPositiveLabel} x2={getPeriodLabel(periodMode, cashflows.length)} fill="#22c55e" fillOpacity={0.08} ifOverflow="hidden" />
                         </>
                       ) : (
-                        <ReferenceArea x1="Initial" x2={`Year ${cashflows.length}`} fill="#ef4444" fillOpacity={0.08} ifOverflow="hidden" />
+                        <ReferenceArea x1="Initial" x2={getPeriodLabel(periodMode, cashflows.length)} fill="#ef4444" fillOpacity={0.08} ifOverflow="hidden" />
                       )}
                     </>
                   )}
@@ -1248,7 +1248,7 @@ const App = () => {
         pvCumulativeRange: null,
       },
     ];
-  }, [initial, cashflows, npv, discountRateForAnalysis, sensitivityPercent]);
+  }, [initial, cashflows, npv, discountRateForAnalysis, sensitivityPercent, periodMode]);
 
   const sensitivityData = useMemo(() => {
     const variations = [-sensitivityPercent, 0, sensitivityPercent];
