@@ -487,6 +487,7 @@ const QuickViewCharts = ({
   breakEvenCashflowUpliftPct,
   maxInitialAtNpvZero,
   periodMode,
+  isDesktopViewport,
 }) => {
   const [activeChart, setActiveChart] = useState('npv');
   const [activeAnalysisCard, setActiveAnalysisCard] = useState('viability');
@@ -1761,6 +1762,7 @@ const App = () => {
               payback={payback}
               breakEvenCashflowUpliftPct={breakEvenCashflowUpliftPct}
               maxInitialAtNpvZero={maxInitialAtNpvZero}
+              isDesktopViewport={isDesktopViewport}
             />
           </div>
           <QuickViewVariablePanel
