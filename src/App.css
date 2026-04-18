@@ -1417,7 +1417,8 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   grid-template-columns: auto auto minmax(0, 1fr);
 }
 .quick-view-row-top-discount.quick-view-row-top-static {
-  grid-template-columns: auto minmax(68px, 84px) auto auto;
+  grid-template-columns: auto minmax(68px, 84px) max-content auto;
+  column-gap: 8px;
 }
 .quick-view-row-top input {
   width: 100%;
