@@ -917,6 +917,7 @@ const App = () => {
     const discountValue = params.get('discount');
     const cashflowsParam = params.get('cashflows');
     const currencyParam = params.get('currency');
+    const periodParam = params.get('period');
     const projectParam = params.get('project');
     const hurdleEnabledParam = params.get('hurdleEnabled');
     const hurdleRateParam = params.get('hurdleRate');
@@ -945,6 +946,9 @@ const App = () => {
     if (currencyParam && ['$', '€', '£'].includes(currencyParam)) {
       setCurrency(currencyParam);
     }
+    if (periodParam && ['months', 'quarters', 'years'].includes(periodParam)) {
+      setPeriodMode(periodParam);
+    }
     if (hurdleEnabledParam !== null) {
       setShowHurdleRate(hurdleEnabledParam === 'true');
     }
@@ -960,7 +964,7 @@ const App = () => {
       setLoadedProjectName(projectParam);
     }
 
-    if ([initialValue, discountValue, cashflowsParam, currencyParam, projectParam, hurdleEnabledParam, hurdleRateParam].some((value) => value !== null)) {
+    if ([initialValue, discountValue, cashflowsParam, currencyParam, periodParam, projectParam, hurdleEnabledParam, hurdleRateParam].some((value) => value !== null)) {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -1087,6 +1091,7 @@ const App = () => {
         initial,
         discount,
         cashflows,
+        periodMode,
         showHurdleRate,
         hurdleRate,
       },
@@ -1119,6 +1124,7 @@ const App = () => {
       setCashflows(project.cashflows);
       setShowHurdleRate(Boolean(project.showHurdleRate));
       setHurdleRate(typeof project.hurdleRate === 'number' ? project.hurdleRate : 12);
+      setPeriodMode(['months', 'quarters', 'years'].includes(project.periodMode) ? project.periodMode : 'years');
       setInitialInput(formatNumberWithCommas(project.initial));
       setCashflowInputs(project.cashflows.map(formatNumberWithCommas));
       setProjectName(name);
@@ -1380,6 +1386,7 @@ const App = () => {
     params.set('discount', String(discount));
     params.set('cashflows', cashflows.join(','));
     params.set('currency', currency);
+    params.set('period', periodMode);
     params.set('hurdleEnabled', String(showHurdleRate));
     if (showHurdleRate) params.set('hurdleRate', String(hurdleRate));
     if (projectName.trim()) params.set('project', projectName.trim());
