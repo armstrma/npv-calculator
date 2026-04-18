@@ -496,6 +496,10 @@ input[type="range"]::-moz-range-thumb {
   border-color: rgba(239, 68, 68, 0.35);
   background: rgba(239, 68, 68, 0.08);
 }
+.details-rule.warn {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.1);
+}
 .details-rule-status { display: block; font-size: 20px; font-weight: 800; line-height: 1.2; }
 .metrics-dock .recommendation { margin-top: 12px; font-weight: 600; font-size: 14px; line-height: 1.35; color: #e2e8f0; }
 .mobile-metrics-header { display: none; color: #f9fafb; }

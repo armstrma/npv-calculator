@@ -47,7 +47,39 @@ const formatCompactCurrency = (value, currency = '$') => {
   return `${currency}${shortValue.toFixed(decimals).replace(/\.0+$|(?<=\.[0-9])0+$/u, '')}${suffix}`;
 };
 
-const getSentimentStatus = ({ viabilityPass, standardPass, fragilityPass }) => {
+const getSpreadStatus = (spread) => {
+  if (!Number.isFinite(spread) || spread < 0) {
+    return {
+      label: 'Fail',
+      tone: 'negative',
+      detail: 'IRR is below the active rate',
+    };
+  }
+
+  if (spread < 2) {
+    return {
+      label: 'Thin',
+      tone: 'caution',
+      detail: 'IRR clears the active rate, but with only a slim spread',
+    };
+  }
+
+  if (spread < 5) {
+    return {
+      label: 'Good',
+      tone: 'warm',
+      detail: 'IRR is comfortably above the active rate',
+    };
+  }
+
+  return {
+    label: 'Strong',
+    tone: 'positive',
+    detail: 'IRR is well above the active rate',
+  };
+};
+
+const getSentimentStatus = ({ viabilityPass, spreadStatus, fragilityPass }) => {
   if (!viabilityPass) {
     return {
       label: 'Reject',
@@ -56,11 +88,11 @@ const getSentimentStatus = ({ viabilityPass, standardPass, fragilityPass }) => {
     };
   }
 
-  if (!standardPass) {
+  if (spreadStatus.tone === 'negative') {
     return {
       label: 'Borderline',
       tone: 'caution',
-      detail: 'Base case fails the required standard',
+      detail: 'IRR does not clear the active rate',
     };
   }
 
@@ -72,10 +104,26 @@ const getSentimentStatus = ({ viabilityPass, standardPass, fragilityPass }) => {
     };
   }
 
+  if (spreadStatus.tone === 'caution') {
+    return {
+      label: 'Cautious',
+      tone: 'caution',
+      detail: 'Base case passes, but the return spread is still thin',
+    };
+  }
+
+  if (spreadStatus.tone === 'warm') {
+    return {
+      label: 'Promising',
+      tone: 'warm',
+      detail: 'Base case and spread are solid, with some room above the active rate',
+    };
+  }
+
   return {
     label: 'Accept',
     tone: 'positive',
-    detail: 'Base case and downside case both pass',
+    detail: 'Base case, spread, and downside case all look strong',
   };
 };
 
@@ -480,7 +528,9 @@ const QuickViewCharts = ({
   sentiment,
   recommendation,
   viabilityPass,
-  standardPass,
+  spreadPass,
+  spread,
+  spreadStatus,
   fragilityPass,
   discountRateForAnalysis,
   downsideIrr,
@@ -673,9 +723,9 @@ const QuickViewCharts = ({
                     <span>Creates Value</span>
                     <strong>{viabilityPass ? 'Pass' : 'Fail'}</strong>
                   </button>
-                  <button type="button" className={`quick-view-analysis-rule ${activeAnalysisCard === 'standard' ? 'active' : ''} ${standardPass ? 'pass' : 'fail'}`} onClick={() => setActiveAnalysisCard('standard')}>
-                    <span>Meets Target</span>
-                    <strong>{standardPass ? 'Pass' : 'Fail'}</strong>
+                  <button type="button" className={`quick-view-analysis-rule ${activeAnalysisCard === 'standard' ? 'active' : ''} ${spreadStatus.tone === 'positive' ? 'pass' : spreadStatus.tone === 'negative' ? 'fail' : ''}`} onClick={() => setActiveAnalysisCard('standard')}>
+                    <span>Spread</span>
+                    <strong>{spreadStatus.label}</strong>
                   </button>
                   <button type="button" className={`quick-view-analysis-rule ${activeAnalysisCard === 'fragility' ? 'active' : ''} ${fragilityPass ? 'pass' : 'fail'}`} onClick={() => setActiveAnalysisCard('fragility')}>
                     <span>Durable</span>
@@ -684,7 +734,7 @@ const QuickViewCharts = ({
                 </div>
                 <div className="quick-view-analysis-detail quick-view-analysis-inline-detail">
                   {activeAnalysisCard === 'viability' && <p>{isDesktopViewport ? `NPV stays above zero at the active ${discountRateForAnalysis.toFixed(1)}% rate, so the project is still creating net value after discounting.` : `NPV > 0 at ${discountRateForAnalysis.toFixed(1)}%`}</p>}
-                  {activeAnalysisCard === 'standard' && <p>{isDesktopViewport ? (showHurdleRate ? `IRR clears the hurdle at ${hurdleRate.toFixed(1)}%, which means the return profile still beats your required floor.` : `IRR stays above the ${discount.toFixed(1)}% discount rate, so the project clears the return bar you are using.`) : (showHurdleRate ? `IRR ≥ hurdle ${hurdleRate.toFixed(1)}%` : `IRR ≥ discount ${discount.toFixed(1)}%`)}</p>}
+                  {activeAnalysisCard === 'standard' && <p>{isDesktopViewport ? `IRR is ${spread >= 0 ? '+' : ''}${spread.toFixed(2)} points versus the active rate, which grades this spread as ${spreadStatus.label.toLowerCase()}.` : `${spread >= 0 ? '+' : ''}${spread.toFixed(2)} pts vs active rate`}</p>}
                   {activeAnalysisCard === 'fragility' && <p>{isDesktopViewport ? (showHurdleRate ? `Even the downside case keeps IRR above the ${hurdleRate.toFixed(1)}% hurdle, which makes the result more resilient.` : `Even the downside case keeps IRR above the ${discount.toFixed(1)}% discount rate, which suggests the outcome is holding up under pressure.`) : (showHurdleRate ? `Downside IRR ≥ hurdle ${hurdleRate.toFixed(1)}%` : `Downside IRR ≥ discount ${discount.toFixed(1)}%`)}</p>}
                 </div>
               </section>
@@ -898,6 +948,7 @@ const App = () => {
   const [showHurdleRate, setShowHurdleRate] = useState(false);
   const [hurdleRate, setHurdleRate] = useState(12);
   const [showGuideModal, setShowGuideModal] = useState(false);
+  const [sliderGradientsEnabled, setSliderGradientsEnabled] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProductHero, setShowProductHero] = useState(true);
@@ -1315,8 +1366,10 @@ const App = () => {
   }, [initial, cashflows, sensitivityPercent]);
 
   const viabilityPass = npv > 0;
-  const standardPass = showHurdleRate ? irr >= hurdleRate : irr >= discount;
-  const fragilityPass = showHurdleRate ? downsideIrr >= hurdleRate : downsideIrr >= discount;
+  const spread = irr - discountRateForAnalysis;
+  const spreadStatus = getSpreadStatus(spread);
+  const spreadPass = spread >= 0;
+  const fragilityPass = downsideIrr >= discountRateForAnalysis;
 
   const breakEvenCashflowUpliftPct = useMemo(() => {
     const pvOfCashflows = cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + discountRateForAnalysis / 100, i + 1), 0);
@@ -1433,7 +1486,9 @@ const App = () => {
       const viability = previewNpv > 0;
       const standard = previewIrr >= previewRate;
       const fragility = findIRR(project.initial, project.cashflows.map((cf) => cf * 0.9)) >= previewRate;
-      const previewSentiment = getSentimentStatus({ viabilityPass: viability, standardPass: standard, fragilityPass: fragility });
+      const previewSpread = previewIrr - previewRate;
+      const previewSpreadStatus = getSpreadStatus(previewSpread);
+      const previewSentiment = getSentimentStatus({ viabilityPass: viability, spreadStatus: previewSpreadStatus, fragilityPass: fragility });
 
       acc[name] = {
         npv: previewNpv,
@@ -1450,12 +1505,60 @@ const App = () => {
     setProjectPreviews(previews);
   }, [showMobileLibrary, projects, currency]);
 
-  const activeRateGradient = getGradient('discount');
+  const getSliderSegmentColor = ({ npvValue, spreadValue, downsidePass }) => {
+    if (npvValue < 0) return '#ef4444';
+    if (!downsidePass) return '#f97316';
+    if (spreadValue < 2) return '#eab308';
+    return '#22c55e';
+  };
+
+  const getSegmentedSliderTrack = (type, index = null) => {
+    let minVal;
+    let maxVal;
+    switch (type) {
+      case 'initial':
+        minVal = sliderBounds.initial.min;
+        maxVal = sliderBounds.initial.max;
+        break;
+      case 'discount':
+        minVal = 0;
+        maxVal = 30;
+        break;
+      case 'cashflow':
+        minVal = sliderBounds.cashflow.min;
+        maxVal = sliderBounds.cashflow.max;
+        break;
+      default:
+        return '#525252';
+    }
+
+    const steps = 24;
+    const stops = [];
+    for (let i = 0; i <= steps; i++) {
+      const val = minVal + (maxVal - minVal) * (i / steps);
+      const tempInitial = type === 'initial' ? val : initial;
+      const tempRate = type === 'discount' ? val : discountRateForAnalysis;
+      const tempCashflows = [...cashflows];
+      if (type === 'cashflow' && index !== null) tempCashflows[index] = val;
+      const tempNpv = calculateNPV(tempInitial, tempRate, tempCashflows);
+      const tempIrr = findIRR(tempInitial, tempCashflows);
+      const tempDownsideIrr = findIRR(tempInitial, tempCashflows.map((cf) => cf * (1 - sensitivityPercent / 100)));
+      const tempSpread = tempIrr - tempRate;
+      const tempDownsidePass = tempDownsideIrr >= tempRate;
+      const color = getSliderSegmentColor({ npvValue: tempNpv, spreadValue: tempSpread, downsidePass: tempDownsidePass });
+      const percent = (i / steps) * 100;
+      stops.push(`${color} ${percent}%`);
+    }
+
+    return `linear-gradient(to right, ${stops.join(', ')})`;
+  };
+
+  const activeRateGradient = sliderGradientsEnabled ? getGradient('discount') : getSegmentedSliderTrack('discount');
   const inactiveRateGradient = 'linear-gradient(to right, #525252, #525252)';
 
   let sliderCss = `
-  .slider-initial::-webkit-slider-runnable-track { background: ${getGradient('initial')}; }
-  .slider-initial::-moz-range-track { background: ${getGradient('initial')}; }
+  .slider-initial::-webkit-slider-runnable-track { background: ${sliderGradientsEnabled ? getGradient('initial') : getSegmentedSliderTrack('initial')}; }
+  .slider-initial::-moz-range-track { background: ${sliderGradientsEnabled ? getGradient('initial') : getSegmentedSliderTrack('initial')}; }
   .slider-discount::-webkit-slider-runnable-track { background: ${showHurdleRate ? inactiveRateGradient : activeRateGradient}; }
   .slider-discount::-moz-range-track { background: ${showHurdleRate ? inactiveRateGradient : activeRateGradient}; }
   .slider-hurdle::-webkit-slider-runnable-track { background: ${showHurdleRate ? activeRateGradient : inactiveRateGradient}; }
@@ -1464,19 +1567,23 @@ const App = () => {
 
   cashflows.forEach((_, index) => {
     sliderCss += `
-    .slider-cashflow-${index}::-webkit-slider-runnable-track { background: ${getGradient('cashflow', index)}; }
-    .slider-cashflow-${index}::-moz-range-track { background: ${getGradient('cashflow', index)}; }
+    .slider-cashflow-${index}::-webkit-slider-runnable-track { background: ${sliderGradientsEnabled ? getGradient('cashflow', index) : getSegmentedSliderTrack('cashflow', index)}; }
+    .slider-cashflow-${index}::-moz-range-track { background: ${sliderGradientsEnabled ? getGradient('cashflow', index) : getSegmentedSliderTrack('cashflow', index)}; }
     `;
   });
 
   const recommendation =
     !viabilityPass
       ? 'Reject Project: Base NPV is below zero, so the project does not create value under the current assumptions.'
-      : !standardPass
-        ? 'Borderline Project: The base case is positive, but it does not meet the required standard rate.'
+      : !spreadPass
+        ? 'Borderline Project: IRR does not clear the active rate, so the return spread is not sufficient yet.'
         : !fragilityPass
           ? 'Cautious Project: The base case passes, but the downside scenario fails the fragility check.'
-          : 'Accept Project: The base case and downside case both pass the required checks.';
+          : spreadStatus.tone === 'caution'
+            ? 'Cautious Project: The project passes, but the spread above the active rate is still thin.'
+            : spreadStatus.tone === 'warm'
+              ? 'Promising Project: The project clears the active rate with a decent spread and holds up reasonably well.'
+              : 'Accept Project: The base case, spread, and downside case all pass strongly.';
 
   const addQuickViewYear = () => {
     setCashflows((current) => [...current, 0]);
@@ -1498,7 +1605,7 @@ const App = () => {
     });
   };
 
-  const sentiment = useMemo(() => getSentimentStatus({ viabilityPass, standardPass, fragilityPass }), [viabilityPass, standardPass, fragilityPass]);
+  const sentiment = useMemo(() => getSentimentStatus({ viabilityPass, spreadStatus, fragilityPass }), [viabilityPass, spreadStatus, fragilityPass]);
   const npvColor = npv >= 0 ? '#16a34a' : '#dc2626';
 
   useEffect(() => {
@@ -1684,6 +1791,13 @@ const App = () => {
                     <option value="20">20%</option>
                   </select>
                 </label>
+                <label className="mobile-topbar-menu-item mobile-topbar-menu-item-toggle">
+                  <span>Slider Gradients</span>
+                  <input type="checkbox" checked={sliderGradientsEnabled} onChange={(e) => {
+                    setSliderGradientsEnabled(e.target.checked);
+                    setShowQuickViewMenu(false);
+                  }} />
+                </label>
               </div>
             )}
           </div>
@@ -1757,7 +1871,9 @@ const App = () => {
               sentiment={sentiment}
               recommendation={recommendation}
               viabilityPass={viabilityPass}
-              standardPass={standardPass}
+              spreadPass={spreadPass}
+              spread={spread}
+              spreadStatus={spreadStatus}
               fragilityPass={fragilityPass}
               discountRateForAnalysis={discountRateForAnalysis}
               downsideIrr={downsideIrr}
@@ -2005,10 +2121,10 @@ const App = () => {
                       <span className="details-rule-status">{viabilityPass ? 'Pass' : 'Fail'}</span>
                       <span className="details-rule-subtext">NPV &gt; 0 using {discountRateForAnalysis.toFixed(1)}%</span>
                     </div>
-                    <div className={`details-rule ${standardPass ? 'pass' : 'fail'}`}>
-                      <span className="details-rule-name">Meets Target</span>
-                      <span className="details-rule-status">{standardPass ? 'Pass' : 'Fail'}</span>
-                      <span className="details-rule-subtext">{showHurdleRate ? `IRR ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `IRR ≥ discount (${discount.toFixed(1)}%)`}</span>
+                    <div className={`details-rule ${spreadStatus.tone === 'positive' ? 'pass' : spreadStatus.tone === 'negative' ? 'fail' : 'warn'}`}>
+                      <span className="details-rule-name">Spread</span>
+                      <span className="details-rule-status">{spreadStatus.label}</span>
+                      <span className="details-rule-subtext">IRR spread versus active rate: {spread >= 0 ? '+' : ''}{spread.toFixed(2)} pts</span>
                     </div>
                     <div className={`details-rule ${fragilityPass ? 'pass' : 'fail'}`}>
                       <span className="details-rule-name">Durable</span>
