@@ -222,7 +222,7 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
                               <span className={`tone-${previewTone}`}>{preview.label}</span>
                               <span style={{ color: preview.npv >= 0 ? '#22c55e' : '#ef4444' }}>NPV {formatMobileNpv(preview.npv, preview.currency)}</span>
                               <span>IRR {formatMobileIrr(preview.irr)}</span>
-                              <span>Payback {formatPaybackDisplay(preview.payback)}</span>
+                              <span>Payback {formatPaybackDisplay(preview.payback, preview.periodMode)}</span>
                             </div>
                           ) : (
                             <span>Open local project</span>
@@ -1414,6 +1414,7 @@ const App = () => {
         npv: previewNpv,
         irr: previewIrr,
         payback: previewPayback,
+        periodMode: ['months', 'quarters', 'years'].includes(project.periodMode) ? project.periodMode : 'years',
         label: previewSentiment.label,
         tone: previewSentiment.tone,
         currency,
