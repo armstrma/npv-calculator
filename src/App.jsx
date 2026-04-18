@@ -470,6 +470,7 @@ const QuickViewCharts = ({
   discountData,
   barData,
   marginalSensitivityData,
+  sensitivityData,
   irr,
   discount,
   showHurdleRate,
@@ -1746,6 +1747,7 @@ const App = () => {
               discountData={discountData}
               barData={barData}
               marginalSensitivityData={marginalSensitivityData}
+              sensitivityData={sensitivityData}
               irr={irr}
               discount={discount}
               showHurdleRate={showHurdleRate}
