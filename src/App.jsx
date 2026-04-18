@@ -681,9 +681,9 @@ const QuickViewCharts = ({
                   </button>
                 </div>
                 <div className="quick-view-analysis-detail quick-view-analysis-inline-detail">
-                  {activeAnalysisCard === 'viability' && <p>NPV &gt; 0 at {discountRateForAnalysis.toFixed(1)}%</p>}
-                  {activeAnalysisCard === 'standard' && <p>{showHurdleRate ? `IRR ≥ hurdle ${hurdleRate.toFixed(1)}%` : `IRR ≥ discount ${discount.toFixed(1)}%`}</p>}
-                  {activeAnalysisCard === 'fragility' && <p>{showHurdleRate ? `Downside IRR ≥ hurdle ${hurdleRate.toFixed(1)}%` : `Downside IRR ≥ discount ${discount.toFixed(1)}%`}</p>}
+                  {activeAnalysisCard === 'viability' && <p>{isDesktopViewport ? `NPV stays above zero at the active ${discountRateForAnalysis.toFixed(1)}% rate, so the project is still creating net value after discounting.` : `NPV > 0 at ${discountRateForAnalysis.toFixed(1)}%`}</p>}
+                  {activeAnalysisCard === 'standard' && <p>{isDesktopViewport ? (showHurdleRate ? `IRR clears the hurdle at ${hurdleRate.toFixed(1)}%, which means the return profile still beats your required floor.` : `IRR stays above the ${discount.toFixed(1)}% discount rate, so the project clears the return bar you are using.`) : (showHurdleRate ? `IRR ≥ hurdle ${hurdleRate.toFixed(1)}%` : `IRR ≥ discount ${discount.toFixed(1)}%`)}</p>}
+                  {activeAnalysisCard === 'fragility' && <p>{isDesktopViewport ? (showHurdleRate ? `Even the downside case keeps IRR above the ${hurdleRate.toFixed(1)}% hurdle, which makes the result more resilient.` : `Even the downside case keeps IRR above the ${discount.toFixed(1)}% discount rate, which suggests the outcome is holding up under pressure.`) : (showHurdleRate ? `Downside IRR ≥ hurdle ${hurdleRate.toFixed(1)}%` : `Downside IRR ≥ discount ${discount.toFixed(1)}%`)}</p>}
                 </div>
               </section>
 
@@ -691,10 +691,33 @@ const QuickViewCharts = ({
                 <span className="details-metric-label">Breakeven Analysis</span>
                 <div className="quick-view-analysis-facts-list">
                   <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>IRR</span><strong>{irr.toFixed(2)}%</strong></div>
-                  <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>Payback</span><strong>{formatPaybackDisplay(payback)}</strong></div>
+                  <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>Payback</span><strong>{formatPaybackDisplay(payback, periodMode)}</strong></div>
                   <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>Uplift</span><strong>{breakEvenCashflowUpliftPct === null ? 'N/A' : `${breakEvenCashflowUpliftPct >= 0 ? '+' : ''}${breakEvenCashflowUpliftPct.toFixed(1)}%`}</strong></div>
                   <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>Max Initial</span><strong>{currency}{maxInitialAtNpvZero.toFixed(2)}</strong></div>
                 </div>
+                {isDesktopViewport && showSensitivity && (
+                  <div className="quick-view-analysis-sensitivity-card">
+                    <div className="quick-view-analysis-sensitivity-header">
+                      <span className="details-metric-label">Sensitivity Snapshot</span>
+                      <strong>NPV by cash flow swing</strong>
+                    </div>
+                    <div className="quick-view-analysis-sensitivity-table-wrap">
+                      <table className="quick-view-analysis-sensitivity-table">
+                        <thead>
+                          <tr><th>Variation</th><th>NPV</th></tr>
+                        </thead>
+                        <tbody>
+                          {sensitivityData.map((d) => (
+                            <tr key={d.variation}>
+                              <td>{d.variation > 0 ? '+' : ''}{d.variation}%</td>
+                              <td className={d.npv >= 0 ? 'positive' : 'negative'}>{currency}{d.npv.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </section>
             </div>
           </>
@@ -882,7 +905,7 @@ const App = () => {
   const [showQuickViewMenu, setShowQuickViewMenu] = useState(false);
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
-  const [quickViewEnabled, setQuickViewEnabled] = useState(false);
+  const [quickViewEnabled, setQuickViewEnabled] = useState(true);
   const mobileTopbarRef = useRef(null);
   const projectToolbarRef = useRef(null);
   const [returnToUpgradeAfterAuth, setReturnToUpgradeAfterAuth] = useState(false);
