@@ -67,7 +67,7 @@ const getSpreadStatus = (spread) => {
   if (spread < 5) {
     return {
       label: 'Good',
-      tone: 'warm',
+      tone: 'caution',
       detail: 'IRR is comfortably above the active rate',
     };
   }
@@ -115,7 +115,7 @@ const getSentimentStatus = ({ viabilityPass, spreadStatus, fragilityPass }) => {
   if (spreadStatus.tone === 'warm') {
     return {
       label: 'Promising',
-      tone: 'warm',
+      tone: 'caution',
       detail: 'Base case and spread are solid, with some room above the active rate',
     };
   }
@@ -1508,7 +1508,7 @@ const App = () => {
   const getSliderSegmentColor = ({ npvValue, spreadValue, downsidePass }) => {
     if (npvValue < 0) return '#ef4444';
     if (!downsidePass) return '#f97316';
-    if (spreadValue < 2) return '#eab308';
+    if (spreadValue < 5) return '#eab308';
     return '#22c55e';
   };
 
@@ -1532,10 +1532,12 @@ const App = () => {
         return '#525252';
     }
 
-    const steps = 24;
-    const stops = [];
-    for (let i = 0; i <= steps; i++) {
-      const val = minVal + (maxVal - minVal) * (i / steps);
+    const steps = 28;
+    const segments = [];
+    for (let i = 0; i < steps; i++) {
+      const startPercent = (i / steps) * 100;
+      const endPercent = ((i + 1) / steps) * 100;
+      const val = minVal + (maxVal - minVal) * ((i + 0.5) / steps);
       const tempInitial = type === 'initial' ? val : initial;
       const tempRate = type === 'discount' ? val : discountRateForAnalysis;
       const tempCashflows = [...cashflows];
@@ -1546,11 +1548,10 @@ const App = () => {
       const tempSpread = tempIrr - tempRate;
       const tempDownsidePass = tempDownsideIrr >= tempRate;
       const color = getSliderSegmentColor({ npvValue: tempNpv, spreadValue: tempSpread, downsidePass: tempDownsidePass });
-      const percent = (i / steps) * 100;
-      stops.push(`${color} ${percent}%`);
+      segments.push(`${color} ${startPercent}%`, `${color} ${endPercent}%`);
     }
 
-    return `linear-gradient(to right, ${stops.join(', ')})`;
+    return `linear-gradient(to right, ${segments.join(', ')})`;
   };
 
   const activeRateGradient = sliderGradientsEnabled ? getGradient('discount') : getSegmentedSliderTrack('discount');
@@ -1579,9 +1580,9 @@ const App = () => {
         ? 'Borderline Project: IRR does not clear the active rate, so the return spread is not sufficient yet.'
         : !fragilityPass
           ? 'Cautious Project: The base case passes, but the downside scenario fails the fragility check.'
-          : spreadStatus.tone === 'caution'
+          : spreadStatus.label === 'Thin'
             ? 'Cautious Project: The project passes, but the spread above the active rate is still thin.'
-            : spreadStatus.tone === 'warm'
+            : spreadStatus.label === 'Good'
               ? 'Promising Project: The project clears the active rate with a decent spread and holds up reasonably well.'
               : 'Accept Project: The base case, spread, and downside case all pass strongly.';
 
