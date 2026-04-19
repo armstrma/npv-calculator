@@ -642,6 +642,7 @@ const QuickViewCharts = ({
                 <ComposedChart data={barData} barGap={-18} barCategoryGap="24%">
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} width={48} />
+                  <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={2} />
                   <Tooltip content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} payload={[{ value: 'PV Cumulative', type: 'line', color: '#a78bfa' }, { value: 'Cash Cumulative', type: 'line', color: '#60a5fa' }]} />
                   {cashflows.length > 0 && (
@@ -2226,6 +2227,7 @@ const App = () => {
               <ComposedChart data={barData} barGap={-22} barCategoryGap="30%">
                 <XAxis dataKey="name" />
                 <YAxis />
+                <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={2} />
                 <Tooltip content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
                 <Legend payload={[{ value: 'PV Cumulative', type: 'line', color: '#a78bfa' }, { value: 'Cash Cumulative', type: 'line', color: '#60a5fa' }]} />
                 {cashflows.length > 0 && (
