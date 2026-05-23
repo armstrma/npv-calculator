@@ -209,14 +209,111 @@ const pricingPlan = {
   cta: 'Start checkout in app',
 };
 
-const exampleProjectCards = [
-  { title: 'Office Solar Retrofit', subtitle: 'Sample premium case study', meta: 'Placeholder example' },
-  { title: 'New Product Launch', subtitle: 'Pricing and rollout scenario', meta: 'Placeholder example' },
-  { title: 'Warehouse Automation', subtitle: 'Capex efficiency model', meta: 'Placeholder example' },
-  { title: 'Campus EV Chargers', subtitle: 'Infrastructure decision', meta: 'Placeholder example' },
+const exampleProjects = [
+  {
+    name: 'Office Solar Retrofit',
+    subtitle: 'Commercial energy savings',
+    description: 'Panels, inverter replacement, and tax-credit-adjusted utility savings for a mid-size office.',
+    initial: 185000,
+    discount: 8.5,
+    cashflows: [32000, 34500, 36000, 38200, 40100, 41800, 43600, 45500],
+    periodMode: 'years',
+    showHurdleRate: true,
+    hurdleRate: 10,
+  },
+  {
+    name: 'Food Truck Expansion',
+    subtitle: 'Second-location launch',
+    description: 'Upfront truck buildout, uneven ramp-up, and mature operating cash flow for a small business.',
+    initial: 92000,
+    discount: 13,
+    cashflows: [18000, 26500, 34500, 39000, 42000],
+    periodMode: 'years',
+    showHurdleRate: false,
+    hurdleRate: 12,
+  },
+  {
+    name: 'Warehouse Automation',
+    subtitle: 'Labor efficiency investment',
+    description: 'Robotics and scanning upgrades with implementation drag before annual savings settle in.',
+    initial: 640000,
+    discount: 11,
+    cashflows: [92000, 118000, 146000, 166000, 181000, 195000],
+    periodMode: 'years',
+    showHurdleRate: true,
+    hurdleRate: 12.5,
+  },
+  {
+    name: 'SaaS Onboarding Automation',
+    subtitle: 'Customer success tooling',
+    description: 'Software, training, and retention lift modeled across twelve monthly cash-flow periods.',
+    initial: 48000,
+    discount: 1.1,
+    cashflows: [2400, 3200, 3900, 4600, 5200, 5700, 6100, 6500, 6800, 7100, 7400, 7600],
+    periodMode: 'months',
+    showHurdleRate: false,
+    hurdleRate: 12,
+  },
 ];
 
-const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, projects, onLoadProject, pendingDeleteProjectName, onRequestDeleteProject, onCancelDeleteProject, onConfirmDeleteProject, projectPreviews }) => {
+const getProjectPreview = (project, currency = '$') => {
+  const activeRate = project.showHurdleRate ? project.hurdleRate : project.discount;
+  const npv = calculateNPV(project.initial, activeRate, project.cashflows);
+  const irr = findIRR(project.initial, project.cashflows);
+  const payback = calculatePayback(project.initial, activeRate, project.cashflows);
+  const spreadStatus = getSpreadStatus(irr - activeRate);
+  const fragilityPass = findIRR(project.initial, project.cashflows.map((cf) => cf * 0.9)) >= activeRate;
+  const sentiment = getSentimentStatus({ viabilityPass: npv > 0, spreadStatus, fragilityPass });
+
+  return {
+    npv,
+    irr,
+    payback,
+    activeRate,
+    label: sentiment.label,
+    tone: sentiment.tone,
+    currency,
+    periodMode: project.periodMode,
+  };
+};
+
+const buildDiscountCurve = (project) => {
+  const data = [];
+  for (let r = 0; r <= 30; r += 1) {
+    const npv = calculateNPV(project.initial, r, project.cashflows);
+    data.push({
+      discount: r,
+      npv,
+      npv_pos: npv >= 0 ? npv : null,
+      npv_neg: npv < 0 ? npv : null,
+    });
+  }
+  return data;
+};
+
+const ExampleProjectPreview = ({ project }) => {
+  const data = useMemo(() => buildDiscountCurve(project), [project]);
+  const irr = useMemo(() => findIRR(project.initial, project.cashflows), [project]);
+  const activeRate = project.showHurdleRate ? project.hurdleRate : project.discount;
+
+  return (
+    <div className="example-project-preview" aria-hidden="true">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
+          <XAxis dataKey="discount" type="number" domain={[0, 30]} hide />
+          <YAxis hide />
+          <ReferenceLine y={0} stroke="rgba(148, 163, 184, 0.55)" strokeWidth={1} />
+          <Line type="monotone" dataKey="npv_pos" stroke="#22c55e" dot={false} activeDot={false} strokeWidth={3} isAnimationActive={false} />
+          <Line type="monotone" dataKey="npv_neg" stroke="#ef4444" dot={false} activeDot={false} strokeWidth={3} isAnimationActive={false} />
+          {!Number.isNaN(irr) && <ReferenceLine x={irr} stroke="#7dd3fc" strokeDasharray="3 3" />}
+          <ReferenceLine x={activeRate} stroke={project.showHurdleRate ? '#22c55e' : '#c084fc'} strokeDasharray="4 3" />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, projects, onLoadProject, onLoadExampleProject, pendingDeleteProjectName, onRequestDeleteProject, onCancelDeleteProject, onConfirmDeleteProject, projectPreviews }) => {
   if (!open) return null;
 
   const savedProjectNames = Object.keys(projects || {});
@@ -326,14 +423,33 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
           </div>
         ) : (
           <div className="mobile-library-grid">
-            {exampleProjectCards.map((card) => (
-              <article key={card.title} className="mobile-library-card">
-                <div className="mobile-library-card-thumb" />
-                <h4>{card.title}</h4>
-                <p>{card.subtitle}</p>
-                <span>{card.meta}</span>
-              </article>
-            ))}
+            {exampleProjects.map((project) => {
+              const preview = getProjectPreview(project);
+
+              return (
+                <article key={project.name} className={`mobile-library-card example-project-card tone-${preview.tone}`}>
+                  <button
+                    type="button"
+                    className="example-project-open"
+                    onClick={() => {
+                      onLoadExampleProject(project);
+                      onClose();
+                    }}
+                  >
+                    <ExampleProjectPreview project={project} />
+                    <span className="example-project-kicker">{project.subtitle}</span>
+                    <h4>{project.name}</h4>
+                    <p>{project.description}</p>
+                    <div className="mobile-library-saved-metrics example-project-metrics">
+                      <span className={`tone-${preview.tone}`}>{preview.label}</span>
+                      <span style={{ color: preview.npv >= 0 ? '#22c55e' : '#ef4444' }}>NPV {formatMobileNpv(preview.npv, preview.currency)}</span>
+                      <span>IRR {formatMobileIrr(preview.irr)}</span>
+                      <span>{project.periodMode}</span>
+                    </div>
+                  </button>
+                </article>
+              );
+            })}
           </div>
         )}
       </div>
@@ -1193,8 +1309,7 @@ const App = () => {
     setShowSaveLocalModal(false);
   };
 
-  const loadProject = (name) => {
-    const project = projects[name];
+  const applyProject = (name, project) => {
     if (project) {
       setInitial(project.initial);
       setDiscount(project.discount);
@@ -1207,6 +1322,14 @@ const App = () => {
       setProjectName(name);
       setLoadedProjectName(name);
     }
+  };
+
+  const loadProject = (name) => {
+    applyProject(name, projects[name]);
+  };
+
+  const loadExampleProject = (project) => {
+    applyProject(project.name, project);
   };
 
   const deleteProject = (name) => {
@@ -2323,6 +2446,7 @@ const App = () => {
         }}
         projects={projects}
         onLoadProject={loadProject}
+        onLoadExampleProject={loadExampleProject}
         pendingDeleteProjectName={pendingDeleteProjectName}
         onRequestDeleteProject={setPendingDeleteProjectName}
         onCancelDeleteProject={() => setPendingDeleteProjectName('')}
