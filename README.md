@@ -56,6 +56,10 @@ The calculator can generate project deep links containing:
 
 These links are intended for sharing scenarios, after which the browser URL is cleaned after hydration.
 
+## Passwordless Cloud Projects
+
+Cloud saves are designed around Supabase Auth magic links and a Supabase Postgres table protected by row-level security. NPV Lab does not collect passwords or credit card data. See [docs/cloud-auth-projects.md](/Users/marmstrong/.openclaw/workspace/projects/npv-calculator/docs/cloud-auth-projects.md) for environment variables and the SQL setup.
+
 ## Testing Scope
 
 Unit tests cover:

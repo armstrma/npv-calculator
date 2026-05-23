@@ -358,6 +358,13 @@ input[type="range"]::-moz-range-thumb {
   color: #f9fafb;
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
 }
+.button-primary:disabled,
+.button-secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
+  box-shadow: none;
+}
 .button-full { width: 100%; }
 .container { display: flex; gap: 12px; margin-top: 56px; padding: 14px 12px 80px; overflow: visible; }
 .left, .right { padding: 12px; }
@@ -1125,6 +1132,16 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   padding: 18px;
   overflow: hidden;
   background: radial-gradient(circle at top, rgba(30, 41, 59, 0.18), transparent 36%);
+}
+.quick-view-shell-desktop .quick-view-stage-chart-scrollable {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.quick-view-shell-desktop .quick-view-stage-chart-scrollable .quick-view-analysis-panel {
+  height: auto;
+  min-height: 100%;
 }
 .quick-view-shell-desktop .quick-view-chart-frame {
   min-height: 0;
@@ -2175,6 +2192,13 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 .upgrade-account-label,
 .upgrade-price-note {
   color: #94a3b8;
+}
+.auth-notice {
+  margin: 0;
+  color: #bfdbfe;
+}
+.auth-notice.error {
+  color: #fecaca;
 }
 .upgrade-account-state {
   display: grid;

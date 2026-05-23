@@ -2,6 +2,8 @@ import React, { lazy, Suspense, useState, useMemo, useEffect, useRef } from 'rea
 import './App.css';
 import { calculateNPV, findIRR, calculatePayback, calculateROI, calculatePI } from './lib/finance.js';
 import { formatNumberWithCommas, parseNumericInput } from './lib/input.js';
+import { clearStoredSession, consumeMagicLinkSession, fetchCurrentUser, getStoredSession, isCloudAuthConfigured, requestMagicLink } from './lib/cloudAuth.js';
+import { deleteCloudProject, listCloudProjects, upsertCloudProject } from './lib/cloudProjects.js';
 import {
   ResponsiveContainer,
   LineChart,
@@ -179,6 +181,12 @@ const tooltipShellStyle = {
   minWidth: 150,
 };
 
+const chartTooltipMotionProps = {
+  animationDuration: 80,
+  animationEasing: 'linear',
+  useTranslate3d: true,
+};
+
 const upgradeFeatures = [
   'Save and organize projects',
   'Share polished project links',
@@ -313,7 +321,7 @@ const ExampleProjectPreview = ({ project }) => {
   );
 };
 
-const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, projects, onLoadProject, onLoadExampleProject, pendingDeleteProjectName, onRequestDeleteProject, onCancelDeleteProject, onConfirmDeleteProject, projectPreviews }) => {
+const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, projects, onLoadProject, onLoadExampleProject, pendingDeleteProjectName, onRequestDeleteProject, onCancelDeleteProject, onConfirmDeleteProject, projectPreviews, cloudStatus }) => {
   if (!open) return null;
 
   const savedProjectNames = Object.keys(projects || {});
@@ -324,7 +332,7 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
         <div className="mobile-library-topbar">
           <div className="mobile-library-heading">
             <h2>Open Project</h2>
-            <p>Browse local saves and example projects.</p>
+            <p>Browse saved projects and examples.</p>
           </div>
           <button type="button" className="mobile-library-close" onClick={onClose} aria-label="Close open project modal">×</button>
         </div>
@@ -342,7 +350,7 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
           <div className="mobile-library-saved-view">
             <section className="mobile-library-saved-section">
               <div className="mobile-library-section-header">
-                <h3>Saved Locally</h3>
+                <h3>{isAuthenticated ? 'Saved Projects' : 'Saved Locally'}</h3>
                 <span>{savedProjectNames.length}</span>
               </div>
               {savedProjectNames.length ? (
@@ -370,7 +378,7 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
                               <span>Payback {formatPaybackDisplay(preview.payback, preview.periodMode)}</span>
                             </div>
                           ) : (
-                            <span>Open local project</span>
+                            <span>Open saved project</span>
                           )}
                         </button>
                         {pendingDeleteProjectName === name ? (
@@ -397,8 +405,8 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
                 </div>
               ) : (
                 <div className="mobile-library-empty-state compact">
-                  <h3>No local projects yet</h3>
-                  <p>Use Save → Save Locally to keep projects in this browser.</p>
+                  <h3>No projects yet</h3>
+                  <p>{isAuthenticated ? 'Use Save → Save to Cloud to keep projects across devices.' : 'Use Save → Save Locally to keep projects in this browser.'}</p>
                 </div>
               )}
             </section>
@@ -408,15 +416,15 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
                 <h3>Cloud Access</h3>
               </div>
               <div className="mobile-library-empty-state compact">
-                <h3>{isAuthenticated ? 'Your cross-device library is coming' : 'Log in to access your projects anywhere'}</h3>
+                <h3>{isAuthenticated ? 'Cloud library enabled' : 'Log in to access your projects anywhere'}</h3>
                 <p>
                   {isAuthenticated
-                    ? 'Cloud sync, shared history, and access across devices will show up here.'
+                    ? cloudStatus || 'Projects save to your passwordless cloud library.'
                     : 'Sign in so your saved work can follow you across devices later.'}
                 </p>
                 <div className="mobile-library-auth-actions">
-                  <button type="button" className="button-secondary" onClick={() => onRequireAuth('signin')}>Log In</button>
-                  <button type="button" className="button-primary" onClick={() => onRequireAuth('register')}>Sign Up</button>
+                  {!isAuthenticated && <button type="button" className="button-secondary" onClick={() => onRequireAuth('signin')}>Log In</button>}
+                  {!isAuthenticated && <button type="button" className="button-primary" onClick={() => onRequireAuth('register')}>Sign Up</button>}
                 </div>
               </div>
             </section>
@@ -457,7 +465,7 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
   );
 };
 
-const AuthModal = ({ open, onClose, authMode, setAuthMode, authEmail, setAuthEmail, onAuthSuccess }) => {
+const AuthModal = ({ open, onClose, authMode, setAuthMode, authEmail, setAuthEmail, onRequestMagicLink, authStatus, authNotice }) => {
   if (!open) return null;
 
   return (
@@ -466,7 +474,7 @@ const AuthModal = ({ open, onClose, authMode, setAuthMode, authEmail, setAuthEma
         <div className="upgrade-modal-header">
           <div>
             <h2>{authMode === 'signin' ? 'Sign in to continue' : 'Create your account'}</h2>
-            <p>Use a lightweight account so projects, purchases, and premium access stay attached to you.</p>
+            <p>Use a passwordless account so projects and premium access stay attached to you without storing a password.</p>
           </div>
           <button type="button" className="button-secondary upgrade-modal-close" onClick={onClose}>
             Close
@@ -494,17 +502,16 @@ const AuthModal = ({ open, onClose, authMode, setAuthMode, authEmail, setAuthEma
           </label>
 
           <div className="auth-actions">
-            <button type="button" className="button-primary" onClick={onAuthSuccess}>
-              {authMode === 'signin' ? 'Email me a sign-in link' : 'Create account with email'}
+            <button type="button" className="button-primary" onClick={onRequestMagicLink} disabled={authStatus === 'sending'}>
+              {authStatus === 'sending' ? 'Sending...' : authMode === 'signin' ? 'Email me a sign-in link' : 'Create account with magic link'}
             </button>
-            <button type="button" className="button-secondary" onClick={onAuthSuccess}>
-              Continue with Google
+            <button type="button" className="button-secondary" disabled title="Google and Microsoft OpenID can be enabled after the passwordless email flow is deployed.">
+              Google / Microsoft later
             </button>
           </div>
 
-          <p className="auth-footnote">
-            Recommended eventual stack: Supabase Auth with magic links plus Google OAuth.
-          </p>
+          {authNotice && <p className={`auth-footnote auth-notice ${authStatus === 'error' ? 'error' : ''}`}>{authNotice}</p>}
+          <p className="auth-footnote">No passwords are collected by NPV Lab. Magic links are handled by Supabase Auth.</p>
         </div>
       </div>
     </div>
@@ -683,7 +690,7 @@ const QuickViewCharts = ({
         </button>
       </div>
 
-      <div className="quick-view-stage-chart">
+      <div className={`quick-view-stage-chart ${activeChart === 'analysis' ? 'quick-view-stage-chart-scrollable' : ''}`}>
         {activeChart === 'npv' && (
           <>
             <div className="quick-view-stage-heading quick-view-stage-heading-with-control">
@@ -708,7 +715,7 @@ const QuickViewCharts = ({
                 <LineChart data={discountData} margin={{ top: 14, right: 12, left: 0, bottom: 18 }}>
                   <XAxis dataKey="discount" type="number" domain={[0, 30]} tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} width={48} />
-                  <Tooltip cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
+                  <Tooltip {...chartTooltipMotionProps} cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
                   <Line type="monotone" dataKey="npv_pos" stroke="green" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
                   <Line type="monotone" dataKey="npv_neg" stroke="red" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
                   {!Number.isNaN(irr) && (
@@ -759,7 +766,7 @@ const QuickViewCharts = ({
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} width={48} />
                   <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={2} />
-                  <Tooltip content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
+                  <Tooltip {...chartTooltipMotionProps} content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} payload={[{ value: 'PV Cumulative', type: 'line', color: '#a78bfa' }, { value: 'Cash Cumulative', type: 'line', color: '#60a5fa' }]} />
                   {cashflows.length > 0 && (
                     <>
@@ -815,7 +822,7 @@ const QuickViewCharts = ({
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                   <YAxis tickFormatter={(v) => `${currency}${Number(v).toFixed(2)}`} tick={{ fontSize: 11 }} width={60} />
                   <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={2} />
-                  <Tooltip content={<MarginalSensitivityTooltip currency={currency} />} />
+                  <Tooltip {...chartTooltipMotionProps} content={<MarginalSensitivityTooltip currency={currency} />} />
                   <Bar dataKey="impactPerDollar" barSize={22} radius={[4, 4, 0, 0]}>
                     {marginalSensitivityData.map((entry, index) => (
                       <Cell key={`quick-marginal-${index}`} fill={entry.impactPerDollar >= 0 ? '#22c55e' : '#ef4444'} />
@@ -829,6 +836,23 @@ const QuickViewCharts = ({
 
         {activeChart === 'analysis' && (
           <>
+            <div className="quick-view-stage-heading quick-view-stage-heading-with-control">
+              <h2>Analyze</h2>
+              <label className="quick-view-stage-control">
+                <span>Sensitivity</span>
+                <select value={showSensitivity ? String(sensitivityPercent) : 'off'} onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === 'off') {
+                    return;
+                  }
+                  setSensitivityPercent(Number(value));
+                }}>
+                  <option value="5">5%</option>
+                  <option value="10">10%</option>
+                  <option value="20">20%</option>
+                </select>
+              </label>
+            </div>
             <div className="quick-view-analysis-panel quick-view-analysis-two-column quick-view-analysis-panel-compact">
               <section className="quick-view-analysis-column quick-view-analysis-summary">
                 <div className="quick-view-analysis-headline">
@@ -1065,7 +1089,7 @@ const App = () => {
   const [showHurdleRate, setShowHurdleRate] = useState(false);
   const [hurdleRate, setHurdleRate] = useState(12);
   const [showGuideModal, setShowGuideModal] = useState(false);
-  const [sliderGradientsEnabled, setSliderGradientsEnabled] = useState(true);
+  const [sliderGradientsEnabled, setSliderGradientsEnabled] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProductHero, setShowProductHero] = useState(true);
@@ -1081,7 +1105,12 @@ const App = () => {
   const [returnToUpgradeAfterAuth, setReturnToUpgradeAfterAuth] = useState(false);
   const [authMode, setAuthMode] = useState('signin');
   const [authEmail, setAuthEmail] = useState('');
+  const [authStatus, setAuthStatus] = useState('idle');
+  const [authNotice, setAuthNotice] = useState('');
+  const [authSession, setAuthSession] = useState(null);
   const [authUser, setAuthUser] = useState(null);
+  const [cloudProjects, setCloudProjects] = useState({});
+  const [cloudStatus, setCloudStatus] = useState('');
   const [showHurdleWarning, setShowHurdleWarning] = useState(false);
   const [projects, setProjects] = useState({});
   const [projectName, setProjectName] = useState('');
@@ -1091,6 +1120,7 @@ const App = () => {
   const [copiedProjectLink, setCopiedProjectLink] = useState(false);
   const [showSaveLocalModal, setShowSaveLocalModal] = useState(false);
   const [saveLocalName, setSaveLocalName] = useState('');
+  const [saveTarget, setSaveTarget] = useState('local');
   const [pendingDeleteProjectName, setPendingDeleteProjectName] = useState('');
   const [projectPreviews, setProjectPreviews] = useState({});
   const [isDesktopViewport, setIsDesktopViewport] = useState(false);
@@ -1100,10 +1130,23 @@ const App = () => {
   const quickViewInputRefs = useRef([]);
   const pendingQuickViewFocusIndex = useRef(null);
   const discountRateForAnalysis = showHurdleRate ? hurdleRate : discount;
+  const visibleProjects = useMemo(() => (authUser ? { ...projects, ...cloudProjects } : projects), [authUser, projects, cloudProjects]);
 
   useEffect(() => {
     const saved = localStorage.getItem('npvProjects');
     if (saved) setProjects(JSON.parse(saved));
+
+    const sessionFromUrl = consumeMagicLinkSession();
+    const session = sessionFromUrl || getStoredSession();
+    if (session) {
+      setAuthSession(session);
+      fetchCurrentUser(session).then((user) => {
+        if (!user) return;
+        setAuthUser(user);
+        setAuthEmail(user.email || '');
+        setAuthNotice(sessionFromUrl ? 'You are signed in. Cloud saves are available now.' : '');
+      });
+    }
 
     const params = new URLSearchParams(window.location.search);
     const initialValue = params.get('initial');
@@ -1161,6 +1204,27 @@ const App = () => {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
+
+  useEffect(() => {
+    if (!authUser || !authSession) return;
+
+    let cancelled = false;
+    setCloudStatus('Loading cloud projects...');
+    listCloudProjects(authSession)
+      .then((loadedProjects) => {
+        if (cancelled) return;
+        setCloudProjects(loadedProjects);
+        setCloudStatus('Cloud projects are synced.');
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setCloudStatus(error.message || 'Cloud projects could not be loaded.');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser, authSession]);
 
   useEffect(() => {
     setRateInput((showHurdleRate ? hurdleRate : discount).toFixed(1));
@@ -1256,38 +1320,67 @@ const App = () => {
 
   const handleRequireAuth = (mode = 'signin') => {
     setAuthMode(mode);
+    setAuthNotice(isCloudAuthConfigured() ? '' : 'Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable magic links.');
     setReturnToUpgradeAfterAuth(showUpgradeModal);
     setShowUpgradeModal(false);
     setShowAuthModal(true);
   };
 
-  const handleAuthSuccess = () => {
-    const normalizedEmail = authEmail.trim() || 'goose@example.com';
-    setAuthUser({ email: normalizedEmail });
-    setShowAuthModal(false);
-    if (returnToUpgradeAfterAuth) {
-      setShowUpgradeModal(true);
-      setReturnToUpgradeAfterAuth(false);
+  const handleRequestMagicLink = async () => {
+    const normalizedEmail = authEmail.trim();
+    if (!normalizedEmail) {
+      setAuthStatus('error');
+      setAuthNotice('Enter an email address so we know where to send the sign-in link.');
+      return;
     }
+
+    setAuthStatus('sending');
+    setAuthNotice('');
+
+    try {
+      await requestMagicLink({
+        email: normalizedEmail,
+        redirectTo: window.location.href.split('#')[0],
+      });
+      setAuthStatus('sent');
+      setAuthNotice('Check your email for a magic link. It will bring you back here signed in.');
+      if (returnToUpgradeAfterAuth) {
+        setReturnToUpgradeAfterAuth(false);
+      }
+    } catch (error) {
+      setAuthStatus('error');
+      setAuthNotice(error.message || 'Unable to send a magic link right now.');
+    }
+  };
+
+  const handleSignOut = () => {
+    clearStoredSession();
+    setAuthSession(null);
+    setAuthUser(null);
+    setCloudProjects({});
+    setCloudStatus('');
   };
 
   const handleStartCheckout = () => {
     window.alert('Next step: mount Stripe Embedded Checkout here once the backend session endpoint is wired.');
   };
 
+  const getCurrentProjectSnapshot = () => ({
+    initial,
+    discount,
+    cashflows,
+    periodMode,
+    showHurdleRate,
+    hurdleRate,
+  });
+
   const saveProject = (name) => {
-    if (!name?.trim()) return;
+    if (!name?.trim()) return null;
     const trimmedName = name.trim();
+    const project = getCurrentProjectSnapshot();
     const newProjects = {
       ...projects,
-      [trimmedName]: {
-        initial,
-        discount,
-        cashflows,
-        periodMode,
-        showHurdleRate,
-        hurdleRate,
-      },
+      [trimmedName]: project,
     };
     setProjects(newProjects);
     localStorage.setItem('npvProjects', JSON.stringify(newProjects));
@@ -1295,18 +1388,64 @@ const App = () => {
     setLoadedProjectName(trimmedName);
     setInitialInput(formatNumberWithCommas(initial));
     setCashflowInputs(cashflows.map(formatNumberWithCommas));
+    return project;
+  };
+
+  const saveProjectToCloud = async (name) => {
+    if (!name?.trim() || !authSession || !authUser?.id) return;
+    const trimmedName = name.trim();
+    const project = getCurrentProjectSnapshot();
+    setCloudStatus('Saving cloud project...');
+    const savedProjects = await upsertCloudProject({
+      session: authSession,
+      userId: authUser.id,
+      name: trimmedName,
+      project,
+    });
+    setCloudProjects((current) => ({
+      ...current,
+      ...savedProjects,
+      [trimmedName]: project,
+    }));
+    setProjectName(trimmedName);
+    setLoadedProjectName(trimmedName);
+    setInitialInput(formatNumberWithCommas(initial));
+    setCashflowInputs(cashflows.map(formatNumberWithCommas));
+    setCloudStatus('Cloud project saved.');
   };
 
   const handleSaveLocally = () => {
+    setSaveTarget('local');
     setSaveLocalName(projectName?.trim() || loadedProjectName?.trim() || '');
     setShowSaveLocalModal(true);
     setShowSaveMenu(false);
   };
 
-  const handleConfirmLocalSave = () => {
+  const handleSaveToCloud = () => {
+    if (!authUser) {
+      handleRequireAuth('signin');
+      setShowSaveMenu(false);
+      return;
+    }
+
+    setSaveTarget('cloud');
+    setSaveLocalName(projectName?.trim() || loadedProjectName?.trim() || '');
+    setShowSaveLocalModal(true);
+    setShowSaveMenu(false);
+  };
+
+  const handleConfirmSave = async () => {
     if (!saveLocalName?.trim()) return;
-    saveProject(saveLocalName);
-    setShowSaveLocalModal(false);
+    try {
+      if (saveTarget === 'cloud') {
+        await saveProjectToCloud(saveLocalName);
+      } else {
+        saveProject(saveLocalName);
+      }
+      setShowSaveLocalModal(false);
+    } catch (error) {
+      setCloudStatus(error.message || 'Unable to save project.');
+    }
   };
 
   const applyProject = (name, project) => {
@@ -1325,7 +1464,7 @@ const App = () => {
   };
 
   const loadProject = (name) => {
-    applyProject(name, projects[name]);
+    applyProject(name, visibleProjects[name]);
   };
 
   const loadExampleProject = (project) => {
@@ -1334,6 +1473,18 @@ const App = () => {
 
   const deleteProject = (name) => {
     if (!name || name === 'Delete Project') return;
+    if (cloudProjects[name] && authSession) {
+      deleteCloudProject({ session: authSession, name })
+        .then(() => {
+          setCloudProjects((current) => {
+            const next = { ...current };
+            delete next[name];
+            return next;
+          });
+          setCloudStatus('Cloud project deleted.');
+        })
+        .catch((error) => setCloudStatus(error.message || 'Unable to delete cloud project.'));
+    }
     const saved = localStorage.getItem('npvProjects');
     const parsed = JSON.parse(saved || '{}');
     delete parsed[name];
@@ -1602,13 +1753,12 @@ const App = () => {
   useEffect(() => {
     if (!showMobileLibrary) return;
 
-    const previews = Object.entries(projects || {}).reduce((acc, [name, project]) => {
+    const previews = Object.entries(visibleProjects || {}).reduce((acc, [name, project]) => {
       const previewRate = project.showHurdleRate ? (typeof project.hurdleRate === 'number' ? project.hurdleRate : project.discount) : project.discount;
       const previewNpv = calculateNPV(project.initial, previewRate, project.cashflows);
       const previewIrr = findIRR(project.initial, project.cashflows);
       const previewPayback = calculatePayback(project.initial, previewRate, project.cashflows);
       const viability = previewNpv > 0;
-      const standard = previewIrr >= previewRate;
       const fragility = findIRR(project.initial, project.cashflows.map((cf) => cf * 0.9)) >= previewRate;
       const previewSpread = previewIrr - previewRate;
       const previewSpreadStatus = getSpreadStatus(previewSpread);
@@ -1627,7 +1777,7 @@ const App = () => {
     }, {});
 
     setProjectPreviews(previews);
-  }, [showMobileLibrary, projects, currency]);
+  }, [showMobileLibrary, visibleProjects, currency]);
 
   const getSliderSegmentColor = ({ npvValue, spreadValue, downsidePass }) => {
     if (npvValue < 0) return '#ef4444';
@@ -1847,6 +1997,13 @@ const App = () => {
                 <button
                   type="button"
                   className="mobile-topbar-menu-item"
+                  onClick={handleSaveToCloud}
+                >
+                  {authUser ? 'Save to Cloud' : 'Sign In to Save to Cloud'}
+                </button>
+                <button
+                  type="button"
+                  className="mobile-topbar-menu-item"
                   onClick={() => {
                     handleSaveLocally();
                     setShowSaveMenu(false);
@@ -1875,16 +2032,11 @@ const App = () => {
             </button>
             {showQuickViewMenu && (
               <div className="mobile-topbar-menu">
-                <button
-                  type="button"
-                  className="mobile-topbar-menu-item"
-                  onClick={() => {
-                    setQuickViewEnabled((value) => !value);
-                    setShowQuickViewMenu(false);
-                  }}
-                >
-                  {quickViewEnabled ? 'Exit Quick View' : 'Enter Quick View'}
-                </button>
+                {authUser && (
+                  <button type="button" className="mobile-topbar-menu-item" onClick={handleSignOut}>
+                    Sign Out
+                  </button>
+                )}
                 <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
                   <span>Currency</span>
                   <select value={currency} onChange={(e) => setCurrency(e.target.value)} title="Display currency (calculations unchanged)">
@@ -2319,7 +2471,7 @@ const App = () => {
               <LineChart data={discountData} margin={{ top: 22, right: 18, left: 0, bottom: 28 }}>
                 <XAxis dataKey="discount" type="number" domain={[0, 30]} />
                 <YAxis />
-                <Tooltip cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
+                <Tooltip {...chartTooltipMotionProps} cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
                 <Line type="monotone" dataKey="npv_pos" stroke="green" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
                 <Line type="monotone" dataKey="npv_neg" stroke="red" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
                 {!Number.isNaN(irr) && (
@@ -2351,7 +2503,7 @@ const App = () => {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={2} />
-                <Tooltip content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
+                <Tooltip {...chartTooltipMotionProps} content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
                 <Legend payload={[{ value: 'PV Cumulative', type: 'line', color: '#a78bfa' }, { value: 'Cash Cumulative', type: 'line', color: '#60a5fa' }]} />
                 {cashflows.length > 0 && (
                   <>
@@ -2402,7 +2554,7 @@ const App = () => {
                 <XAxis dataKey="name" />
                 <YAxis tickFormatter={(v) => `${currency}${Number(v).toFixed(2)}`} />
                 <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={2} />
-                <Tooltip content={<MarginalSensitivityTooltip currency={currency} />} />
+                <Tooltip {...chartTooltipMotionProps} content={<MarginalSensitivityTooltip currency={currency} />} />
                 <Bar dataKey="impactPerDollar" barSize={26} radius={[4, 4, 0, 0]}>
                   {marginalSensitivityData.map((entry, index) => (
                     <Cell key={`marginal-${index}`} fill={entry.impactPerDollar >= 0 ? '#22c55e' : '#ef4444'} />
@@ -2444,7 +2596,7 @@ const App = () => {
           setShowMobileLibrary(false);
           handleRequireAuth(mode);
         }}
-        projects={projects}
+        projects={visibleProjects}
         onLoadProject={loadProject}
         onLoadExampleProject={loadExampleProject}
         pendingDeleteProjectName={pendingDeleteProjectName}
@@ -2455,6 +2607,7 @@ const App = () => {
           setPendingDeleteProjectName('');
         }}
         projectPreviews={projectPreviews}
+        cloudStatus={cloudStatus}
       />
 
       {showSaveLocalModal && (
@@ -2462,12 +2615,14 @@ const App = () => {
           <div className="modal-content auth-modal" onClick={(e) => e.stopPropagation()}>
             <div className="upgrade-modal-header">
               <div>
-                <h2>Local Save</h2>
+                <h2>{saveTarget === 'cloud' ? 'Cloud Save' : 'Local Save'}</h2>
               </div>
             </div>
             <div className="auth-card">
               <div className="local-save-warning" role="alert">
-                Saved in this browser only. Project may be lost if browser storage is cleared, the app data is reset, or you switch devices.
+                {saveTarget === 'cloud'
+                  ? 'Saved to your passwordless cloud library. Project ownership is enforced by database row-level security.'
+                  : 'Saved in this browser only. Project may be lost if browser storage is cleared, the app data is reset, or you switch devices.'}
               </div>
               <label className="auth-field">
                 <span>Project name</span>
@@ -2479,8 +2634,9 @@ const App = () => {
                   className="local-save-input"
                 />
               </label>
+              {saveTarget === 'cloud' && cloudStatus && <p className="auth-footnote">{cloudStatus}</p>}
               <div className="auth-actions">
-                <button type="button" className="button-primary" onClick={handleConfirmLocalSave}>Save Locally</button>
+                <button type="button" className="button-primary" onClick={handleConfirmSave}>{saveTarget === 'cloud' ? 'Save to Cloud' : 'Save Locally'}</button>
                 <button type="button" className="button-secondary" onClick={() => setShowSaveLocalModal(false)}>Cancel</button>
               </div>
             </div>
@@ -2495,7 +2651,9 @@ const App = () => {
         setAuthMode={setAuthMode}
         authEmail={authEmail}
         setAuthEmail={setAuthEmail}
-        onAuthSuccess={handleAuthSuccess}
+        onRequestMagicLink={handleRequestMagicLink}
+        authStatus={authStatus}
+        authNotice={authNotice}
       />
 
       <ProductModal
