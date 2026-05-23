@@ -2071,6 +2071,8 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   text-align: left;
 }
 .example-project-preview {
+  width: 100%;
+  min-width: 0;
   height: 112px;
   min-height: 112px;
   border-radius: 10px;
