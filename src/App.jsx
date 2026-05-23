@@ -485,11 +485,8 @@ const AuthModal = ({ open, onClose, authMode, setAuthMode, authEmail, setAuthEma
         <div className="upgrade-modal-header">
           <div>
             <h2>{authMode === 'signin' ? 'Sign in to continue' : 'Create your account'}</h2>
-            <p>Use a passwordless account so projects and premium access stay attached to you without storing a password.</p>
+            <p>Use a passwordless account so projects and premium access stay attached to you.</p>
           </div>
-          <button type="button" className="button-secondary upgrade-modal-close" onClick={onClose}>
-            Close
-          </button>
         </div>
 
         <div className="auth-mode-tabs">
@@ -514,7 +511,7 @@ const AuthModal = ({ open, onClose, authMode, setAuthMode, authEmail, setAuthEma
 
           <div className="auth-actions">
             <button type="button" className="button-primary" onClick={onRequestMagicLink} disabled={authStatus === 'sending'}>
-              {authStatus === 'sending' ? 'Sending...' : authMode === 'signin' ? 'Email me a sign-in link' : 'Create account with magic link'}
+              {authStatus === 'sending' ? 'Sending...' : authMode === 'signin' ? 'Email me a sign-in link' : 'Create account'}
             </button>
             <button type="button" className="button-secondary" disabled title="Google and Microsoft OpenID can be enabled after the passwordless email flow is deployed.">
               Google / Microsoft later
@@ -522,7 +519,12 @@ const AuthModal = ({ open, onClose, authMode, setAuthMode, authEmail, setAuthEma
           </div>
 
           {authNotice && <p className={`auth-footnote auth-notice ${authStatus === 'error' ? 'error' : ''}`}>{authNotice}</p>}
-          <p className="auth-footnote">No passwords are collected by NPV Lab. Magic links are handled by Supabase Auth.</p>
+        </div>
+
+        <div className="auth-modal-footer">
+          <button type="button" className="button-secondary upgrade-modal-close" onClick={onClose}>
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -2045,9 +2047,26 @@ const App = () => {
             </button>
             {showQuickViewMenu && (
               <div className="mobile-topbar-menu">
-                {authUser && (
-                  <button type="button" className="mobile-topbar-menu-item" onClick={handleSignOut}>
-                    Sign Out
+                {authUser ? (
+                  <div className="mobile-topbar-account-block">
+                    <div className="mobile-topbar-account-header">
+                      <span>Signed in:</span>
+                      <strong>{authUser.email}</strong>
+                    </div>
+                    <button type="button" className="mobile-topbar-menu-item" onClick={handleSignOut}>
+                      Sign Out
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="mobile-topbar-menu-item"
+                    onClick={() => {
+                      handleRequireAuth('signin');
+                      setShowQuickViewMenu(false);
+                    }}
+                  >
+                    Sign In
                   </button>
                 )}
                 <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
