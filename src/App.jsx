@@ -321,10 +321,63 @@ const ExampleProjectPreview = ({ project }) => {
   );
 };
 
-const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, projects, onLoadProject, onLoadExampleProject, pendingDeleteProjectName, onRequestDeleteProject, onCancelDeleteProject, onConfirmDeleteProject, projectPreviews, cloudStatus }) => {
+const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, localProjects, cloudProjects, onLoadProject, onLoadExampleProject, pendingDeleteProjectKey, onRequestDeleteProject, onCancelDeleteProject, onConfirmDeleteProject, projectPreviews, cloudStatus }) => {
   if (!open) return null;
 
-  const savedProjectNames = Object.keys(projects || {});
+  const localProjectNames = Object.keys(localProjects || {});
+  const cloudProjectNames = Object.keys(cloudProjects || {});
+  const renderProjectList = ({ names, source, previews }) => (
+    <div className="mobile-library-saved-list">
+      {names.map((name) => {
+        const preview = previews?.[name];
+        const previewTone = preview?.tone || 'neutral';
+        const deleteKey = `${source}:${name}`;
+
+        return (
+          <div key={deleteKey} className={`mobile-library-saved-item tone-${previewTone}`}>
+            <button
+              type="button"
+              className="mobile-library-saved-open"
+              onClick={() => {
+                onLoadProject(name, source);
+                onClose();
+              }}
+            >
+              <strong>{name}</strong>
+              {preview ? (
+                <div className="mobile-library-saved-metrics">
+                  <span className={`tone-${previewTone}`}>{preview.label}</span>
+                  <span style={{ color: preview.npv >= 0 ? '#22c55e' : '#ef4444' }}>NPV {formatMobileNpv(preview.npv, preview.currency)}</span>
+                  <span>IRR {formatMobileIrr(preview.irr)}</span>
+                  <span>Payback {formatPaybackDisplay(preview.payback, preview.periodMode)}</span>
+                </div>
+              ) : (
+                <span>Open saved project</span>
+              )}
+            </button>
+            {pendingDeleteProjectKey === deleteKey ? (
+              <div className="mobile-library-saved-confirm">
+                <span>Delete?</span>
+                <div className="mobile-library-saved-confirm-actions">
+                  <button type="button" className="mobile-library-saved-delete confirm" onClick={() => onConfirmDeleteProject(name, source)}>Yes</button>
+                  <button type="button" className="mobile-library-saved-delete cancel" onClick={onCancelDeleteProject}>No</button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="mobile-library-saved-delete"
+                onClick={() => onRequestDeleteProject(deleteKey)}
+                aria-label={`Delete ${name}`}
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div className="mobile-library-overlay" onClick={onClose}>
@@ -350,83 +403,41 @@ const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenti
           <div className="mobile-library-saved-view">
             <section className="mobile-library-saved-section">
               <div className="mobile-library-section-header">
-                <h3>{isAuthenticated ? 'Saved Projects' : 'Saved Locally'}</h3>
-                <span>{savedProjectNames.length}</span>
+                <h3>Cloud Projects</h3>
+                {isAuthenticated && <span>{cloudProjectNames.length}</span>}
               </div>
-              {savedProjectNames.length ? (
-                <div className="mobile-library-saved-list">
-                  {savedProjectNames.map((name) => {
-                    const preview = projectPreviews?.[name];
-                    const previewTone = preview?.tone || 'neutral';
-
-                    return (
-                      <div key={name} className={`mobile-library-saved-item tone-${previewTone}`}>
-                        <button
-                          type="button"
-                          className="mobile-library-saved-open"
-                          onClick={() => {
-                            onLoadProject(name);
-                            onClose();
-                          }}
-                        >
-                          <strong>{name}</strong>
-                          {preview ? (
-                            <div className="mobile-library-saved-metrics">
-                              <span className={`tone-${previewTone}`}>{preview.label}</span>
-                              <span style={{ color: preview.npv >= 0 ? '#22c55e' : '#ef4444' }}>NPV {formatMobileNpv(preview.npv, preview.currency)}</span>
-                              <span>IRR {formatMobileIrr(preview.irr)}</span>
-                              <span>Payback {formatPaybackDisplay(preview.payback, preview.periodMode)}</span>
-                            </div>
-                          ) : (
-                            <span>Open saved project</span>
-                          )}
-                        </button>
-                        {pendingDeleteProjectName === name ? (
-                          <div className="mobile-library-saved-confirm">
-                            <span>Delete?</span>
-                            <div className="mobile-library-saved-confirm-actions">
-                              <button type="button" className="mobile-library-saved-delete confirm" onClick={() => onConfirmDeleteProject(name)}>Yes</button>
-                              <button type="button" className="mobile-library-saved-delete cancel" onClick={onCancelDeleteProject}>No</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            className="mobile-library-saved-delete"
-                            onClick={() => onRequestDeleteProject(name)}
-                            aria-label={`Delete ${name}`}
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
+              {!isAuthenticated ? (
+                <div className="mobile-library-empty-state compact">
+                  <h3>Log in to access your projects anywhere</h3>
+                  <p>Sign in so your saved work can follow you across devices.</p>
+                  <div className="mobile-library-auth-actions">
+                    <button type="button" className="button-secondary" onClick={() => onRequireAuth('signin')}>Log In</button>
+                    <button type="button" className="button-primary" onClick={() => onRequireAuth('register')}>Sign Up</button>
+                  </div>
                 </div>
+              ) : cloudProjectNames.length ? (
+                renderProjectList({ names: cloudProjectNames, source: 'cloud', previews: projectPreviews?.cloud })
               ) : (
                 <div className="mobile-library-empty-state compact">
-                  <h3>No projects yet</h3>
-                  <p>{isAuthenticated ? 'Use Save → Save to Cloud to keep projects across devices.' : 'Use Save → Save Locally to keep projects in this browser.'}</p>
+                  <h3>No cloud projects yet</h3>
+                  <p>{cloudStatus || 'Use Save → Save to Cloud to keep projects across devices.'}</p>
                 </div>
               )}
             </section>
 
             <section className="mobile-library-saved-section">
               <div className="mobile-library-section-header">
-                <h3>Cloud Access</h3>
+                <h3>Saved Locally</h3>
+                <span>{localProjectNames.length}</span>
               </div>
-              <div className="mobile-library-empty-state compact">
-                <h3>{isAuthenticated ? 'Cloud library enabled' : 'Log in to access your projects anywhere'}</h3>
-                <p>
-                  {isAuthenticated
-                    ? cloudStatus || 'Projects save to your passwordless cloud library.'
-                    : 'Sign in so your saved work can follow you across devices later.'}
-                </p>
-                <div className="mobile-library-auth-actions">
-                  {!isAuthenticated && <button type="button" className="button-secondary" onClick={() => onRequireAuth('signin')}>Log In</button>}
-                  {!isAuthenticated && <button type="button" className="button-primary" onClick={() => onRequireAuth('register')}>Sign Up</button>}
+              {localProjectNames.length ? (
+                renderProjectList({ names: localProjectNames, source: 'local', previews: projectPreviews?.local })
+              ) : (
+                <div className="mobile-library-empty-state compact">
+                  <h3>No local projects yet</h3>
+                  <p>Use Save → Save Locally to keep projects in this browser.</p>
                 </div>
-              </div>
+              )}
             </section>
           </div>
         ) : (
@@ -1130,8 +1141,6 @@ const App = () => {
   const quickViewInputRefs = useRef([]);
   const pendingQuickViewFocusIndex = useRef(null);
   const discountRateForAnalysis = showHurdleRate ? hurdleRate : discount;
-  const visibleProjects = useMemo(() => (authUser ? { ...projects, ...cloudProjects } : projects), [authUser, projects, cloudProjects]);
-
   useEffect(() => {
     const saved = localStorage.getItem('npvProjects');
     if (saved) setProjects(JSON.parse(saved));
@@ -1463,17 +1472,17 @@ const App = () => {
     }
   };
 
-  const loadProject = (name) => {
-    applyProject(name, visibleProjects[name]);
+  const loadProject = (name, source = 'local') => {
+    applyProject(name, source === 'cloud' ? cloudProjects[name] : projects[name]);
   };
 
   const loadExampleProject = (project) => {
     applyProject(project.name, project);
   };
 
-  const deleteProject = (name) => {
+  const deleteProject = (name, source = 'local') => {
     if (!name || name === 'Delete Project') return;
-    if (cloudProjects[name] && authSession) {
+    if (source === 'cloud' && cloudProjects[name] && authSession) {
       deleteCloudProject({ session: authSession, name })
         .then(() => {
           setCloudProjects((current) => {
@@ -1484,6 +1493,7 @@ const App = () => {
           setCloudStatus('Cloud project deleted.');
         })
         .catch((error) => setCloudStatus(error.message || 'Unable to delete cloud project.'));
+      return;
     }
     const saved = localStorage.getItem('npvProjects');
     const parsed = JSON.parse(saved || '{}');
@@ -1753,7 +1763,7 @@ const App = () => {
   useEffect(() => {
     if (!showMobileLibrary) return;
 
-    const previews = Object.entries(visibleProjects || {}).reduce((acc, [name, project]) => {
+    const buildPreviews = (projectSet) => Object.entries(projectSet || {}).reduce((acc, [name, project]) => {
       const previewRate = project.showHurdleRate ? (typeof project.hurdleRate === 'number' ? project.hurdleRate : project.discount) : project.discount;
       const previewNpv = calculateNPV(project.initial, previewRate, project.cashflows);
       const previewIrr = findIRR(project.initial, project.cashflows);
@@ -1776,8 +1786,11 @@ const App = () => {
       return acc;
     }, {});
 
-    setProjectPreviews(previews);
-  }, [showMobileLibrary, visibleProjects, currency]);
+    setProjectPreviews({
+      cloud: buildPreviews(cloudProjects),
+      local: buildPreviews(projects),
+    });
+  }, [showMobileLibrary, cloudProjects, projects, currency]);
 
   const getSliderSegmentColor = ({ npvValue, spreadValue, downsidePass }) => {
     if (npvValue < 0) return '#ef4444';
@@ -2596,14 +2609,15 @@ const App = () => {
           setShowMobileLibrary(false);
           handleRequireAuth(mode);
         }}
-        projects={visibleProjects}
+        localProjects={projects}
+        cloudProjects={cloudProjects}
         onLoadProject={loadProject}
         onLoadExampleProject={loadExampleProject}
-        pendingDeleteProjectName={pendingDeleteProjectName}
+        pendingDeleteProjectKey={pendingDeleteProjectName}
         onRequestDeleteProject={setPendingDeleteProjectName}
         onCancelDeleteProject={() => setPendingDeleteProjectName('')}
-        onConfirmDeleteProject={(name) => {
-          deleteProject(name);
+        onConfirmDeleteProject={(name, source) => {
+          deleteProject(name, source);
           setPendingDeleteProjectName('');
         }}
         projectPreviews={projectPreviews}
