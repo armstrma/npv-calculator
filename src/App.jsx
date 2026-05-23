@@ -3,6 +3,7 @@ import './App.css';
 import { calculateNPV, findIRR, calculatePayback, calculateROI, calculatePI } from './lib/finance.js';
 import { formatNumberWithCommas, parseNumericInput } from './lib/input.js';
 import { clearStoredSession, consumeMagicLinkSession, fetchCurrentUser, getStoredSession, isCloudAuthConfigured, requestMagicLink } from './lib/cloudAuth.js';
+import { fetchUserEntitlement } from './lib/cloudEntitlements.js';
 import { deleteCloudProject, listCloudProjects, upsertCloudProject } from './lib/cloudProjects.js';
 import {
   ResponsiveContainer,
@@ -1122,6 +1123,7 @@ const App = () => {
   const [authNotice, setAuthNotice] = useState('');
   const [authSession, setAuthSession] = useState(null);
   const [authUser, setAuthUser] = useState(null);
+  const [entitlement, setEntitlement] = useState({ hasPro: false, source: null });
   const [cloudProjects, setCloudProjects] = useState({});
   const [cloudStatus, setCloudStatus] = useState('');
   const [showHurdleWarning, setShowHurdleWarning] = useState(false);
@@ -1220,6 +1222,16 @@ const App = () => {
     if (!authUser || !authSession) return;
 
     let cancelled = false;
+    fetchUserEntitlement(authSession)
+      .then((loadedEntitlement) => {
+        if (cancelled) return;
+        setEntitlement(loadedEntitlement);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setEntitlement({ hasPro: false, source: null });
+      });
+
     setCloudStatus('Loading cloud projects...');
     listCloudProjects(authSession)
       .then((loadedProjects) => {
@@ -1368,12 +1380,13 @@ const App = () => {
     clearStoredSession();
     setAuthSession(null);
     setAuthUser(null);
+    setEntitlement({ hasPro: false, source: null });
     setCloudProjects({});
     setCloudStatus('');
   };
 
   const handleStartCheckout = () => {
-    window.alert('Next step: mount Stripe Embedded Checkout here once the backend session endpoint is wired.');
+    window.alert('Next step: wire this button to Shopify checkout and grant the Supabase entitlement from the purchase webhook.');
   };
 
   const getCurrentProjectSnapshot = () => ({
@@ -2031,7 +2044,7 @@ const App = () => {
           </div>
           <div className="mobile-topbar-brand">
             <span className="mobile-topbar-title">NPV Lab</span>
-            <span className="mobile-topbar-pro-badge">PRO</span>
+            {entitlement.hasPro && <span className="mobile-topbar-pro-badge">PRO</span>}
           </div>
           <div className="mobile-topbar-menu-wrap">
             <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => {
@@ -2154,7 +2167,7 @@ const App = () => {
       <div className={`app-shell-header ${(showProductHero && !quickViewEnabled) ? '' : 'app-shell-header-hidden-mobile'}`}>
         <div className="app-shell-brand">
           <h1 className="app-title">NPV Lab</h1>
-          <span className="app-shell-pro-badge">PRO</span>
+          {entitlement.hasPro && <span className="app-shell-pro-badge">PRO</span>}
         </div>
       </div>
 
@@ -2599,8 +2612,9 @@ const App = () => {
       </div>
       )}
 
-      <button type="button" className="floating-upgrade-button button-primary" onClick={() => setShowUpgradeModal(true)}>
-        Upgrade to Pro
+      <button type="button" className="floating-upgrade-button" onClick={() => setShowUpgradeModal(true)}>
+        <span className="floating-upgrade-label">Upgrade</span>
+        <span className="floating-upgrade-badge">PRO</span>
       </button>
 
       {showGuideModal && (
