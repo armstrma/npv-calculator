@@ -1,0 +1,57 @@
+name: Netlify
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: netlify-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NETLIFY_SITE_ID: 6d18d069-c021-49f7-ab08-36ec5636bf5b
+  VITE_SUPABASE_URL: https://uhiazxydcuxdihtgfkxg.supabase.co
+  VITE_SUPABASE_ANON_KEY: sb_publishable_N9BHG9xgYZCZl9D1T8J0uQ_sZyerA3O
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy preview
+        if: github.event_name == 'pull_request'
+        run: npx --yes netlify-cli deploy --dir=dist --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN" --alias "pr-${{ github.event.pull_request.number }}" --message "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+
+      - name: Deploy production
+        if: github.event_name == 'push'
+        run: npx --yes netlify-cli deploy --prod --dir=dist --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN" --message "main@${{ github.sha }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}

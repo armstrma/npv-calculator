@@ -90,3 +90,7 @@ Unit tests cover:
 
 ### GitHub Pages build
 - `npm run build:pages`
+
+## Deployment
+
+Production deploys now target Netlify. Pushes to `main` deploy production, and pull requests into `main` create Netlify preview deploys through GitHub Actions. See [docs/netlify-pipeline.md](/Users/marmstrong/.openclaw/workspace/projects/npv-calculator/docs/netlify-pipeline.md) for the required GitHub secret.

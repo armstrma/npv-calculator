@@ -1,29 +1,3 @@
-# Passwordless Cloud Projects
-
-NPV Lab uses Supabase for the first user layer:
-
-- Supabase Auth sends magic links and owns account/session security.
-- NPV Lab never collects or stores passwords.
-- NPV Lab does not collect or store credit card data.
-- Project ownership is enforced in Postgres with row-level security.
-- Google and Microsoft OpenID can be added later through Supabase Auth providers without changing project storage.
-
-## Environment
-
-Copy `.env.example` to `.env.local` and set:
-
-```bash
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-public-anon-key
-```
-
-The anon key is safe to expose in the browser only when row-level security policies are enabled.
-
-## Database Schema
-
-This schema is also checked in at `supabase/migrations/20260523000000_create_user_projects.sql`. Run the SQL in the Supabase SQL editor or apply the migration through the Supabase connector.
-
-```sql
 create table if not exists public.user_projects (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -60,6 +34,7 @@ using (auth.uid() = user_id);
 create or replace function public.touch_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at = now();
@@ -73,13 +48,3 @@ create trigger touch_user_projects_updated_at
 before update on public.user_projects
 for each row
 execute function public.touch_updated_at();
-```
-
-## Supabase Auth Settings
-
-Enable email magic links in Supabase Auth. Add the deployed app URL and local dev URL to allowed redirect URLs, for example:
-
-- `http://localhost:5173`
-- your production URL
-
-When adding Google or Microsoft later, enable those providers in Supabase Auth and keep project table policies unchanged.
