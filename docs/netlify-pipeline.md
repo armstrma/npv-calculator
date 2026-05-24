@@ -30,3 +30,17 @@ Add it in GitHub:
 3. Create repository secret `NETLIFY_AUTH_TOKEN`.
 
 The Netlify site id and Supabase publishable values are already in the workflow. They are not private secrets.
+
+## Functions
+
+The workflow deploys both `dist` and `netlify/functions` so API endpoints such as Shopify checkout and webhooks are published with the static app.
+
+Function runtime secrets must be set in Netlify project environment variables, not committed to GitHub:
+
+```text
+SHOPIFY_WEBHOOK_SECRET
+SHOPIFY_CHECKOUT_SIGNING_SECRET
+SUPABASE_URL
+SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+```

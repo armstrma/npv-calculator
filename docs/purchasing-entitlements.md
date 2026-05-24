@@ -30,15 +30,63 @@ set pro_enabled = false,
 where user_id = 'USER_UUID_HERE';
 ```
 
-## Shopify Wiring Target
+## Shopify Checkout Wiring
 
-Keep the browser out of entitlement writes. The eventual Shopify flow should be:
+The upgrade modal starts checkout through:
 
-1. App sends the signed-in Supabase user to Shopify checkout.
-2. Shopify completes payment through Shopify Checkout.
-3. A trusted server endpoint receives the Shopify order/subscription webhook.
-4. The server validates the webhook signature and maps the purchase to the Supabase `user_id`.
-5. The server updates `public.user_entitlements.pro_enabled`.
-6. The app refreshes entitlement state and shows the `PRO` badge.
+```text
+/api/create-shopify-checkout
+```
 
-The checkout button is intentionally still a placeholder until the Shopify product, checkout URL/session flow, and webhook mapping are known.
+That Netlify Function verifies the Supabase session, signs a small checkout state payload, and redirects the user to a Shopify cart permalink for one of these variants:
+
+- Monthly: `43267024027761`
+- Annual: `43267033071729`
+
+The cart permalink carries order attributes for:
+
+- `npv_supabase_user_id`
+- `npv_plan`
+- `npv_entitlement_state`
+
+Those attributes let the webhook map a paid Shopify order back to the Supabase user without exposing any privileged Supabase key in the browser.
+
+## Shopify Webhook
+
+Create a Shopify webhook pointing to the deployed Netlify function:
+
+```text
+https://YOUR_NETLIFY_SITE_URL/api/shopify-webhook
+```
+
+Use JSON format. For the current one-time products, use the paid-order/payment event Shopify exposes in the webhook picker.
+
+The function verifies Shopify's `X-Shopify-Hmac-SHA256` header, verifies the signed checkout state, then upserts `public.user_entitlements` with `pro_enabled = true`.
+
+## Required Netlify Environment Variables
+
+Set these in Netlify project settings before testing live checkout:
+
+```text
+SHOPIFY_WEBHOOK_SECRET=...
+SHOPIFY_CHECKOUT_SIGNING_SECRET=...
+SUPABASE_URL=https://uhiazxydcuxdihtgfkxg.supabase.co
+SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+`SHOPIFY_CHECKOUT_SIGNING_SECRET` can be any long random string. `SHOPIFY_WEBHOOK_SECRET` must match the signing secret Shopify shows for the webhook.
+
+Optional overrides if the Shopify products change:
+
+```text
+SHOPIFY_SHOP_DOMAIN=n3prra-ki.myshopify.com
+SHOPIFY_MONTHLY_VARIANT_ID=43267024027761
+SHOPIFY_ANNUAL_VARIANT_ID=43267033071729
+```
+
+## Subscription Note
+
+The current integration treats Monthly and Annual as one-time purchases because the Shopify products are not configured as recurring subscriptions yet. That means the webhook grants Pro and nothing automatically revokes it later.
+
+For true auto-renewing Pro plans, configure Shopify subscriptions/selling plans first. Shopify cart permalinks do not support selling plans, so the checkout creation flow should move from permalink URLs to Storefront API cart creation once subscriptions are ready.

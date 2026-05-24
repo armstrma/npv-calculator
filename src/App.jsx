@@ -5,6 +5,7 @@ import { formatNumberWithCommas, parseNumericInput } from './lib/input.js';
 import { clearStoredSession, consumeMagicLinkSession, fetchCurrentUser, getActiveSession, getStoredSession, isCloudAuthConfigured, requestMagicLink } from './lib/cloudAuth.js';
 import { fetchUserEntitlement } from './lib/cloudEntitlements.js';
 import { deleteCloudProject, listCloudProjects, upsertCloudProject } from './lib/cloudProjects.js';
+import { startShopifyCheckout } from './lib/shopifyCheckout.js';
 import {
   ResponsiveContainer,
   LineChart,
@@ -215,8 +216,12 @@ const pricingPlan = {
   name: 'NPV Lab Pro',
   price: '$2.99/month',
   annual: '$20/year',
-  cta: 'Start checkout',
 };
+
+const checkoutPlans = [
+  { id: 'monthly', label: 'Monthly', price: '$2.99/mo' },
+  { id: 'annual', label: 'Annual', price: '$20/yr' },
+];
 
 const exampleProjects = [
   {
@@ -532,7 +537,7 @@ const AuthModal = ({ open, onClose, authMode, setAuthMode, authEmail, setAuthEma
   );
 };
 
-const ProductModal = ({ open, onClose, title = 'Upgrade to Pro', isAuthenticated, userLabel, onStartCheckout, onRequireAuth }) => {
+const ProductModal = ({ open, onClose, title = 'Upgrade to Pro', isAuthenticated, userLabel, checkoutStatus, checkoutNotice, onStartCheckout, onRequireAuth }) => {
   if (!open) return null;
 
   return (
@@ -573,13 +578,31 @@ const ProductModal = ({ open, onClose, title = 'Upgrade to Pro', isAuthenticated
         </div>
 
         <div className="upgrade-actions">
-          <button type="button" className="button-primary" onClick={isAuthenticated ? onStartCheckout : onRequireAuth}>
-            {isAuthenticated ? pricingPlan.cta : 'Sign in to continue'}
-          </button>
+          {isAuthenticated ? (
+            <div className="upgrade-plan-actions">
+              {checkoutPlans.map((plan) => (
+                <button
+                  key={plan.id}
+                  type="button"
+                  className="button-primary upgrade-plan-button"
+                  onClick={() => onStartCheckout(plan.id)}
+                  disabled={checkoutStatus === 'starting'}
+                >
+                  <span>{checkoutStatus === 'starting' ? 'Starting checkout...' : plan.label}</span>
+                  <strong>{plan.price}</strong>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <button type="button" className="button-primary" onClick={onRequireAuth}>
+              Sign in to continue
+            </button>
+          )}
           <button type="button" className="button-secondary upgrade-modal-close-bottom" onClick={onClose}>
             Close
           </button>
         </div>
+        {checkoutNotice && <p className={`auth-footnote auth-notice ${checkoutStatus === 'error' ? 'error' : ''}`}>{checkoutNotice}</p>}
       </div>
     </div>
   );
@@ -1121,6 +1144,8 @@ const App = () => {
   const [authSession, setAuthSession] = useState(null);
   const [authUser, setAuthUser] = useState(null);
   const [entitlement, setEntitlement] = useState({ hasPro: false, source: null });
+  const [checkoutStatus, setCheckoutStatus] = useState('idle');
+  const [checkoutNotice, setCheckoutNotice] = useState('');
   const [cloudProjects, setCloudProjects] = useState({});
   const [cloudStatus, setCloudStatus] = useState('');
   const [showHurdleWarning, setShowHurdleWarning] = useState(false);
@@ -1395,8 +1420,28 @@ const App = () => {
     setCloudStatus('');
   };
 
-  const handleStartCheckout = () => {
-    window.alert('Next step: wire this button to Shopify checkout and grant the Supabase entitlement from the purchase webhook.');
+  const handleStartCheckout = async (plan) => {
+    if (!authSession) {
+      handleRequireAuth('register');
+      return;
+    }
+
+    setCheckoutStatus('starting');
+    setCheckoutNotice('');
+
+    try {
+      const activeSession = await getActiveSession(authSession);
+      if (!activeSession) {
+        throw new Error('Sign in before starting checkout.');
+      }
+      if (activeSession.accessToken !== authSession.accessToken || activeSession.expiresAt !== authSession.expiresAt) {
+        setAuthSession(activeSession);
+      }
+      await startShopifyCheckout({ session: activeSession, plan });
+    } catch (error) {
+      setCheckoutStatus('error');
+      setCheckoutNotice(error.message || 'Unable to start Shopify checkout.');
+    }
   };
 
   const getCurrentProjectSnapshot = () => ({
@@ -2735,6 +2780,8 @@ const App = () => {
         title="Upgrade to NPV Lab Pro"
         isAuthenticated={Boolean(authUser)}
         userLabel={authUser ? authUser.email : 'Not signed in'}
+        checkoutStatus={checkoutStatus}
+        checkoutNotice={checkoutNotice}
         onStartCheckout={handleStartCheckout}
         onRequireAuth={() => handleRequireAuth('register')}
       />
