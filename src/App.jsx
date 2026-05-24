@@ -1258,22 +1258,24 @@ const App = () => {
         if (activeSession.accessToken !== authSession.accessToken || activeSession.expiresAt !== authSession.expiresAt) {
           setAuthSession(activeSession);
         }
-        return Promise.all([
-          fetchUserEntitlement(activeSession),
-          listCloudProjects(activeSession),
-        ]);
+        fetchUserEntitlement(activeSession)
+          .then((loadedEntitlement) => {
+            if (cancelled) return;
+            setEntitlement(loadedEntitlement);
+          })
+          .catch(() => {
+            if (cancelled) return;
+            setEntitlement({ hasPro: false, source: null });
+          });
+        return listCloudProjects(activeSession);
       })
-      .then((results) => {
-        if (cancelled) return;
-        if (!results) return;
-        const [loadedEntitlement, loadedProjects] = results;
-        setEntitlement(loadedEntitlement);
+      .then((loadedProjects) => {
+        if (cancelled || !loadedProjects) return;
         setCloudProjects(loadedProjects);
         setCloudStatus('Cloud projects are synced.');
       })
       .catch((error) => {
         if (cancelled) return;
-        setEntitlement({ hasPro: false, source: null });
         setCloudStatus(error.message || 'Cloud projects could not be loaded.');
       });
 
