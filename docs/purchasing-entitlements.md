@@ -38,18 +38,18 @@ The upgrade modal starts checkout through:
 /api/create-shopify-checkout
 ```
 
-That Netlify Function verifies the Supabase session, signs a small checkout state payload, and redirects the user to a Shopify cart permalink for one of these variants:
+That Netlify Function verifies the Supabase session and redirects the user to these Shopify product links:
 
-- Monthly: `43267024027761`
-- Annual: `43267033071729`
+- Monthly: `https://store.npvlab.com/products/npv-lab-pro-monthly?variant=43267024027761`
+- Annual: `https://store.npvlab.com/products/npv-lab-pro-monthly?variant=43267033071729`
 
-The cart permalink carries order attributes for:
+These product links are intentionally simple for the current checkout test. They do not carry the signed order attributes needed for automatic entitlement grants:
 
 - `npv_supabase_user_id`
 - `npv_plan`
 - `npv_entitlement_state`
 
-Those attributes let the webhook map a paid Shopify order back to the Supabase user without exposing any privileged Supabase key in the browser.
+To automatically grant Pro from a webhook, switch back to a checkout/cart creation flow that carries those attributes into the Shopify order.
 
 ## Shopify Webhook
 
@@ -80,9 +80,8 @@ SUPABASE_SERVICE_ROLE_KEY=...
 Optional overrides if the Shopify products change:
 
 ```text
-SHOPIFY_SHOP_DOMAIN=n3prra-ki.myshopify.com
-SHOPIFY_MONTHLY_VARIANT_ID=43267024027761
-SHOPIFY_ANNUAL_VARIANT_ID=43267033071729
+SHOPIFY_MONTHLY_PRODUCT_URL=https://store.npvlab.com/products/npv-lab-pro-monthly?variant=43267024027761
+SHOPIFY_ANNUAL_PRODUCT_URL=https://store.npvlab.com/products/npv-lab-pro-monthly?variant=43267033071729
 ```
 
 ## Subscription Note

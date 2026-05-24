@@ -1,9 +1,6 @@
-import { signCheckoutState } from './_shared/shopify-signing.mjs';
-
-const SHOP_DOMAIN = 'n3prra-ki.myshopify.com';
-const VARIANT_IDS = {
-  monthly: '43267024027761',
-  annual: '43267033071729',
+const PRODUCT_LINKS = {
+  monthly: 'https://store.npvlab.com/products/npv-lab-pro-monthly?variant=43267024027761',
+  annual: 'https://store.npvlab.com/products/npv-lab-pro-monthly?variant=43267033071729',
 };
 
 const getEnv = (name, fallback = '') => Netlify.env.get(name) || fallback;
@@ -47,30 +44,14 @@ export default async (req) => {
 
   const { plan } = await req.json().catch(() => ({}));
   const normalizedPlan = plan === 'annual' ? 'annual' : 'monthly';
-  const variantId = getEnv(`SHOPIFY_${normalizedPlan.toUpperCase()}_VARIANT_ID`, VARIANT_IDS[normalizedPlan]);
-  const shopDomain = getEnv('SHOPIFY_SHOP_DOMAIN', SHOP_DOMAIN);
+  const productUrl = getEnv(`SHOPIFY_${normalizedPlan.toUpperCase()}_PRODUCT_URL`, PRODUCT_LINKS[normalizedPlan]);
 
   const user = await fetchSupabaseUser(accessToken);
   if (!user?.id) {
     return jsonResponse({ error: 'Unable to verify your signed-in account.' }, 401);
   }
 
-  const state = signCheckoutState({
-    userId: user.id,
-    email: user.email || '',
-    plan: normalizedPlan,
-    issuedAt: Date.now(),
-  });
-
-  const checkoutUrl = new URL(`https://${shopDomain}/cart/${variantId}:1`);
-  checkoutUrl.searchParams.set('attributes[npv_supabase_user_id]', user.id);
-  checkoutUrl.searchParams.set('attributes[npv_plan]', normalizedPlan);
-  checkoutUrl.searchParams.set('attributes[npv_entitlement_state]', state);
-  if (user.email) {
-    checkoutUrl.searchParams.set('checkout[email]', user.email);
-  }
-
-  return jsonResponse({ checkoutUrl: checkoutUrl.toString() });
+  return jsonResponse({ checkoutUrl: productUrl });
 };
 
 export const config = {
