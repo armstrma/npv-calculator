@@ -1,6 +1,8 @@
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const SESSION_STORAGE_KEY = 'npvLabSupabaseSession';
+const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const REFRESH_WINDOW_MS = 5 * 60 * 1000;
 
 export const isCloudAuthConfigured = () => Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
@@ -10,20 +12,44 @@ const getAuthHeaders = (accessToken) => ({
   'Content-Type': 'application/json',
 });
 
+const isSessionWithinMaxAge = (session) => {
+  const createdAt = Number(session?.createdAt || 0);
+  return Boolean(createdAt && Date.now() - createdAt < SESSION_MAX_AGE_MS);
+};
+
+const normalizeSession = (session) => {
+  if (!session?.accessToken) return null;
+  const normalized = {
+    ...session,
+    createdAt: session.createdAt || Date.now(),
+  };
+  return isSessionWithinMaxAge(normalized) ? normalized : null;
+};
+
 export const getStoredSession = () => {
   try {
-    const stored = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
+    const stored = window.localStorage.getItem(SESSION_STORAGE_KEY) || window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+    const session = stored ? normalizeSession(JSON.parse(stored)) : null;
+    if (!session) clearStoredSession();
+    return session;
   } catch {
     return null;
   }
 };
 
 export const storeSession = (session) => {
-  window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+  const normalized = normalizeSession(session);
+  if (!normalized) {
+    clearStoredSession();
+    return null;
+  }
+  window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(normalized));
+  window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  return normalized;
 };
 
 export const clearStoredSession = () => {
+  window.localStorage.removeItem(SESSION_STORAGE_KEY);
   window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
 };
 
@@ -40,12 +66,54 @@ export const consumeMagicLinkSession = () => {
     accessToken,
     refreshToken,
     tokenType,
+    createdAt: Date.now(),
     expiresAt: expiresIn ? Date.now() + expiresIn * 1000 : null,
   };
 
-  storeSession(session);
+  const storedSession = storeSession(session);
   window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}`);
-  return session;
+  return storedSession;
+};
+
+export const refreshSession = async (session = getStoredSession()) => {
+  const currentSession = normalizeSession(session);
+  if (!isCloudAuthConfigured() || !currentSession?.refreshToken) {
+    clearStoredSession();
+    return null;
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      refresh_token: currentSession.refreshToken,
+    }),
+  });
+
+  if (!response.ok) {
+    clearStoredSession();
+    return null;
+  }
+
+  const refreshed = await response.json();
+  return storeSession({
+    accessToken: refreshed.access_token,
+    refreshToken: refreshed.refresh_token || currentSession.refreshToken,
+    tokenType: refreshed.token_type || currentSession.tokenType || 'bearer',
+    createdAt: currentSession.createdAt,
+    expiresAt: refreshed.expires_in ? Date.now() + refreshed.expires_in * 1000 : null,
+  });
+};
+
+export const getActiveSession = async (session = getStoredSession()) => {
+  const currentSession = normalizeSession(session);
+  if (!isCloudAuthConfigured() || !currentSession?.accessToken) return null;
+
+  if (!currentSession.expiresAt || currentSession.expiresAt > Date.now() + REFRESH_WINDOW_MS) {
+    return storeSession(currentSession);
+  }
+
+  return refreshSession(currentSession);
 };
 
 export const requestMagicLink = async ({ email, redirectTo }) => {
@@ -72,10 +140,11 @@ export const requestMagicLink = async ({ email, redirectTo }) => {
 };
 
 export const fetchCurrentUser = async (session = getStoredSession()) => {
-  if (!isCloudAuthConfigured() || !session?.accessToken) return null;
+  const activeSession = await getActiveSession(session);
+  if (!activeSession?.accessToken) return null;
 
   const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: getAuthHeaders(session.accessToken),
+    headers: getAuthHeaders(activeSession.accessToken),
   });
 
   if (!response.ok) {

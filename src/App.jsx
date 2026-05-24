@@ -2,7 +2,7 @@ import React, { lazy, Suspense, useState, useMemo, useEffect, useRef } from 'rea
 import './App.css';
 import { calculateNPV, findIRR, calculatePayback, calculateROI, calculatePI } from './lib/finance.js';
 import { formatNumberWithCommas, parseNumericInput } from './lib/input.js';
-import { clearStoredSession, consumeMagicLinkSession, fetchCurrentUser, getStoredSession, isCloudAuthConfigured, requestMagicLink } from './lib/cloudAuth.js';
+import { clearStoredSession, consumeMagicLinkSession, fetchCurrentUser, getActiveSession, getStoredSession, isCloudAuthConfigured, requestMagicLink } from './lib/cloudAuth.js';
 import { fetchUserEntitlement } from './lib/cloudEntitlements.js';
 import { deleteCloudProject, listCloudProjects, upsertCloudProject } from './lib/cloudProjects.js';
 import {
@@ -213,9 +213,9 @@ const productHighlights = [
 
 const pricingPlan = {
   name: 'NPV Lab Pro',
-  price: '$4.99/month',
-  annual: '$50/year',
-  cta: 'Start checkout in app',
+  price: '$2.99/month',
+  annual: '$20/year',
+  cta: 'Start checkout',
 };
 
 const exampleProjects = [
@@ -542,7 +542,7 @@ const ProductModal = ({ open, onClose, title = 'Upgrade to Pro', isAuthenticated
           <div>
             <h2>{title}</h2>
             <p>
-              Unlock the premium workflow without leaving the calculator.
+              Unlock the premium NPV Calculator for clearer insights and guided decision-making.
             </p>
           </div>
         </div>
@@ -575,9 +575,6 @@ const ProductModal = ({ open, onClose, title = 'Upgrade to Pro', isAuthenticated
         <div className="upgrade-actions">
           <button type="button" className="button-primary" onClick={isAuthenticated ? onStartCheckout : onRequireAuth}>
             {isAuthenticated ? pricingPlan.cta : 'Sign in to continue'}
-          </button>
-          <button type="button" className="button-secondary" onClick={isAuthenticated ? onStartCheckout : onRequireAuth}>
-            {isAuthenticated ? 'Open embedded checkout next' : 'Create free account'}
           </button>
           <button type="button" className="button-secondary upgrade-modal-close-bottom" onClick={onClose}>
             Close
@@ -1152,12 +1149,17 @@ const App = () => {
     const sessionFromUrl = consumeMagicLinkSession();
     const session = sessionFromUrl || getStoredSession();
     if (session) {
-      setAuthSession(session);
-      fetchCurrentUser(session).then((user) => {
+      getActiveSession(session).then((activeSession) => {
+        if (!activeSession) return null;
+        setAuthSession(activeSession);
+        return fetchCurrentUser(activeSession);
+      }).then((user) => {
         if (!user) return;
         setAuthUser(user);
         setAuthEmail(user.email || '');
         setAuthNotice(sessionFromUrl ? 'You are signed in. Cloud saves are available now.' : '');
+      }).catch(() => {
+        clearStoredSession();
       });
     }
 
@@ -1222,27 +1224,35 @@ const App = () => {
     if (!authUser || !authSession) return;
 
     let cancelled = false;
-    fetchUserEntitlement(authSession)
-      .then((loadedEntitlement) => {
-        if (cancelled) return;
-        setEntitlement(loadedEntitlement);
+    getActiveSession(authSession)
+      .then((activeSession) => {
+        if (!activeSession) {
+          throw new Error('Sign in before using cloud project storage.');
+        }
+        if (cancelled) return null;
+        if (activeSession.accessToken !== authSession.accessToken || activeSession.expiresAt !== authSession.expiresAt) {
+          setAuthSession(activeSession);
+        }
+        return Promise.all([
+          fetchUserEntitlement(activeSession),
+          listCloudProjects(activeSession),
+        ]);
       })
-      .catch(() => {
+      .then((results) => {
         if (cancelled) return;
-        setEntitlement({ hasPro: false, source: null });
-      });
-
-    setCloudStatus('Loading cloud projects...');
-    listCloudProjects(authSession)
-      .then((loadedProjects) => {
-        if (cancelled) return;
+        if (!results) return;
+        const [loadedEntitlement, loadedProjects] = results;
+        setEntitlement(loadedEntitlement);
         setCloudProjects(loadedProjects);
         setCloudStatus('Cloud projects are synced.');
       })
       .catch((error) => {
         if (cancelled) return;
+        setEntitlement({ hasPro: false, source: null });
         setCloudStatus(error.message || 'Cloud projects could not be loaded.');
       });
+
+    setCloudStatus('Loading cloud projects...');
 
     return () => {
       cancelled = true;
@@ -1420,8 +1430,15 @@ const App = () => {
     const trimmedName = name.trim();
     const project = getCurrentProjectSnapshot();
     setCloudStatus('Saving cloud project...');
+    const activeSession = await getActiveSession(authSession);
+    if (!activeSession) {
+      handleSignOut();
+      handleRequireAuth('signin');
+      throw new Error('Sign in before using cloud project storage.');
+    }
+    setAuthSession(activeSession);
     const savedProjects = await upsertCloudProject({
-      session: authSession,
+      session: activeSession,
       userId: authUser.id,
       name: trimmedName,
       project,
@@ -1498,7 +1515,16 @@ const App = () => {
   const deleteProject = (name, source = 'local') => {
     if (!name || name === 'Delete Project') return;
     if (source === 'cloud' && cloudProjects[name] && authSession) {
-      deleteCloudProject({ session: authSession, name })
+      getActiveSession(authSession)
+        .then((activeSession) => {
+          if (!activeSession) {
+            handleSignOut();
+            handleRequireAuth('signin');
+            throw new Error('Sign in before using cloud project storage.');
+          }
+          setAuthSession(activeSession);
+          return deleteCloudProject({ session: activeSession, name });
+        })
         .then(() => {
           setCloudProjects((current) => {
             const next = { ...current };
@@ -2160,7 +2186,7 @@ const App = () => {
           </span>
           <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
           <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>
-          <span>Payback <strong>{formatPaybackDisplay(payback)}</strong></span>
+          <span>Payback <strong>{formatPaybackDisplay(payback, periodMode)}</strong></span>
         </div>
       )}
 
@@ -2706,7 +2732,7 @@ const App = () => {
       <ProductModal
         open={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        title="Upgrade without leaving the page"
+        title="Upgrade to NPV Lab Pro"
         isAuthenticated={Boolean(authUser)}
         userLabel={authUser ? authUser.email : 'Not signed in'}
         onStartCheckout={handleStartCheckout}

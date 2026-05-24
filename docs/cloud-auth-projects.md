@@ -82,4 +82,8 @@ Enable email magic links in Supabase Auth. Add the deployed app URL and local de
 - `http://localhost:5173`
 - your production URL
 
+NPV Lab stores the Supabase access and refresh token pair in browser `localStorage` so a browser restart does not sign the user out immediately. The app refreshes short-lived access tokens as needed and clears the stored session after 7 days from sign-in.
+
+For server-side enforcement, set Supabase Auth's time-boxed session lifetime to 1 week in the project Auth session settings. Supabase enforces that limit when a session is refreshed, so the practical cutoff can be the configured lifetime plus the JWT expiration window.
+
 When adding Google or Microsoft later, enable those providers in Supabase Auth and keep project table policies unchanged.

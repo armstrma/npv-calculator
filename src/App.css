@@ -519,10 +519,10 @@ input[type="range"]::-moz-range-thumb {
 @media (max-width: 1024px) {
   .mobile-metrics-header {
     display: grid !important;
-    grid-template-columns: 12px minmax(0, 1fr) max-content max-content;
-    gap: 8px;
+    grid-template-columns: max-content minmax(0, 1fr) max-content max-content;
+    gap: 16px;
     align-items: center;
-    padding: 8px 8px;
+    padding: 10px 24px 10px 18px;
     border-bottom: 1px solid #475569;
     background: rgba(17, 24, 39, 0.98);
     color: #f8fafc;
@@ -541,6 +541,15 @@ input[type="range"]::-moz-range-thumb {
   .quick-view-metrics-header {
     grid-template-columns: 12px minmax(0, 1fr) max-content max-content;
   }
+  .quick-view-metrics-header span:nth-child(3) {
+    justify-self: stretch;
+    text-align: left;
+  }
+  .quick-view-metrics-header span:nth-child(4),
+  .quick-view-metrics-header span:nth-child(5) {
+    justify-self: end;
+    text-align: right;
+  }
   .mobile-metrics-header span {
     min-width: 0;
     text-align: center;
@@ -550,8 +559,8 @@ input[type="range"]::-moz-range-thumb {
   }
   .mobile-metrics-header span:nth-child(3),
   .mobile-metrics-header span:nth-child(4) {
-    overflow: visible;
-    text-overflow: clip;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .mobile-sentiment-dot-wrap {
     display: flex;
@@ -1088,6 +1097,7 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     top: 54px;
     z-index: 1350;
     margin: 0;
+    padding-right: max(30px, calc(18px + env(safe-area-inset-right)));
   }
 }
 
@@ -1220,10 +1230,10 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 }
 .quick-view-shell-desktop .quick-view-metrics-header {
   top: 0;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.65fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
+  grid-template-columns: max-content minmax(0, 1fr) max-content max-content;
   align-items: center;
-  gap: 6px;
-  padding: 8px 8px;
+  gap: 18px;
+  padding: 10px 18px;
   font-size: 11px;
 }
 .quick-view-shell-desktop .quick-view-metrics-header span {
@@ -1237,6 +1247,19 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 .quick-view-shell-desktop .quick-view-metrics-header span:nth-child(2),
 .mobile-metrics-header span:nth-child(2) {
   text-align: left;
+}
+.quick-view-shell-desktop .quick-view-metrics-header span:nth-child(2) {
+  justify-self: start;
+  text-align: left;
+}
+.quick-view-shell-desktop .quick-view-metrics-header span:nth-child(3) {
+  justify-self: stretch;
+  text-align: left;
+}
+.quick-view-shell-desktop .quick-view-metrics-header span:nth-child(4),
+.quick-view-shell-desktop .quick-view-metrics-header span:nth-child(5) {
+  justify-self: end;
+  text-align: right;
 }
 .quick-view-shell-desktop .quick-view-metrics-header strong {
   font-size: 11px;
