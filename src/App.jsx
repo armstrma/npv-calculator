@@ -687,16 +687,18 @@ const App = () => {
   const viabilityPass = npv > 0;
   const irrIssueDetail = getIrrIssueDetail(irrAnalysis);
   const irrIssueLabel = getIrrIssueLabel(irrAnalysis);
-  const irrClearsActiveRate = irrAnalysis.status === 'above-range' || (irrAnalysis.status === 'valid' && irr >= discountRateForAnalysis);
-  const downsideIrrClearsActiveRate = downsideIrr.status === 'above-range' || (downsideIrr.status === 'valid' && downsideIrr.value >= discountRateForAnalysis);
+  const irrSupportsPositiveDecision = ['above-range', 'not-applicable'].includes(irrAnalysis.status);
+  const downsideIrrSupportsPositiveDecision = ['above-range', 'not-applicable'].includes(downsideIrr.status);
+  const irrClearsActiveRate = irrSupportsPositiveDecision || (irrAnalysis.status === 'valid' && irr >= discountRateForAnalysis);
+  const downsideIrrClearsActiveRate = downsideIrrSupportsPositiveDecision || (downsideIrr.status === 'valid' && downsideIrr.value >= discountRateForAnalysis);
   const spread = irrAnalysis.status === 'valid' ? irr - discountRateForAnalysis : Number.NaN;
   const spreadStatus = useMemo(() => (
     irrAnalysis.status === 'valid'
       ? getSpreadStatus(spread)
-      : irrAnalysis.status === 'above-range'
-        ? { label: 'Strong', tone: 'positive', detail: irrIssueDetail }
+      : irrSupportsPositiveDecision
+        ? { label: irrAnalysis.status === 'not-applicable' ? 'N/A' : 'Strong', tone: 'positive', detail: irrIssueDetail }
         : { label: 'N/A', tone: 'caution', detail: irrIssueDetail }
-  ), [irrAnalysis.status, spread, irrIssueDetail]);
+  ), [irrAnalysis.status, spread, irrIssueDetail, irrSupportsPositiveDecision]);
   const spreadPass = irrClearsActiveRate;
   const fragilityPass = downsideIrrClearsActiveRate;
 
@@ -817,12 +819,12 @@ const App = () => {
       const previewPayback = calculatePayback(project.initial, previewRate, project.cashflows);
       const viability = previewNpv > 0;
       const previewDownsideIrr = analyzeIRR(project.initial, project.cashflows.map((cf) => cf * 0.9));
-      const fragility = previewDownsideIrr.status === 'above-range' || (previewDownsideIrr.status === 'valid' && previewDownsideIrr.value >= previewRate);
+      const fragility = ['above-range', 'not-applicable'].includes(previewDownsideIrr.status) || (previewDownsideIrr.status === 'valid' && previewDownsideIrr.value >= previewRate);
       const previewSpread = previewIrrAnalysis.status === 'valid' ? previewIrrAnalysis.value - previewRate : Number.NaN;
       const previewSpreadStatus = previewIrrAnalysis.status === 'valid'
         ? getSpreadStatus(previewSpread)
-        : previewIrrAnalysis.status === 'above-range'
-          ? { label: 'Strong', tone: 'positive', detail: previewIrrAnalysis.reason }
+        : ['above-range', 'not-applicable'].includes(previewIrrAnalysis.status)
+          ? { label: previewIrrAnalysis.status === 'not-applicable' ? 'N/A' : 'Strong', tone: 'positive', detail: previewIrrAnalysis.reason }
           : { label: 'N/A', tone: 'caution', detail: previewIrrAnalysis.reason };
       const previewSentiment = getSentimentStatus({ viabilityPass: viability, spreadStatus: previewSpreadStatus, fragilityPass: fragility });
 
@@ -911,7 +913,7 @@ const App = () => {
   const recommendation =
     !viabilityPass
       ? 'Reject Project: Base NPV is below zero, so the project does not create value under the current assumptions.'
-      : !['valid', 'above-range'].includes(irrAnalysis.status)
+      : !['valid', 'above-range', 'not-applicable'].includes(irrAnalysis.status)
         ? `${irrIssueLabel}: ${irrIssueDetail}`
       : !spreadPass
         ? 'Borderline Project: IRR does not clear the active rate, so the return spread is not sufficient yet.'
@@ -1486,9 +1488,9 @@ const App = () => {
                     </div>
                     <div className={`details-rule ${fragilityPass ? 'pass' : 'fail'}`}>
                       <span className="details-rule-name">Durable {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
-                      <span className="details-rule-status">{['valid', 'above-range'].includes(downsideIrr.status) ? (fragilityPass ? 'Pass' : 'Fail') : 'N/A'}</span>
+                      <span className="details-rule-status">{['valid', 'above-range', 'not-applicable'].includes(downsideIrr.status) ? (fragilityPass ? 'Pass' : 'Fail') : 'N/A'}</span>
                       <span className="details-rule-subtext">
-                        {downsideIrr.status === 'above-range' ? `Downside IRR is above ${downsideIrr.bound}%, clearing the active rate.` : downsideIrr.status === 'valid' ? (showHurdleRate ? `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ discount (${discount.toFixed(1)}%)`) : getIrrIssueDetail(downsideIrr)}
+                        {downsideIrr.status === 'not-applicable' ? getIrrIssueDetail(downsideIrr) : downsideIrr.status === 'above-range' ? `Downside IRR is above ${downsideIrr.bound}%, clearing the active rate.` : downsideIrr.status === 'valid' ? (showHurdleRate ? `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ discount (${discount.toFixed(1)}%)`) : getIrrIssueDetail(downsideIrr)}
                       </span>
                     </div>
                   </div>

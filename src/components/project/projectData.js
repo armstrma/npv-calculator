@@ -57,10 +57,10 @@ export const getProjectPreview = (project, currency = '$') => {
   const downsideIrrAnalysis = analyzeIRR(project.initial, project.cashflows.map((cf) => cf * 0.9));
   const spreadStatus = irrAnalysis.status === 'valid'
     ? getSpreadStatus(irr - activeRate)
-    : irrAnalysis.status === 'above-range'
-      ? { label: 'Strong', tone: 'positive', detail: irrAnalysis.reason }
+    : ['above-range', 'not-applicable'].includes(irrAnalysis.status)
+      ? { label: irrAnalysis.status === 'not-applicable' ? 'N/A' : 'Strong', tone: 'positive', detail: irrAnalysis.reason }
       : { label: 'N/A', tone: 'caution', detail: irrAnalysis.reason };
-  const fragilityPass = downsideIrrAnalysis.status === 'above-range' || (downsideIrrAnalysis.status === 'valid' && downsideIrrAnalysis.value >= activeRate);
+  const fragilityPass = ['above-range', 'not-applicable'].includes(downsideIrrAnalysis.status) || (downsideIrrAnalysis.status === 'valid' && downsideIrrAnalysis.value >= activeRate);
   const sentiment = getSentimentStatus({ viabilityPass: npv > 0, spreadStatus, fragilityPass });
 
   return {

@@ -38,6 +38,14 @@ test('analyzeIRR marks very high conventional IRR as above range', () => {
   assert.deepEqual(analysis.roots, []);
 });
 
+test('analyzeIRR marks positive zero-investment projects as not applicable', () => {
+  const analysis = analyzeIRR(0, [100, 200]);
+
+  assert.equal(analysis.status, 'not-applicable');
+  assert.equal(analysis.value, null);
+  assert.deepEqual(analysis.roots, []);
+});
+
 test('calculatePayback uses discounted cash flows and returns fractional year', () => {
   const payback = calculatePayback(1000, 10, [600, 600]);
   assert.equal(payback, 1.9);

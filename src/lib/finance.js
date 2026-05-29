@@ -55,6 +55,18 @@ const dedupeRoots = (roots) => roots
 
 export const analyzeIRR = (init, cfs) => {
   const signChanges = countCashflowSignChanges(init, cfs);
+  const npvAtActiveZeroRate = calculateNPV(init, 0, cfs);
+
+  if (init === 0 && npvAtActiveZeroRate > 0) {
+    return {
+      status: 'not-applicable',
+      value: null,
+      roots: [],
+      signChanges,
+      reason: 'IRR is not meaningful when the upfront investment is zero, but the project creates positive value.',
+    };
+  }
+
   const roots = [];
   const step = (IRR_MAX_RATE - IRR_MIN_RATE) / IRR_SCAN_STEPS;
   let previousRate = IRR_MIN_RATE;

@@ -93,7 +93,7 @@ export const QuickViewCharts = ({
   const activeView = activeChart === 'cashflows' && cashflows.length === 0 ? 'npv' : activeChart;
   const irrIssueLabel = getIrrIssueLabel(irrAnalysis);
   const irrIssueDetail = getIrrIssueDetail(irrAnalysis);
-  const hasInvalidSingleIrr = !['valid', 'above-range'].includes(irrAnalysis.status);
+  const hasInvalidSingleIrr = !['valid', 'above-range', 'not-applicable'].includes(irrAnalysis.status);
 
   return (
     <>

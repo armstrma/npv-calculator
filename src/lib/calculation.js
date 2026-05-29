@@ -124,6 +124,7 @@ export const formatMobileIrr = (value) => {
 export const getIrrIssueLabel = (irrAnalysis) => {
   if (irrAnalysis?.status === 'ambiguous') return 'Ambiguous IRR';
   if (irrAnalysis?.status === 'none') return 'IRR unavailable';
+  if (irrAnalysis?.status === 'not-applicable') return 'IRR not applicable';
   if (irrAnalysis?.status === 'above-range') return 'IRR above chart range';
   if (irrAnalysis?.status === 'below-range') return 'IRR below range';
   return '';
@@ -131,6 +132,7 @@ export const getIrrIssueLabel = (irrAnalysis) => {
 
 export const getIrrIssueDetail = (irrAnalysis) => {
   if (!irrAnalysis || irrAnalysis.status === 'valid') return '';
+  if (irrAnalysis.status === 'not-applicable') return irrAnalysis.reason;
   if (irrAnalysis.status === 'above-range' || irrAnalysis.status === 'below-range') return irrAnalysis.reason;
   if (irrAnalysis.status === 'ambiguous' && irrAnalysis.roots?.length > 1) {
     return `Multiple IRR roots were found (${irrAnalysis.roots.map((root) => `${root.toFixed(2)}%`).join(', ')}), so the single IRR readout and IRR-based rules are marked N/A.`;
