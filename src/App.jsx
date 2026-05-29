@@ -223,6 +223,47 @@ const checkoutPlans = [
   { id: 'annual', label: 'Annual', price: '$20/yr' },
 ];
 
+const PROJECT_NAME_MAX_LENGTH = 80;
+const MAX_CASHFLOW_PERIODS = 120;
+const MAX_ABS_FINANCIAL_VALUE = 1_000_000_000;
+const MAX_RATE_VALUE = 100;
+
+const clampNumber = (value, min, max) => Math.min(max, Math.max(min, value));
+
+const sanitizeFinancialValue = (value, fallback = 0) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return fallback;
+  return clampNumber(numericValue, -MAX_ABS_FINANCIAL_VALUE, MAX_ABS_FINANCIAL_VALUE);
+};
+
+const sanitizeRateValue = (value, fallback = 0) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return fallback;
+  return clampNumber(numericValue, 0, MAX_RATE_VALUE);
+};
+
+const sanitizeCashflows = (values, fallback = []) => {
+  if (!Array.isArray(values)) return fallback;
+  return values
+    .slice(0, MAX_CASHFLOW_PERIODS)
+    .map((value) => sanitizeFinancialValue(value))
+    .filter((value) => Number.isFinite(value));
+};
+
+const sanitizeProjectName = (name) => String(name || '').trim().slice(0, PROJECT_NAME_MAX_LENGTH);
+
+const sanitizeProjectSnapshot = (project) => {
+  const cashflowValues = sanitizeCashflows(project?.cashflows, [0]);
+  return {
+    initial: sanitizeFinancialValue(project?.initial, 0),
+    discount: sanitizeRateValue(project?.discount, 0),
+    cashflows: cashflowValues.length ? cashflowValues : [0],
+    periodMode: ['months', 'quarters', 'years'].includes(project?.periodMode) ? project.periodMode : 'years',
+    showHurdleRate: Boolean(project?.showHurdleRate),
+    hurdleRate: sanitizeRateValue(project?.hurdleRate, 12),
+  };
+};
+
 const exampleProjects = [
   {
     name: 'Office Solar Retrofit',
@@ -683,14 +724,11 @@ const QuickViewCharts = ({
   cashflows,
   pvBreakEvenInfo,
   sentiment,
-  recommendation,
   viabilityPass,
-  spreadPass,
   spread,
   spreadStatus,
   fragilityPass,
   discountRateForAnalysis,
-  downsideIrr,
   payback,
   breakEvenCashflowUpliftPct,
   maxInitialAtNpvZero,
@@ -699,33 +737,27 @@ const QuickViewCharts = ({
 }) => {
   const [activeChart, setActiveChart] = useState('npv');
   const [activeAnalysisCard, setActiveAnalysisCard] = useState('viability');
-
-  useEffect(() => {
-    setActiveChart((current) => {
-      if (current === 'cashflows' && cashflows.length === 0) return 'npv';
-      return current;
-    });
-  }, [cashflows.length]);
+  const activeView = activeChart === 'cashflows' && cashflows.length === 0 ? 'npv' : activeChart;
 
   return (
     <>
       <div className="quick-view-stage-toolbar" role="tablist" aria-label="Quick view charts">
-        <button type="button" className={`quick-view-stage-tab ${activeChart === 'npv' ? 'active' : ''}`} onClick={() => setActiveChart('npv')}>
+        <button type="button" className={`quick-view-stage-tab ${activeView === 'npv' ? 'active' : ''}`} onClick={() => setActiveChart('npv')}>
           NPV Curve
         </button>
-        <button type="button" className={`quick-view-stage-tab ${activeChart === 'cashflows' ? 'active' : ''}`} onClick={() => setActiveChart('cashflows')}>
+        <button type="button" className={`quick-view-stage-tab ${activeView === 'cashflows' ? 'active' : ''}`} onClick={() => setActiveChart('cashflows')}>
           Cash Flows
         </button>
-        <button type="button" className={`quick-view-stage-tab ${activeChart === 'impact' ? 'active' : ''}`} onClick={() => setActiveChart('impact')}>
+        <button type="button" className={`quick-view-stage-tab ${activeView === 'impact' ? 'active' : ''}`} onClick={() => setActiveChart('impact')}>
           $1 Impact
         </button>
-        <button type="button" className={`quick-view-stage-tab ${activeChart === 'analysis' ? 'active' : ''}`} onClick={() => setActiveChart('analysis')}>
+        <button type="button" className={`quick-view-stage-tab ${activeView === 'analysis' ? 'active' : ''}`} onClick={() => setActiveChart('analysis')}>
           Analyze
         </button>
       </div>
 
-      <div className={`quick-view-stage-chart ${activeChart === 'analysis' ? 'quick-view-stage-chart-scrollable' : ''}`}>
-        {activeChart === 'npv' && (
+      <div className={`quick-view-stage-chart ${activeView === 'analysis' ? 'quick-view-stage-chart-scrollable' : ''}`}>
+        {activeView === 'npv' && (
           <>
             <div className="quick-view-stage-heading quick-view-stage-heading-with-control">
               <h2>NPV vs Discount Rate</h2>
@@ -775,7 +807,7 @@ const QuickViewCharts = ({
           </>
         )}
 
-        {activeChart === 'cashflows' && (
+        {activeView === 'cashflows' && (
           <>
             <div className="quick-view-stage-heading quick-view-stage-heading-with-control">
               <h2>Cash Flows</h2>
@@ -845,7 +877,7 @@ const QuickViewCharts = ({
           </>
         )}
 
-        {activeChart === 'impact' && (
+        {activeView === 'impact' && (
           <>
             <div className="quick-view-stage-heading">
               <h2>NPV Impact per $1 Change</h2>
@@ -868,7 +900,7 @@ const QuickViewCharts = ({
           </>
         )}
 
-        {activeChart === 'analysis' && (
+        {activeView === 'analysis' && (
           <>
             <div className="quick-view-stage-heading quick-view-stage-heading-with-control">
               <h2>Analyze</h2>
@@ -1008,7 +1040,7 @@ const QuickViewVariablePanel = ({
             const rawValue = e.target.value;
             setInitialInput(rawValue);
             const parsed = parseNumericInput(rawValue);
-            if (parsed !== null) setInitial(parsed);
+            if (parsed !== null) setInitial(sanitizeFinancialValue(parsed));
           }}
           onBlur={() => setInitialInput(formatNumberWithCommas(initial))}
           onKeyDown={(e) => {
@@ -1038,8 +1070,9 @@ const QuickViewVariablePanel = ({
             setRateInput(rawValue);
             const parsed = Number.parseFloat(rawValue.replace(/[^0-9.-]/g, ''));
             if (Number.isFinite(parsed)) {
-              if (showHurdleRate) setHurdleRate(parsed);
-              else setDiscount(parsed);
+              const sanitizedRate = sanitizeRateValue(parsed);
+              if (showHurdleRate) setHurdleRate(sanitizedRate);
+              else setDiscount(sanitizedRate);
             }
           }}
           onBlur={() => setRateInput((showHurdleRate ? hurdleRate : discount).toFixed(1))}
@@ -1077,7 +1110,7 @@ const QuickViewVariablePanel = ({
               const parsed = parseNumericInput(e.target.value);
               if (parsed !== null) {
                 const updated = [...cashflows];
-                updated[index] = parsed;
+                updated[index] = sanitizeFinancialValue(parsed);
                 setCashflows(updated);
               }
             }}
@@ -1199,21 +1232,21 @@ const App = () => {
     const hurdleRateParam = params.get('hurdleRate');
 
     if (initialValue !== null) {
-      const parsedInitial = Number(initialValue);
+      const parsedInitial = sanitizeFinancialValue(initialValue);
       if (Number.isFinite(parsedInitial)) {
         setInitial(parsedInitial);
         setInitialInput(formatNumberWithCommas(parsedInitial));
       }
     }
     if (discountValue !== null) {
-      const parsedDiscount = Number(discountValue);
+      const parsedDiscount = sanitizeRateValue(discountValue);
       if (Number.isFinite(parsedDiscount)) {
         setDiscount(parsedDiscount);
-        if (!showHurdleRate) setRateInput(parsedDiscount.toFixed(1));
+        if (hurdleEnabledParam !== 'true') setRateInput(parsedDiscount.toFixed(1));
       }
     }
     if (cashflowsParam) {
-      const parsedCashflows = cashflowsParam.split(',').map((value) => Number(value)).filter((value) => Number.isFinite(value));
+      const parsedCashflows = sanitizeCashflows(cashflowsParam.split(','));
       if (parsedCashflows.length) {
         setCashflows(parsedCashflows);
         setCashflowInputs(parsedCashflows.map(formatNumberWithCommas));
@@ -1229,15 +1262,16 @@ const App = () => {
       setShowHurdleRate(hurdleEnabledParam === 'true');
     }
     if (hurdleRateParam !== null) {
-      const parsedHurdleRate = Number(hurdleRateParam);
+      const parsedHurdleRate = sanitizeRateValue(hurdleRateParam);
       if (Number.isFinite(parsedHurdleRate)) {
         setHurdleRate(parsedHurdleRate);
         if (hurdleEnabledParam === 'true') setRateInput(parsedHurdleRate.toFixed(1));
       }
     }
     if (projectParam) {
-      setProjectName(projectParam);
-      setLoadedProjectName(projectParam);
+      const sanitizedName = sanitizeProjectName(projectParam);
+      setProjectName(sanitizedName);
+      setLoadedProjectName(sanitizedName);
     }
 
     if ([initialValue, discountValue, cashflowsParam, currencyParam, periodParam, projectParam, hurdleEnabledParam, hurdleRateParam].some((value) => value !== null)) {
@@ -1447,17 +1481,17 @@ const App = () => {
   };
 
   const getCurrentProjectSnapshot = () => ({
-    initial,
-    discount,
-    cashflows,
+    initial: sanitizeFinancialValue(initial),
+    discount: sanitizeRateValue(discount),
+    cashflows: sanitizeCashflows(cashflows, [0]),
     periodMode,
     showHurdleRate,
-    hurdleRate,
+    hurdleRate: sanitizeRateValue(hurdleRate, 12),
   });
 
   const saveProject = (name) => {
-    if (!name?.trim()) return null;
-    const trimmedName = name.trim();
+    const trimmedName = sanitizeProjectName(name);
+    if (!trimmedName) return null;
     const project = getCurrentProjectSnapshot();
     const newProjects = {
       ...projects,
@@ -1473,8 +1507,8 @@ const App = () => {
   };
 
   const saveProjectToCloud = async (name) => {
-    if (!name?.trim() || !authSession || !authUser?.id) return;
-    const trimmedName = name.trim();
+    const trimmedName = sanitizeProjectName(name);
+    if (!trimmedName || !authSession || !authUser?.id) return;
     const project = getCurrentProjectSnapshot();
     setCloudStatus('Saving cloud project...');
     const activeSession = await getActiveSession(authSession);
@@ -1538,16 +1572,18 @@ const App = () => {
 
   const applyProject = (name, project) => {
     if (project) {
-      setInitial(project.initial);
-      setDiscount(project.discount);
-      setCashflows(project.cashflows);
-      setShowHurdleRate(Boolean(project.showHurdleRate));
-      setHurdleRate(typeof project.hurdleRate === 'number' ? project.hurdleRate : 12);
-      setPeriodMode(['months', 'quarters', 'years'].includes(project.periodMode) ? project.periodMode : 'years');
-      setInitialInput(formatNumberWithCommas(project.initial));
-      setCashflowInputs(project.cashflows.map(formatNumberWithCommas));
-      setProjectName(name);
-      setLoadedProjectName(name);
+      const sanitizedProject = sanitizeProjectSnapshot(project);
+      const sanitizedName = sanitizeProjectName(name);
+      setInitial(sanitizedProject.initial);
+      setDiscount(sanitizedProject.discount);
+      setCashflows(sanitizedProject.cashflows);
+      setShowHurdleRate(sanitizedProject.showHurdleRate);
+      setHurdleRate(sanitizedProject.hurdleRate);
+      setPeriodMode(sanitizedProject.periodMode);
+      setInitialInput(formatNumberWithCommas(sanitizedProject.initial));
+      setCashflowInputs(sanitizedProject.cashflows.map(formatNumberWithCommas));
+      setProjectName(sanitizedName);
+      setLoadedProjectName(sanitizedName);
     }
   };
 
@@ -1811,6 +1847,7 @@ const App = () => {
   };
 
   const addYear = () => {
+    if (cashflows.length >= MAX_CASHFLOW_PERIODS) return;
     setCashflows([...cashflows, 0]);
     setCashflowInputs([...cashflowInputs, formatNumberWithCommas(0)]);
   };
@@ -1833,14 +1870,16 @@ const App = () => {
 
   const copyProjectLink = async () => {
     const params = new URLSearchParams();
-    params.set('initial', String(initial));
-    params.set('discount', String(discount));
-    params.set('cashflows', cashflows.join(','));
+    const project = getCurrentProjectSnapshot();
+    params.set('initial', String(project.initial));
+    params.set('discount', String(project.discount));
+    params.set('cashflows', project.cashflows.join(','));
     params.set('currency', currency);
-    params.set('period', periodMode);
-    params.set('hurdleEnabled', String(showHurdleRate));
-    if (showHurdleRate) params.set('hurdleRate', String(hurdleRate));
-    if (projectName.trim()) params.set('project', projectName.trim());
+    params.set('period', project.periodMode);
+    params.set('hurdleEnabled', String(project.showHurdleRate));
+    if (project.showHurdleRate) params.set('hurdleRate', String(project.hurdleRate));
+    const sanitizedName = sanitizeProjectName(projectName);
+    if (sanitizedName) params.set('project', sanitizedName);
 
     const deepLink = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     await navigator.clipboard.writeText(deepLink);
@@ -1962,11 +2001,13 @@ const App = () => {
               : 'Accept Project: The base case, spread, and downside case all pass strongly.';
 
   const addQuickViewYear = () => {
+    if (cashflows.length >= MAX_CASHFLOW_PERIODS) return;
     setCashflows((current) => [...current, 0]);
     setCashflowInputs((current) => [...current, formatNumberWithCommas(0)]);
   };
 
   const insertQuickViewYearAfter = (index) => {
+    if (cashflows.length >= MAX_CASHFLOW_PERIODS) return;
     const insertAt = index + 1;
     pendingQuickViewFocusIndex.current = insertAt;
     setCashflows((current) => {
@@ -2342,7 +2383,7 @@ const App = () => {
                   const rawValue = e.target.value;
                   setInitialInput(rawValue);
                   const parsed = parseNumericInput(rawValue);
-                  if (parsed !== null) setInitial(parsed);
+                  if (parsed !== null) setInitial(sanitizeFinancialValue(parsed));
                 }}
                 onBlur={() => setInitialInput(formatNumberWithCommas(initial))}
                 aria-label="Initial investment value"
@@ -2425,7 +2466,7 @@ const App = () => {
                       const parsed = parseNumericInput(rawValue);
                       if (parsed !== null) {
                         const newCashflows = [...cashflows];
-                        newCashflows[index] = parsed;
+                        newCashflows[index] = sanitizeFinancialValue(parsed);
                         setCashflows(newCashflows);
                       }
                     }}
@@ -2749,7 +2790,8 @@ const App = () => {
                 <input
                   type="text"
                   value={saveLocalName}
-                  onChange={(e) => setSaveLocalName(e.target.value)}
+                  onChange={(e) => setSaveLocalName(e.target.value.slice(0, PROJECT_NAME_MAX_LENGTH))}
+                  maxLength={PROJECT_NAME_MAX_LENGTH}
                   placeholder="My NPV Project"
                   className="local-save-input"
                 />

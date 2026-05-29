@@ -41,14 +41,22 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Run lint
+        run: npm run lint
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev
+
       - name: Build
         run: npm run build
 
       - name: Deploy preview
         if: github.event_name == 'pull_request'
-        run: npx --yes netlify-cli deploy --dir=dist --functions=netlify/functions --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN" --alias "pr-${{ github.event.pull_request.number }}" --message "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+        run: npx --yes netlify-cli deploy --dir=dist --functions=netlify/functions --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN" --alias "$NETLIFY_DEPLOY_ALIAS" --message "$NETLIFY_DEPLOY_MESSAGE"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_DEPLOY_ALIAS: pr-${{ github.event.pull_request.number }}
+          NETLIFY_DEPLOY_MESSAGE: 'PR #${{ github.event.pull_request.number }}'
 
       - name: Deploy production
         if: github.event_name == 'push'

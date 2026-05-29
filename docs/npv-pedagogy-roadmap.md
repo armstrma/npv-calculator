@@ -1084,3 +1084,416 @@ That feels right.
 13. Define student vs instructor trial experiences
 14. Sketch backend support/admin panel requirements
 15. Define institutional SSO readiness plan
+
+---
+
+## Roadmap Pass: Accounts, Classroom Scenarios, Sharing, and Entitlement-Backed Delivery
+
+Added: 2026-05-29
+
+Working name for the anti-bypass/piracy item:
+- entitlement-backed feature delivery
+- verified-access chunk loading
+- entitlement-gated premium modules
+
+"Bypass piracy" is directionally understandable, but the product/engineering term should probably be **entitlement-backed delivery**. The core idea is not just hiding buttons in the UI. It is making premium capability harder to bypass by keeping premium implementation paths in separate chunks that are loaded only after the user has a verified entitlement.
+
+Important framing:
+- this reduces casual bypassing and source inspection abuse
+- it does not make browser-delivered code impossible to inspect once loaded
+- anything truly sensitive still needs server-side enforcement
+- premium data access and saved/share/classroom writes must always be authorized by backend policy, not just frontend gating
+
+### Proposed sequence
+
+1. Account foundation polish
+2. Profile modal
+3. Google/Microsoft authentication
+4. Entitlement resolution layer
+5. Entitlement-backed code splitting
+6. Example project education overlay
+7. Scenario/lesson designer foundation
+8. Email-based project sharing
+
+This order keeps identity and permissions stable before building classroom and sharing workflows on top.
+
+### 1. Simple profile modal
+
+Goal:
+- let a signed-in user view and update their display name
+- let a signed-in user request an email address update
+- keep the flow small enough that it does not become a full account settings area yet
+
+MVP behavior:
+- top-bar account/profile action opens modal
+- modal shows current email, display name, auth provider, and Pro status
+- display name updates immediately after validation
+- email update requires validation through Supabase Auth email-change flow
+- show clear pending state if the new email has not been confirmed yet
+
+Likely data model:
+- use Supabase Auth user metadata for display name initially
+- avoid a separate `profiles` table unless classroom roles, roster identity, or public sharing names need more structure
+
+Validation notes:
+- display name: trim, length bounds, no empty names if user intentionally sets it
+- email: valid format client-side, but treat Supabase/server validation as authoritative
+- do not allow email update when the user is anonymous/guest in future classroom flows
+
+### 2. Google and Microsoft authentication
+
+Goal:
+- add low-friction sign-in options that fit students, instructors, and institutional users
+
+MVP behavior:
+- add Google and Microsoft buttons to the existing auth modal
+- keep passwordless email as a fallback
+- preserve existing project ownership and entitlement checks through Supabase Auth UID
+
+Implementation notes:
+- enable Google and Azure/Microsoft providers in Supabase Auth
+- configure local and production redirect URLs
+- handle account linking/matching carefully when a user signs in by magic link first and OAuth later with the same email
+- expose provider identity in the profile modal so users understand how they signed in
+
+Product note:
+- Microsoft auth matters disproportionately for schools and universities
+- Google auth matters for student familiarity and consumer conversion
+
+### 3. Educational overlay for example projects
+
+Goal:
+- turn example projects into guided learning experiences
+- create the foundation for teacher-built scenarios
+
+MVP behavior:
+- example project can include a sequence of callouts attached to specific UI regions
+- overlay can explain assumptions, graph behavior, decision metrics, and constraints
+- learner can step through, skip, or restart the guide
+- guide content should be stored as structured scenario metadata, not hardcoded per tooltip
+
+Suggested content model:
+- `title`
+- `intro`
+- `steps[]`
+- step target key, placement, short explanation, optional metric references
+- optional "try this" prompt
+
+Why this should come before the full designer:
+- it proves the runtime format
+- it gives the app a useful teaching feature now
+- the later teacher designer can author the same data structure instead of creating a second system
+
+### 4. Example/scenario designer for teachers
+
+Goal:
+- let teachers create guided scenarios or lesson kits from a base project
+- support constraints that shape what students can change
+
+MVP authoring capabilities:
+- create scenario title, introduction, instructions, and learning objective
+- start from current project values or an example template
+- choose which variables are editable, locked, hidden, or visible-only
+- disable movement of selected sliders
+- optionally remove slider gradients when the goal is constraint practice rather than immediate visual hinting
+- choose which analytics panels/charts are visible
+- create guided overlay steps using the same runtime model as example projects
+- preview "as student" before publishing
+
+Restriction model should separate:
+- visible
+- editable
+- movable by slider
+- editable by numeric input
+- gradient shown
+- explanation/tooltips shown
+
+This separation matters because "locked" is too blunt. A teacher may want a student to see a value, understand why it matters, but not change it.
+
+Later capabilities:
+- reusable lesson kits
+- assignment publishing to a class
+- due dates and submission state
+- instructor notes/answer keys
+- versioning once students have opened a scenario
+
+### 5. Entitlement-backed chunk loading
+
+Goal:
+- reduce casual premium bypass by moving premium implementations into lazy-loaded chunks that are requested only after entitlement verification
+
+MVP architecture:
+- create a single resolved entitlement object for the current user/session/context
+- use that object for UI gating, API authorization expectations, and dynamic imports
+- keep premium-only modules out of the default app bundle where practical
+- load premium modules only after `hasPro` or classroom entitlement is verified
+- display stable locked/free fallbacks while verification is pending
+
+Candidate premium chunks:
+- advanced analysis panels
+- sensitivity/deeper chart modules
+- scenario designer
+- instructor/classroom authoring
+- managed project sharing
+- future export/presentation modules
+
+Security boundary:
+- frontend chunk gating is a deterrent and packaging boundary
+- database reads/writes still require Supabase RLS or server-side checks
+- Netlify Functions that mutate premium/classroom state must verify the current session and entitlement
+- never rely on `entitlement.hasPro` in React state as the only enforcement point
+
+Implementation caution:
+- avoid scattering `if (hasPro)` checks everywhere
+- prefer a small entitlement helper such as `resolveAccess(context)` with feature-specific booleans and reason codes
+- reason codes will also support better paywall copy, student lock explanations, and support debugging
+
+### 6. Email-based project sharing
+
+Goal:
+- let a user share a project directly with another person by email, beyond copy-link sharing
+
+MVP behavior:
+- user enters recipient email and optional message
+- if recipient already has an account, create a share record and notify them
+- if recipient does not have an account, send an invite/sign-up email that advertises the product and opens the shared project after signup
+- recipient opens a view-only project first; editable copy can be a separate action
+
+Suggested data model:
+- `project_shares`
+- owner user id
+- project id or immutable project snapshot id
+- recipient email
+- recipient user id nullable until claimed
+- permission: view, duplicate, edit later if needed
+- invite token hash
+- status: pending, accepted, revoked
+- created/accepted/revoked timestamps
+
+Product boundary:
+- free users can continue using basic copy link if that remains part of acquisition
+- email-based managed sharing should likely be premium because it creates durable workflow value
+- classroom assignment distribution should use a separate class/scenario model, not plain project sharing
+
+Abuse and privacy notes:
+- rate-limit invite emails
+- let senders revoke shares
+- avoid exposing whether an email already has an account in a way that leaks user existence
+- make shared project ownership and duplication rules explicit
+
+### Dependency map
+
+Profile modal depends on:
+- stable auth session handling
+- user metadata update path
+
+OAuth depends on:
+- Supabase provider setup
+- redirect URL configuration
+- auth modal update
+
+Entitlement-backed delivery depends on:
+- entitlement fetch hardening
+- resolved feature matrix
+- clear free/pro/classroom feature boundaries
+
+Educational overlays depend on:
+- stable target keys in the UI
+- structured example/scenario metadata
+
+Scenario designer depends on:
+- overlay runtime
+- project restriction model
+- entitlement model
+- eventually class/assignment storage
+
+Email sharing depends on:
+- cloud project identity
+- invite email sending path
+- share table and RLS/server checks
+- clear view/copy/edit permission model
+
+### Practical milestone plan
+
+Milestone A: Account polish
+- profile modal
+- display name metadata
+- email update validation flow
+- auth modal cleanup
+- Google/Microsoft sign-in buttons
+
+Milestone B: Entitlement foundation
+- formal feature matrix
+- resolved entitlement object with reason codes
+- central gate/paywall helper
+- migrate current Pro badge and premium prompts to the helper
+
+Milestone C: Entitlement-backed delivery
+- identify premium-only UI modules
+- lazy-load premium chunks after entitlement resolution
+- keep free fallbacks in the base bundle
+- verify build output actually splits premium modules
+
+Milestone D: Guided examples
+- scenario metadata shape
+- overlay runtime
+- convert existing examples into guided examples
+- use this as the teacher-scenario runtime foundation
+
+Milestone E: Teacher scenario MVP
+- instructor-only scenario editor
+- variable lock/slider/gradient controls
+- student preview mode
+- save scenario template
+
+Milestone F: Managed sharing
+- share-by-email modal
+- backend invite/share records
+- invite email flow
+- recipient claim flow
+- view-only and duplicate permissions
+
+### Open decisions
+
+- Should profile names be stored only in Supabase Auth metadata at first, or should we introduce `public.profiles` now for classroom identity?
+- Is email sharing premium-only, or should free users get a limited number of managed shares for acquisition?
+- Which exact features move into premium chunks first: advanced charts, scenario designer, classroom tools, or all of the above?
+- Should example overlays be available in free mode as acquisition/teaching value, with teacher-authored overlays reserved for classroom plans?
+- Should "remove gradients" be a per-variable setting, a global scenario setting, or both?
+- What term should we use publicly: "verified access", "premium modules", or avoid exposing the implementation detail entirely?
+
+---
+
+## Roadmap Pass: Smartphone Apps and Mobile-Aware Checkout
+
+Added: 2026-05-29
+
+Smartphone apps should be planned as a first-class future client, not as a separate product. The important architectural move is to keep accounts, projects, entitlements, classroom scenarios, and share records in the shared backend, while letting each platform use the checkout mechanism that its distribution channel requires.
+
+### Can this work with Netlify?
+
+Yes, Netlify can still work for the backend and web app:
+- host the Vite/React web app
+- serve Netlify Functions for checkout/session endpoints
+- receive webhooks from Shopify/Stripe
+- receive and verify native app purchase receipts or store notifications
+- call Supabase with service-role credentials for entitlement grants
+- support mobile deep links and invite links that land in either the app or the web fallback
+
+This does **not** require a full backend redesign.
+
+What may need redesign is the checkout layer:
+- web checkout can use Shopify or Stripe-hosted flows
+- iOS app checkout may need Apple in-app purchase for digital app functionality/subscriptions, depending on region and app review constraints
+- Android app checkout may need Google Play Billing for digital app functionality/subscriptions, depending on distribution channel and region
+- institutional invoices, classroom licenses, and web purchases can still feed the same entitlement ledger
+
+The product should avoid assuming one checkout provider is the source of truth. The source of truth should be the internal entitlement table, with multiple purchase sources feeding it.
+
+### Recommended architecture
+
+Shared entitlement ledger:
+- Supabase remains the account/project/entitlement store
+- store purchase source, plan, status, renewal/expiry if applicable, platform, and external transaction ids
+- treat Shopify, Stripe, Apple, Google, and manual institutional grants as entitlement sources
+
+Platform checkout adapters:
+- web adapter starts Shopify/Stripe checkout and handles webhooks
+- iOS adapter starts StoreKit purchase and sends receipt/transaction data to a Netlify Function for verification
+- Android adapter starts Google Play Billing and sends purchase token data to a Netlify Function for verification
+- institutional/manual adapter grants seats through admin/support tooling later
+
+Mobile app clients:
+- likely start with a shared web codebase wrapped by Capacitor, or a React Native shell if native UX becomes important
+- use the same Supabase Auth identity where possible
+- support magic-link/OAuth redirect handling through universal links/app links
+- keep project calculations local and fast, but sync saves/shares/classes through the same APIs
+
+### Checkout design principle
+
+The checkout UI should not hardcode "go to Shopify" as the only upgrade path.
+
+Instead:
+- user chooses a plan or upgrade action
+- app asks a checkout orchestrator what purchase options are valid for the current platform, region, and plan
+- web gets a web checkout URL
+- iOS gets native IAP products
+- Android gets Google Play products
+- signed-in institutional users may get "covered by class/license" instead of a checkout prompt
+
+This keeps the premium UX consistent while respecting platform rules.
+
+### Data model implication
+
+The current `user_entitlements` model is enough for a first Pro badge, but smartphone apps will need a richer purchase/entitlement model.
+
+Likely future tables:
+- `plans`
+- `user_entitlements`
+- `purchase_events`
+- `store_subscriptions`
+- `institutional_seats`
+- `entitlement_audit_log`
+
+Minimum fields to plan for:
+- user id
+- entitlement key, such as `pro_analysis` or `classroom`
+- source: `shopify`, `stripe`, `apple`, `google`, `manual`, `institution`
+- external customer id / subscription id / transaction id
+- platform
+- status: active, grace, expired, revoked, refunded
+- current period end or expiry date
+- original purchase date
+- last verified date
+
+### Web-to-app and app-to-web flows
+
+Needed later:
+- universal links / app links for shared projects, class links, and checkout return paths
+- web fallback for users without the app installed
+- app landing route that can accept a project share token, scenario invite, or class join code
+- account linking flow if a user buys on web and later installs the app
+- restore purchases inside native apps
+
+### App store risk notes
+
+For digital functionality unlocked inside a native app, Apple and Google may require their own in-app purchase systems in many cases. External web checkout may be allowed only under specific regional/program conditions and review rules. The roadmap should assume native IAP support will be needed if smartphone apps become app-store-distributed products.
+
+That means:
+- do not build Pro around only Shopify product URLs
+- do not make entitlement grants depend on Shopify-only order attributes
+- keep purchase verification server-side
+- make "restore purchases" part of mobile MVP
+- design plan names and entitlement keys so the same Pro access can be granted by web purchase, Apple purchase, Google purchase, or institutional seat
+
+### Mobile milestone plan
+
+Milestone M1: Mobile-ready entitlement model
+- expand entitlement model beyond boolean Pro
+- add purchase source/status fields
+- keep current web purchase path working
+
+Milestone M2: Checkout orchestrator
+- replace direct Shopify-only assumptions with a platform-aware checkout function
+- web still returns Shopify/Stripe URL
+- native app paths can be added without changing upgrade UI semantics
+
+Milestone M3: Mobile shell decision
+- choose PWA-only, Capacitor, or React Native
+- verify auth redirects, deep links, and offline/local project behavior
+
+Milestone M4: Native purchase verification
+- iOS StoreKit purchase/restore path
+- Android Play Billing purchase/restore path
+- Netlify Functions verify purchases and upsert entitlements
+
+Milestone M5: Shared project/class links
+- universal links and web fallback
+- project share links open correctly on app or web
+- classroom scenario links work without forcing an immediate app install
+
+### Current opinion
+
+No full redesign is needed if the product treats Netlify as the web/API layer and Supabase as the entitlement source of truth.
+
+A checkout redesign **is** needed before serious mobile app work. The current Shopify-only redirect is fine for the web proof of concept, but it should evolve into a platform-aware checkout and entitlement system before native apps are launched.
