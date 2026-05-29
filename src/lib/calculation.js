@@ -108,7 +108,30 @@ export const formatMobileNpv = (value, currency = '$') => {
   return `${currency}${numericValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-export const formatMobileIrr = (value) => `${Math.round(Number(value) || 0)}%`;
+export const getIrrDisplay = (irrAnalysis, { precision = 2, fallback = 'N/A' } = {}) => {
+  if (irrAnalysis?.status !== 'valid' || typeof irrAnalysis.value !== 'number') return fallback;
+  return `${irrAnalysis.value.toFixed(precision)}%`;
+};
+
+export const formatMobileIrr = (value) => {
+  if (value && typeof value === 'object') return getIrrDisplay(value, { precision: 0 });
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? `${Math.round(numericValue)}%` : 'N/A';
+};
+
+export const getIrrIssueLabel = (irrAnalysis) => {
+  if (irrAnalysis?.status === 'ambiguous') return 'Ambiguous IRR';
+  if (irrAnalysis?.status === 'none') return 'IRR unavailable';
+  return '';
+};
+
+export const getIrrIssueDetail = (irrAnalysis) => {
+  if (!irrAnalysis || irrAnalysis.status === 'valid') return '';
+  if (irrAnalysis.status === 'ambiguous' && irrAnalysis.roots?.length > 1) {
+    return `Multiple IRR roots were found (${irrAnalysis.roots.map((root) => `${root.toFixed(2)}%`).join(', ')}), so the single IRR readout and IRR-based rules are marked N/A.`;
+  }
+  return irrAnalysis.reason || 'No reliable single IRR can be calculated for this cash-flow pattern.';
+};
 
 export const PERIOD_OPTIONS = {
   months: { label: 'Months', singular: 'Month', short: 'mo' },

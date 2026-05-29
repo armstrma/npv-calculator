@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Area, Bar, BarChart, Cell, ComposedChart, Label, Legend, Line, LineChart, ReferenceArea, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { chartTooltipMotionProps, formatPaybackDisplay, getPeriodLabel, tooltipShellStyle } from '../../lib/calculation.js';
+import { chartTooltipMotionProps, formatPaybackDisplay, getIrrDisplay, getIrrIssueDetail, getIrrIssueLabel, getPeriodLabel, tooltipShellStyle } from '../../lib/calculation.js';
 
 export const NpvTooltip = ({ active, payload, label, currency, showSensitivity, sensitivityPercent }) => {
   if (!active || !payload || !payload.length) return null;
@@ -70,7 +70,7 @@ export const QuickViewCharts = ({
   barData,
   marginalSensitivityData,
   sensitivityData,
-  irr,
+  irrAnalysis,
   discount,
   showHurdleRate,
   hurdleRate,
@@ -91,6 +91,8 @@ export const QuickViewCharts = ({
   const [activeChart, setActiveChart] = useState('npv');
   const [activeAnalysisCard, setActiveAnalysisCard] = useState('viability');
   const activeView = activeChart === 'cashflows' && cashflows.length === 0 ? 'npv' : activeChart;
+  const irrIssueLabel = getIrrIssueLabel(irrAnalysis);
+  const irrIssueDetail = getIrrIssueDetail(irrAnalysis);
 
   return (
     <>
@@ -137,9 +139,9 @@ export const QuickViewCharts = ({
                   <Tooltip {...chartTooltipMotionProps} cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
                   <Line type="monotone" dataKey="npv_pos" stroke="green" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
                   <Line type="monotone" dataKey="npv_neg" stroke="red" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
-                  {!Number.isNaN(irr) && (
-                    <ReferenceLine x={irr} stroke="#7dd3fc" strokeDasharray="3 3" label={<Label value={`IRR ${irr.toFixed(2)}%`} position="insideTopRight" fill="#7dd3fc" dx={-6} dy={-4} fontSize={11} />} />
-                  )}
+                  {irrAnalysis.roots.map((root) => (
+                    <ReferenceLine key={root} x={root} stroke="#7dd3fc" strokeDasharray="3 3" label={<Label value={`IRR ${root.toFixed(2)}%`} position="insideTopRight" fill="#7dd3fc" dx={-6} dy={-4} fontSize={11} />} />
+                  ))}
                   {!showHurdleRate && (
                     <ReferenceLine x={discount} stroke="#c084fc" strokeDasharray="3 3" label={<Label value={`Disc ${discount.toFixed(1)}%`} position="insideBottom" fill="#c084fc" dy={-2} fontSize={11} />} />
                   )}
@@ -284,25 +286,25 @@ export const QuickViewCharts = ({
                     <strong>{viabilityPass ? 'Pass' : 'Fail'}</strong>
                   </button>
                   <button type="button" className={`quick-view-analysis-rule ${activeAnalysisCard === 'standard' ? 'active' : ''} ${spreadStatus.tone === 'positive' ? 'pass' : spreadStatus.tone === 'negative' ? 'fail' : ''}`} onClick={() => setActiveAnalysisCard('standard')}>
-                    <span>Spread</span>
+                    <span>Spread {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
                     <strong>{spreadStatus.label}</strong>
                   </button>
                   <button type="button" className={`quick-view-analysis-rule ${activeAnalysisCard === 'fragility' ? 'active' : ''} ${fragilityPass ? 'pass' : 'fail'}`} onClick={() => setActiveAnalysisCard('fragility')}>
-                    <span>Durable</span>
+                    <span>Durable {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
                     <strong>{fragilityPass ? 'Pass' : 'Fail'}</strong>
                   </button>
                 </div>
                 <div className="quick-view-analysis-detail quick-view-analysis-inline-detail">
                   {activeAnalysisCard === 'viability' && <p>{isDesktopViewport ? `NPV stays above zero at the active ${discountRateForAnalysis.toFixed(1)}% rate, so the project is still creating net value after discounting.` : `NPV > 0 at ${discountRateForAnalysis.toFixed(1)}%`}</p>}
-                  {activeAnalysisCard === 'standard' && <p>{isDesktopViewport ? `IRR is ${spread >= 0 ? '+' : ''}${spread.toFixed(2)} points versus the active rate, which grades this spread as ${spreadStatus.label.toLowerCase()}.` : `${spread >= 0 ? '+' : ''}${spread.toFixed(2)} pts vs active rate`}</p>}
-                  {activeAnalysisCard === 'fragility' && <p>{isDesktopViewport ? (showHurdleRate ? `Even the downside case keeps IRR above the ${hurdleRate.toFixed(1)}% hurdle, which makes the result more resilient.` : `Even the downside case keeps IRR above the ${discount.toFixed(1)}% discount rate, which suggests the outcome is holding up under pressure.`) : (showHurdleRate ? `Downside IRR ≥ hurdle ${hurdleRate.toFixed(1)}%` : `Downside IRR ≥ discount ${discount.toFixed(1)}%`)}</p>}
+                  {activeAnalysisCard === 'standard' && <p>{irrAnalysis.status !== 'valid' ? irrIssueDetail : isDesktopViewport ? `IRR is ${spread >= 0 ? '+' : ''}${spread.toFixed(2)} points versus the active rate, which grades this spread as ${spreadStatus.label.toLowerCase()}.` : `${spread >= 0 ? '+' : ''}${spread.toFixed(2)} pts vs active rate`}</p>}
+                  {activeAnalysisCard === 'fragility' && <p>{irrAnalysis.status !== 'valid' ? irrIssueDetail : isDesktopViewport ? (showHurdleRate ? `Even the downside case keeps IRR above the ${hurdleRate.toFixed(1)}% hurdle, which makes the result more resilient.` : `Even the downside case keeps IRR above the ${discount.toFixed(1)}% discount rate, which suggests the outcome is holding up under pressure.`) : (showHurdleRate ? `Downside IRR ≥ hurdle ${hurdleRate.toFixed(1)}%` : `Downside IRR ≥ discount ${discount.toFixed(1)}%`)}</p>}
                 </div>
               </section>
 
               <section className="quick-view-analysis-column quick-view-analysis-facts">
                 <span className="details-metric-label">Breakeven Analysis</span>
                 <div className="quick-view-analysis-facts-list">
-                  <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>IRR</span><strong>{irr.toFixed(2)}%</strong></div>
+                  <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>IRR {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span><strong>{getIrrDisplay(irrAnalysis)}</strong></div>
                   <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>Payback</span><strong>{formatPaybackDisplay(payback, periodMode)}</strong></div>
                   <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>Uplift</span><strong>{breakEvenCashflowUpliftPct === null ? 'N/A' : `${breakEvenCashflowUpliftPct >= 0 ? '+' : ''}${breakEvenCashflowUpliftPct.toFixed(1)}%`}</strong></div>
                   <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>Max Initial</span><strong>{currency}{maxInitialAtNpvZero.toFixed(2)}</strong></div>

@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState, useMemo, useEffect, useRef } from 'react';
 import './App.css';
-import { calculateNPV, findIRR, calculatePayback, calculateROI, calculatePI } from './lib/finance.js';
+import { analyzeIRR, calculateNPV, calculatePayback, calculateROI, calculatePI } from './lib/finance.js';
 import { formatNumberWithCommas, parseNumericInput } from './lib/input.js';
 import { clearStoredSession, consumeMagicLinkSession, fetchCurrentUser, getActiveSession, getStoredSession, isCloudAuthConfigured, requestMagicLink } from './lib/cloudAuth.js';
 import { fetchUserEntitlement } from './lib/cloudEntitlements.js';
@@ -17,6 +17,9 @@ import {
   getPeriodCollectionLabel,
   getPeriodLabel,
   getPeriodMeta,
+  getIrrDisplay,
+  getIrrIssueDetail,
+  getIrrIssueLabel,
   getSentimentStatus,
   getSliderBounds,
   getSpreadStatus,
@@ -536,7 +539,8 @@ const App = () => {
   };
 
   const npv = useMemo(() => calculateNPV(initial, discountRateForAnalysis, cashflows), [initial, discountRateForAnalysis, cashflows]);
-  const irr = useMemo(() => findIRR(initial, cashflows), [initial, cashflows]);
+  const irrAnalysis = useMemo(() => analyzeIRR(initial, cashflows), [initial, cashflows]);
+  const irr = irrAnalysis.value;
   const payback = useMemo(() => calculatePayback(initial, discountRateForAnalysis, cashflows), [initial, discountRateForAnalysis, cashflows]);
   const roi = useMemo(() => calculateROI(initial, cashflows), [initial, cashflows]);
   const pi = useMemo(() => calculatePI(npv, initial), [npv, initial]);
@@ -677,14 +681,18 @@ const App = () => {
 
   const downsideIrr = useMemo(() => {
     const lowCashflows = cashflows.map((cf) => cf * (1 - sensitivityPercent / 100));
-    return findIRR(initial, lowCashflows);
+    return analyzeIRR(initial, lowCashflows);
   }, [initial, cashflows, sensitivityPercent]);
 
   const viabilityPass = npv > 0;
-  const spread = irr - discountRateForAnalysis;
-  const spreadStatus = getSpreadStatus(spread);
-  const spreadPass = spread >= 0;
-  const fragilityPass = downsideIrr >= discountRateForAnalysis;
+  const irrIssueDetail = getIrrIssueDetail(irrAnalysis);
+  const irrIssueLabel = getIrrIssueLabel(irrAnalysis);
+  const spread = irrAnalysis.status === 'valid' ? irr - discountRateForAnalysis : Number.NaN;
+  const spreadStatus = useMemo(() => (
+    irrAnalysis.status === 'valid' ? getSpreadStatus(spread) : { label: 'N/A', tone: 'caution', detail: irrIssueDetail }
+  ), [irrAnalysis.status, spread, irrIssueDetail]);
+  const spreadPass = irrAnalysis.status === 'valid' && spread >= 0;
+  const fragilityPass = downsideIrr.status === 'valid' && downsideIrr.value >= discountRateForAnalysis;
 
   const breakEvenCashflowUpliftPct = useMemo(() => {
     const pvOfCashflows = cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + discountRateForAnalysis / 100, i + 1), 0);
@@ -764,7 +772,7 @@ const App = () => {
   };
 
   const exportToCSV = () => {
-    const csvContent = `Initial,${initial}\nDiscount Rate,${discount}\nHurdle Rate Enabled,${showHurdleRate}\nHurdle Rate,${showHurdleRate ? hurdleRate : ''}\nCash Flows,${cashflows.join(',')}\nNPV,${npv}\nIRR,${irr}\nPayback,${payback}\nROI,${roi}\nPI,${pi}`;
+    const csvContent = `Initial,${initial}\nDiscount Rate,${discount}\nHurdle Rate Enabled,${showHurdleRate}\nHurdle Rate,${showHurdleRate ? hurdleRate : ''}\nCash Flows,${cashflows.join(',')}\nNPV,${npv}\nIRR,${getIrrDisplay(irrAnalysis)}\nIRR Status,${irrAnalysis.status}\nPayback,${payback}\nROI,${roi}\nPI,${pi}`;
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -799,17 +807,19 @@ const App = () => {
     const buildPreviews = (projectSet) => Object.entries(projectSet || {}).reduce((acc, [name, project]) => {
       const previewRate = project.showHurdleRate ? (typeof project.hurdleRate === 'number' ? project.hurdleRate : project.discount) : project.discount;
       const previewNpv = calculateNPV(project.initial, previewRate, project.cashflows);
-      const previewIrr = findIRR(project.initial, project.cashflows);
+      const previewIrrAnalysis = analyzeIRR(project.initial, project.cashflows);
       const previewPayback = calculatePayback(project.initial, previewRate, project.cashflows);
       const viability = previewNpv > 0;
-      const fragility = findIRR(project.initial, project.cashflows.map((cf) => cf * 0.9)) >= previewRate;
-      const previewSpread = previewIrr - previewRate;
-      const previewSpreadStatus = getSpreadStatus(previewSpread);
+      const previewDownsideIrr = analyzeIRR(project.initial, project.cashflows.map((cf) => cf * 0.9));
+      const fragility = previewDownsideIrr.status === 'valid' && previewDownsideIrr.value >= previewRate;
+      const previewSpread = previewIrrAnalysis.status === 'valid' ? previewIrrAnalysis.value - previewRate : Number.NaN;
+      const previewSpreadStatus = previewIrrAnalysis.status === 'valid' ? getSpreadStatus(previewSpread) : { label: 'N/A', tone: 'caution', detail: previewIrrAnalysis.reason };
       const previewSentiment = getSentimentStatus({ viabilityPass: viability, spreadStatus: previewSpreadStatus, fragilityPass: fragility });
 
       acc[name] = {
         npv: previewNpv,
-        irr: previewIrr,
+        irr: previewIrrAnalysis.value,
+        irrAnalysis: previewIrrAnalysis,
         payback: previewPayback,
         periodMode: ['months', 'quarters', 'years'].includes(project.periodMode) ? project.periodMode : 'years',
         label: previewSentiment.label,
@@ -863,10 +873,10 @@ const App = () => {
       const tempCashflows = [...cashflows];
       if (type === 'cashflow' && index !== null) tempCashflows[index] = val;
       const tempNpv = calculateNPV(tempInitial, tempRate, tempCashflows);
-      const tempIrr = findIRR(tempInitial, tempCashflows);
-      const tempDownsideIrr = findIRR(tempInitial, tempCashflows.map((cf) => cf * (1 - sensitivityPercent / 100)));
-      const tempSpread = tempIrr - tempRate;
-      const tempDownsidePass = tempDownsideIrr >= tempRate;
+      const tempIrr = analyzeIRR(tempInitial, tempCashflows);
+      const tempDownsideIrr = analyzeIRR(tempInitial, tempCashflows.map((cf) => cf * (1 - sensitivityPercent / 100)));
+      const tempSpread = tempIrr.status === 'valid' ? tempIrr.value - tempRate : Number.NEGATIVE_INFINITY;
+      const tempDownsidePass = tempDownsideIrr.status === 'valid' && tempDownsideIrr.value >= tempRate;
       const color = getSliderSegmentColor({ npvValue: tempNpv, spreadValue: tempSpread, downsidePass: tempDownsidePass });
       segments.push(`${color} ${startPercent}%`, `${color} ${endPercent}%`);
     }
@@ -896,6 +906,8 @@ const App = () => {
   const recommendation =
     !viabilityPass
       ? 'Reject Project: Base NPV is below zero, so the project does not create value under the current assumptions.'
+      : irrAnalysis.status !== 'valid'
+        ? `${irrIssueLabel}: ${irrIssueDetail}`
       : !spreadPass
         ? 'Borderline Project: IRR does not clear the active rate, so the return spread is not sufficient yet.'
         : !fragilityPass
@@ -1179,7 +1191,7 @@ const App = () => {
             <strong style={{ color: sentiment.tone === 'positive' ? '#16a34a' : sentiment.tone === 'caution' ? '#ca8a04' : '#dc2626' }}>{sentiment.label}</strong>
           </span>
           <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
-          <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>
+          <span>IRR <strong>{formatMobileIrr(irrAnalysis)}</strong></span>
           <span>Payback <strong>{formatPaybackDisplay(payback, periodMode)}</strong></span>
         </div>
       )}
@@ -1204,7 +1216,7 @@ const App = () => {
               barData={barData}
               marginalSensitivityData={marginalSensitivityData}
               sensitivityData={sensitivityData}
-              irr={irr}
+              irrAnalysis={irrAnalysis}
               discount={discount}
               showHurdleRate={showHurdleRate}
               hurdleRate={hurdleRate}
@@ -1218,7 +1230,6 @@ const App = () => {
               spreadStatus={spreadStatus}
               fragilityPass={fragilityPass}
               discountRateForAnalysis={discountRateForAnalysis}
-              downsideIrr={downsideIrr}
               payback={payback}
               breakEvenCashflowUpliftPct={breakEvenCashflowUpliftPct}
               maxInitialAtNpvZero={maxInitialAtNpvZero}
@@ -1232,7 +1243,7 @@ const App = () => {
             npvColor={npvColor}
             npv={npv}
             currency={currency}
-            irr={irr}
+            irrAnalysis={irrAnalysis}
             payback={payback}
             initialInput={initialInput}
             setInitialInput={setInitialInput}
@@ -1264,7 +1275,7 @@ const App = () => {
             <span className={`mobile-sentiment-dot sentiment-${sentiment.tone}`} aria-label={sentiment.label} title={sentiment.label} />
           </span>
           <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
-          <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>
+          <span>IRR <strong>{formatMobileIrr(irrAnalysis)}</strong></span>
           <span>Payback <strong>{formatPaybackDisplay(payback, periodMode)}</strong></span>
         </div>
         <div className="left" style={{ width: '50%' }}>
@@ -1427,9 +1438,9 @@ const App = () => {
                 <span className="metric-pill-subtext">Discounted value</span>
               </div>
               <div className="metric-pill">
-                <span className="metric-pill-label">IRR</span>
-                <span className="metric-pill-value">{irr.toFixed(2)}%</span>
-                <span className="metric-pill-subtext">Break-even discount rate</span>
+                <span className="metric-pill-label">IRR {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
+                <span className="metric-pill-value">{getIrrDisplay(irrAnalysis)}</span>
+                <span className="metric-pill-subtext">{irrIssueLabel || 'Break-even discount rate'}</span>
               </div>
               <div className="metric-pill">
                 <span className="metric-pill-label">Payback</span>
@@ -1464,15 +1475,15 @@ const App = () => {
                       <span className="details-rule-subtext">NPV &gt; 0 using {discountRateForAnalysis.toFixed(1)}%</span>
                     </div>
                     <div className={`details-rule ${spreadStatus.tone === 'positive' ? 'pass' : spreadStatus.tone === 'negative' ? 'fail' : 'warn'}`}>
-                      <span className="details-rule-name">Spread</span>
+                      <span className="details-rule-name">Spread {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
                       <span className="details-rule-status">{spreadStatus.label}</span>
-                      <span className="details-rule-subtext">IRR spread versus active rate: {spread >= 0 ? '+' : ''}{spread.toFixed(2)} pts</span>
+                      <span className="details-rule-subtext">{irrAnalysis.status === 'valid' ? `IRR spread versus active rate: ${spread >= 0 ? '+' : ''}${spread.toFixed(2)} pts` : irrIssueDetail}</span>
                     </div>
                     <div className={`details-rule ${fragilityPass ? 'pass' : 'fail'}`}>
-                      <span className="details-rule-name">Durable</span>
-                      <span className="details-rule-status">{fragilityPass ? 'Pass' : 'Fail'}</span>
+                      <span className="details-rule-name">Durable {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
+                      <span className="details-rule-status">{irrAnalysis.status === 'valid' ? (fragilityPass ? 'Pass' : 'Fail') : 'N/A'}</span>
                       <span className="details-rule-subtext">
-                        {showHurdleRate ? `Downside IRR (${downsideIrr.toFixed(2)}%) ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `Downside IRR (${downsideIrr.toFixed(2)}%) ≥ discount (${discount.toFixed(1)}%)`}
+                        {downsideIrr.status === 'valid' ? (showHurdleRate ? `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ discount (${discount.toFixed(1)}%)`) : getIrrIssueDetail(downsideIrr)}
                       </span>
                     </div>
                   </div>
@@ -1482,7 +1493,7 @@ const App = () => {
                 <section className="details-panel thresholds">
                   <h3 className="details-panel-title">Breakeven Analysis</h3>
                   <div className="details-list">
-                    <p>Break-even discount rate (IRR): <strong>{irr.toFixed(2)}%</strong></p>
+                    <p>Break-even discount rate (IRR): <strong>{getIrrDisplay(irrAnalysis)}</strong> {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</p>
                     <p>Discounted payback period at {discountRateForAnalysis.toFixed(1)}%: <strong>{formatPaybackDisplay(payback)}</strong></p>
                     <p>
                       Required cash flow uplift:{' '}
@@ -1539,9 +1550,9 @@ const App = () => {
                 <Tooltip {...chartTooltipMotionProps} cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
                 <Line type="monotone" dataKey="npv_pos" stroke="green" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
                 <Line type="monotone" dataKey="npv_neg" stroke="red" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
-                {!Number.isNaN(irr) && (
-                  <ReferenceLine x={irr} stroke="#7dd3fc" strokeDasharray="3 3" label={<Label value={`IRR: ${irr.toFixed(2)}%`} position="insideTopRight" fill="#7dd3fc" dx={-10} dy={-8} />} />
-                )}
+                {irrAnalysis.roots.map((root) => (
+                  <ReferenceLine key={root} x={root} stroke="#7dd3fc" strokeDasharray="3 3" label={<Label value={`IRR: ${root.toFixed(2)}%`} position="insideTopRight" fill="#7dd3fc" dx={-10} dy={-8} />} />
+                ))}
                 {!showHurdleRate && (
                   <ReferenceLine x={discount} stroke="#c084fc" strokeDasharray="3 3" label={<Label value={`Discount Rate: ${discount.toFixed(1)}%`} position="insideBottom" fill="#c084fc" dy={-2} />} />
                 )}

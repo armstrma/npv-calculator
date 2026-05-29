@@ -723,6 +723,22 @@ input[type="range"]::-moz-range-thumb {
   line-height: 1.4;
   z-index: 40;
 }
+
+.irr-info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  opacity: 0.8;
+}
 .cashflow-row {
   display: flex;
   align-items: stretch;

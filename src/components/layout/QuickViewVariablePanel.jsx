@@ -6,7 +6,7 @@ export const QuickViewVariablePanel = ({
   npvColor,
   npv,
   currency,
-  irr,
+  irrAnalysis,
   payback,
   periodMode,
   isDesktopViewport,
@@ -39,7 +39,7 @@ export const QuickViewVariablePanel = ({
       </span>
       <span className={`quick-view-sentiment-word sentiment-${sentiment.tone}`}>{sentiment.label}</span>
       <span>NPV <strong style={{ color: npvColor }}>{formatMobileNpv(npv, currency)}</strong></span>
-      <span>IRR <strong>{formatMobileIrr(irr)}</strong></span>
+      <span>IRR <strong>{formatMobileIrr(irrAnalysis)}</strong></span>
       <span>Payback <strong>{formatPaybackDisplay(payback, periodMode)}</strong></span>
     </div>
     <div className="quick-view-row">
@@ -159,4 +159,3 @@ export const QuickViewVariablePanel = ({
     </button>
   </div>
 );
-

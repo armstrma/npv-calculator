@@ -1,4 +1,4 @@
-import { calculateNPV, calculatePayback, findIRR } from '../../lib/finance.js';
+import { analyzeIRR, calculateNPV, calculatePayback } from '../../lib/finance.js';
 import { getSentimentStatus, getSpreadStatus } from '../../lib/calculation.js';
 
 export const exampleProjects = [
@@ -51,15 +51,18 @@ export const exampleProjects = [
 export const getProjectPreview = (project, currency = '$') => {
   const activeRate = project.showHurdleRate ? project.hurdleRate : project.discount;
   const npv = calculateNPV(project.initial, activeRate, project.cashflows);
-  const irr = findIRR(project.initial, project.cashflows);
+  const irrAnalysis = analyzeIRR(project.initial, project.cashflows);
+  const irr = irrAnalysis.value;
   const payback = calculatePayback(project.initial, activeRate, project.cashflows);
-  const spreadStatus = getSpreadStatus(irr - activeRate);
-  const fragilityPass = findIRR(project.initial, project.cashflows.map((cf) => cf * 0.9)) >= activeRate;
+  const downsideIrrAnalysis = analyzeIRR(project.initial, project.cashflows.map((cf) => cf * 0.9));
+  const spreadStatus = irrAnalysis.status === 'valid' ? getSpreadStatus(irr - activeRate) : { label: 'N/A', tone: 'caution', detail: irrAnalysis.reason };
+  const fragilityPass = downsideIrrAnalysis.status === 'valid' && downsideIrrAnalysis.value >= activeRate;
   const sentiment = getSentimentStatus({ viabilityPass: npv > 0, spreadStatus, fragilityPass });
 
   return {
     npv,
     irr,
+    irrAnalysis,
     payback,
     activeRate,
     label: sentiment.label,
@@ -68,4 +71,3 @@ export const getProjectPreview = (project, currency = '$') => {
     periodMode: project.periodMode,
   };
 };
-

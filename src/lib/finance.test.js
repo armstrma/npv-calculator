@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateNPV, findIRR, calculatePayback, calculateROI, calculatePI } from './finance.js';
+import { analyzeIRR, calculateNPV, findIRR, calculatePayback, calculateROI, calculatePI } from './finance.js';
 
 test('calculateNPV returns expected positive NPV', () => {
   const result = calculateNPV(1000, 10, [400, 400, 400]);
@@ -10,6 +10,24 @@ test('calculateNPV returns expected positive NPV', () => {
 test('findIRR approximates zero-NPV rate', () => {
   const irr = findIRR(1000, [500, 500, 500]);
   assert.ok(irr > 20 && irr < 25);
+});
+
+test('findIRR returns NaN when no valid IRR root is bracketed', () => {
+  const irr = findIRR(1000, [-100, -100]);
+  const analysis = analyzeIRR(1000, [-100, -100]);
+
+  assert.ok(Number.isNaN(irr));
+  assert.equal(analysis.status, 'none');
+  assert.deepEqual(analysis.roots, []);
+});
+
+test('analyzeIRR marks multiple-root cash flows as ambiguous', () => {
+  const analysis = analyzeIRR(1000, [2300, -1320]);
+
+  assert.equal(analysis.status, 'ambiguous');
+  assert.equal(analysis.roots.length, 2);
+  assert.ok(analysis.roots.some((root) => Math.abs(root - 10) < 0.05));
+  assert.ok(analysis.roots.some((root) => Math.abs(root - 20) < 0.05));
 });
 
 test('calculatePayback uses discounted cash flows and returns fractional year', () => {

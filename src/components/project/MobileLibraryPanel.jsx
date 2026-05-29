@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { LineChart, Line, ResponsiveContainer, ReferenceLine, XAxis, YAxis } from 'recharts';
-import { calculateNPV, findIRR } from '../../lib/finance.js';
+import { analyzeIRR, calculateNPV } from '../../lib/finance.js';
 import { formatMobileIrr, formatMobileNpv, formatPaybackDisplay } from '../../lib/calculation.js';
 import * as projectData from './projectData.js';
 
@@ -22,7 +22,7 @@ const buildDiscountCurve = (project) => {
 
 const ExampleProjectPreview = ({ project }) => {
   const data = useMemo(() => buildDiscountCurve(project), [project]);
-  const irr = useMemo(() => findIRR(project.initial, project.cashflows), [project]);
+  const irrAnalysis = useMemo(() => analyzeIRR(project.initial, project.cashflows), [project]);
   const activeRate = project.showHurdleRate ? project.hurdleRate : project.discount;
 
   return (
@@ -34,7 +34,7 @@ const ExampleProjectPreview = ({ project }) => {
           <ReferenceLine y={0} stroke="rgba(148, 163, 184, 0.55)" strokeWidth={1} />
           <Line type="monotone" dataKey="npv_pos" stroke="#22c55e" dot={false} activeDot={false} strokeWidth={3} isAnimationActive={false} />
           <Line type="monotone" dataKey="npv_neg" stroke="#ef4444" dot={false} activeDot={false} strokeWidth={3} isAnimationActive={false} />
-          {!Number.isNaN(irr) && <ReferenceLine x={irr} stroke="#7dd3fc" strokeDasharray="3 3" />}
+          {irrAnalysis.roots.map((root) => <ReferenceLine key={root} x={root} stroke="#7dd3fc" strokeDasharray="3 3" />)}
           <ReferenceLine x={activeRate} stroke={project.showHurdleRate ? '#22c55e' : '#c084fc'} strokeDasharray="4 3" />
         </LineChart>
       </ResponsiveContainer>
@@ -69,7 +69,7 @@ export const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isA
                 <div className="mobile-library-saved-metrics">
                   <span className={`tone-${previewTone}`}>{preview.label}</span>
                   <span style={{ color: preview.npv >= 0 ? '#22c55e' : '#ef4444' }}>NPV {formatMobileNpv(preview.npv, preview.currency)}</span>
-                  <span>IRR {formatMobileIrr(preview.irr)}</span>
+                  <span>IRR {formatMobileIrr(preview.irrAnalysis)}</span>
                   <span>Payback {formatPaybackDisplay(preview.payback, preview.periodMode)}</span>
                 </div>
               ) : (
@@ -183,7 +183,7 @@ export const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isA
                     <div className="mobile-library-saved-metrics example-project-metrics">
                       <span className={`tone-${preview.tone}`}>{preview.label}</span>
                       <span style={{ color: preview.npv >= 0 ? '#22c55e' : '#ef4444' }}>NPV {formatMobileNpv(preview.npv, preview.currency)}</span>
-                      <span>IRR {formatMobileIrr(preview.irr)}</span>
+                      <span>IRR {formatMobileIrr(preview.irrAnalysis)}</span>
                       <span>{project.periodMode}</span>
                     </div>
                   </button>
@@ -196,4 +196,3 @@ export const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isA
     </div>
   );
 };
-
