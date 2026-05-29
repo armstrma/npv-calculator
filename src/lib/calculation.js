@@ -109,6 +109,8 @@ export const formatMobileNpv = (value, currency = '$') => {
 };
 
 export const getIrrDisplay = (irrAnalysis, { precision = 2, fallback = 'N/A' } = {}) => {
+  if (irrAnalysis?.status === 'above-range') return `>${irrAnalysis.bound}%`;
+  if (irrAnalysis?.status === 'below-range') return `<${irrAnalysis.bound}%`;
   if (irrAnalysis?.status !== 'valid' || typeof irrAnalysis.value !== 'number') return fallback;
   return `${irrAnalysis.value.toFixed(precision)}%`;
 };
@@ -122,11 +124,14 @@ export const formatMobileIrr = (value) => {
 export const getIrrIssueLabel = (irrAnalysis) => {
   if (irrAnalysis?.status === 'ambiguous') return 'Ambiguous IRR';
   if (irrAnalysis?.status === 'none') return 'IRR unavailable';
+  if (irrAnalysis?.status === 'above-range') return 'IRR above chart range';
+  if (irrAnalysis?.status === 'below-range') return 'IRR below range';
   return '';
 };
 
 export const getIrrIssueDetail = (irrAnalysis) => {
   if (!irrAnalysis || irrAnalysis.status === 'valid') return '';
+  if (irrAnalysis.status === 'above-range' || irrAnalysis.status === 'below-range') return irrAnalysis.reason;
   if (irrAnalysis.status === 'ambiguous' && irrAnalysis.roots?.length > 1) {
     return `Multiple IRR roots were found (${irrAnalysis.roots.map((root) => `${root.toFixed(2)}%`).join(', ')}), so the single IRR readout and IRR-based rules are marked N/A.`;
   }

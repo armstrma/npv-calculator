@@ -93,6 +93,7 @@ export const QuickViewCharts = ({
   const activeView = activeChart === 'cashflows' && cashflows.length === 0 ? 'npv' : activeChart;
   const irrIssueLabel = getIrrIssueLabel(irrAnalysis);
   const irrIssueDetail = getIrrIssueDetail(irrAnalysis);
+  const hasInvalidSingleIrr = !['valid', 'above-range'].includes(irrAnalysis.status);
 
   return (
     <>
@@ -296,8 +297,8 @@ export const QuickViewCharts = ({
                 </div>
                 <div className="quick-view-analysis-detail quick-view-analysis-inline-detail">
                   {activeAnalysisCard === 'viability' && <p>{isDesktopViewport ? `NPV stays above zero at the active ${discountRateForAnalysis.toFixed(1)}% rate, so the project is still creating net value after discounting.` : `NPV > 0 at ${discountRateForAnalysis.toFixed(1)}%`}</p>}
-                  {activeAnalysisCard === 'standard' && <p>{irrAnalysis.status !== 'valid' ? irrIssueDetail : isDesktopViewport ? `IRR is ${spread >= 0 ? '+' : ''}${spread.toFixed(2)} points versus the active rate, which grades this spread as ${spreadStatus.label.toLowerCase()}.` : `${spread >= 0 ? '+' : ''}${spread.toFixed(2)} pts vs active rate`}</p>}
-                  {activeAnalysisCard === 'fragility' && <p>{irrAnalysis.status !== 'valid' ? irrIssueDetail : isDesktopViewport ? (showHurdleRate ? `Even the downside case keeps IRR above the ${hurdleRate.toFixed(1)}% hurdle, which makes the result more resilient.` : `Even the downside case keeps IRR above the ${discount.toFixed(1)}% discount rate, which suggests the outcome is holding up under pressure.`) : (showHurdleRate ? `Downside IRR ≥ hurdle ${hurdleRate.toFixed(1)}%` : `Downside IRR ≥ discount ${discount.toFixed(1)}%`)}</p>}
+                  {activeAnalysisCard === 'standard' && <p>{hasInvalidSingleIrr ? irrIssueDetail : irrAnalysis.status === 'above-range' ? irrIssueDetail : isDesktopViewport ? `IRR is ${spread >= 0 ? '+' : ''}${spread.toFixed(2)} points versus the active rate, which grades this spread as ${spreadStatus.label.toLowerCase()}.` : `${spread >= 0 ? '+' : ''}${spread.toFixed(2)} pts vs active rate`}</p>}
+                  {activeAnalysisCard === 'fragility' && <p>{hasInvalidSingleIrr ? irrIssueDetail : isDesktopViewport ? (showHurdleRate ? `Even the downside case keeps IRR above the ${hurdleRate.toFixed(1)}% hurdle, which makes the result more resilient.` : `Even the downside case keeps IRR above the ${discount.toFixed(1)}% discount rate, which suggests the outcome is holding up under pressure.`) : (showHurdleRate ? `Downside IRR ≥ hurdle ${hurdleRate.toFixed(1)}%` : `Downside IRR ≥ discount ${discount.toFixed(1)}%`)}</p>}
                 </div>
               </section>
 

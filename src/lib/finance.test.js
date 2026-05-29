@@ -30,6 +30,14 @@ test('analyzeIRR marks multiple-root cash flows as ambiguous', () => {
   assert.ok(analysis.roots.some((root) => Math.abs(root - 20) < 0.05));
 });
 
+test('analyzeIRR marks very high conventional IRR as above range', () => {
+  const analysis = analyzeIRR(1000, [10000, 10000]);
+
+  assert.equal(analysis.status, 'above-range');
+  assert.equal(analysis.value, null);
+  assert.deepEqual(analysis.roots, []);
+});
+
 test('calculatePayback uses discounted cash flows and returns fractional year', () => {
   const payback = calculatePayback(1000, 10, [600, 600]);
   assert.equal(payback, 1.9);

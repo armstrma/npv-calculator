@@ -687,12 +687,18 @@ const App = () => {
   const viabilityPass = npv > 0;
   const irrIssueDetail = getIrrIssueDetail(irrAnalysis);
   const irrIssueLabel = getIrrIssueLabel(irrAnalysis);
+  const irrClearsActiveRate = irrAnalysis.status === 'above-range' || (irrAnalysis.status === 'valid' && irr >= discountRateForAnalysis);
+  const downsideIrrClearsActiveRate = downsideIrr.status === 'above-range' || (downsideIrr.status === 'valid' && downsideIrr.value >= discountRateForAnalysis);
   const spread = irrAnalysis.status === 'valid' ? irr - discountRateForAnalysis : Number.NaN;
   const spreadStatus = useMemo(() => (
-    irrAnalysis.status === 'valid' ? getSpreadStatus(spread) : { label: 'N/A', tone: 'caution', detail: irrIssueDetail }
+    irrAnalysis.status === 'valid'
+      ? getSpreadStatus(spread)
+      : irrAnalysis.status === 'above-range'
+        ? { label: 'Strong', tone: 'positive', detail: irrIssueDetail }
+        : { label: 'N/A', tone: 'caution', detail: irrIssueDetail }
   ), [irrAnalysis.status, spread, irrIssueDetail]);
-  const spreadPass = irrAnalysis.status === 'valid' && spread >= 0;
-  const fragilityPass = downsideIrr.status === 'valid' && downsideIrr.value >= discountRateForAnalysis;
+  const spreadPass = irrClearsActiveRate;
+  const fragilityPass = downsideIrrClearsActiveRate;
 
   const breakEvenCashflowUpliftPct = useMemo(() => {
     const pvOfCashflows = cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + discountRateForAnalysis / 100, i + 1), 0);
@@ -811,9 +817,13 @@ const App = () => {
       const previewPayback = calculatePayback(project.initial, previewRate, project.cashflows);
       const viability = previewNpv > 0;
       const previewDownsideIrr = analyzeIRR(project.initial, project.cashflows.map((cf) => cf * 0.9));
-      const fragility = previewDownsideIrr.status === 'valid' && previewDownsideIrr.value >= previewRate;
+      const fragility = previewDownsideIrr.status === 'above-range' || (previewDownsideIrr.status === 'valid' && previewDownsideIrr.value >= previewRate);
       const previewSpread = previewIrrAnalysis.status === 'valid' ? previewIrrAnalysis.value - previewRate : Number.NaN;
-      const previewSpreadStatus = previewIrrAnalysis.status === 'valid' ? getSpreadStatus(previewSpread) : { label: 'N/A', tone: 'caution', detail: previewIrrAnalysis.reason };
+      const previewSpreadStatus = previewIrrAnalysis.status === 'valid'
+        ? getSpreadStatus(previewSpread)
+        : previewIrrAnalysis.status === 'above-range'
+          ? { label: 'Strong', tone: 'positive', detail: previewIrrAnalysis.reason }
+          : { label: 'N/A', tone: 'caution', detail: previewIrrAnalysis.reason };
       const previewSentiment = getSentimentStatus({ viabilityPass: viability, spreadStatus: previewSpreadStatus, fragilityPass: fragility });
 
       acc[name] = {
@@ -835,10 +845,9 @@ const App = () => {
     });
   }, [showMobileLibrary, cloudProjects, projects, currency]);
 
-  const getSliderSegmentColor = ({ npvValue, spreadValue, downsidePass }) => {
+  const getSliderSegmentColor = ({ npvValue, activeRate }) => {
     if (npvValue < 0) return '#ef4444';
-    if (!downsidePass) return '#f97316';
-    if (spreadValue < 5) return '#eab308';
+    if (activeRate > 0 && npvValue < initial * 0.05) return '#eab308';
     return '#22c55e';
   };
 
@@ -873,11 +882,7 @@ const App = () => {
       const tempCashflows = [...cashflows];
       if (type === 'cashflow' && index !== null) tempCashflows[index] = val;
       const tempNpv = calculateNPV(tempInitial, tempRate, tempCashflows);
-      const tempIrr = analyzeIRR(tempInitial, tempCashflows);
-      const tempDownsideIrr = analyzeIRR(tempInitial, tempCashflows.map((cf) => cf * (1 - sensitivityPercent / 100)));
-      const tempSpread = tempIrr.status === 'valid' ? tempIrr.value - tempRate : Number.NEGATIVE_INFINITY;
-      const tempDownsidePass = tempDownsideIrr.status === 'valid' && tempDownsideIrr.value >= tempRate;
-      const color = getSliderSegmentColor({ npvValue: tempNpv, spreadValue: tempSpread, downsidePass: tempDownsidePass });
+      const color = getSliderSegmentColor({ npvValue: tempNpv, activeRate: tempRate });
       segments.push(`${color} ${startPercent}%`, `${color} ${endPercent}%`);
     }
 
@@ -906,7 +911,7 @@ const App = () => {
   const recommendation =
     !viabilityPass
       ? 'Reject Project: Base NPV is below zero, so the project does not create value under the current assumptions.'
-      : irrAnalysis.status !== 'valid'
+      : !['valid', 'above-range'].includes(irrAnalysis.status)
         ? `${irrIssueLabel}: ${irrIssueDetail}`
       : !spreadPass
         ? 'Borderline Project: IRR does not clear the active rate, so the return spread is not sufficient yet.'
@@ -1481,9 +1486,9 @@ const App = () => {
                     </div>
                     <div className={`details-rule ${fragilityPass ? 'pass' : 'fail'}`}>
                       <span className="details-rule-name">Durable {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
-                      <span className="details-rule-status">{irrAnalysis.status === 'valid' ? (fragilityPass ? 'Pass' : 'Fail') : 'N/A'}</span>
+                      <span className="details-rule-status">{['valid', 'above-range'].includes(downsideIrr.status) ? (fragilityPass ? 'Pass' : 'Fail') : 'N/A'}</span>
                       <span className="details-rule-subtext">
-                        {downsideIrr.status === 'valid' ? (showHurdleRate ? `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ discount (${discount.toFixed(1)}%)`) : getIrrIssueDetail(downsideIrr)}
+                        {downsideIrr.status === 'above-range' ? `Downside IRR is above ${downsideIrr.bound}%, clearing the active rate.` : downsideIrr.status === 'valid' ? (showHurdleRate ? `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ discount (${discount.toFixed(1)}%)`) : getIrrIssueDetail(downsideIrr)}
                       </span>
                     </div>
                   </div>

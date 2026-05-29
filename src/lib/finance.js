@@ -59,6 +59,7 @@ export const analyzeIRR = (init, cfs) => {
   const step = (IRR_MAX_RATE - IRR_MIN_RATE) / IRR_SCAN_STEPS;
   let previousRate = IRR_MIN_RATE;
   let previousNpv = calculateNPV(init, previousRate, cfs);
+  const minRateNpv = previousNpv;
 
   if (Math.abs(previousNpv) < NPV_TOLERANCE) roots.push(previousRate);
 
@@ -77,6 +78,28 @@ export const analyzeIRR = (init, cfs) => {
   }
 
   const uniqueRoots = dedupeRoots(roots);
+  if (signChanges === 1 && uniqueRoots.length === 0 && previousNpv > 0) {
+    return {
+      status: 'above-range',
+      value: null,
+      roots: [],
+      signChanges,
+      bound: IRR_MAX_RATE,
+      reason: `IRR is above ${IRR_MAX_RATE}%, outside the chart range.`,
+    };
+  }
+
+  if (signChanges === 1 && uniqueRoots.length === 0 && minRateNpv < 0) {
+    return {
+      status: 'below-range',
+      value: null,
+      roots: [],
+      signChanges,
+      bound: IRR_MIN_RATE,
+      reason: `IRR is below ${IRR_MIN_RATE}%, outside the supported range.`,
+    };
+  }
+
   if (signChanges === 0 || uniqueRoots.length === 0) {
     return {
       status: 'none',
@@ -87,7 +110,7 @@ export const analyzeIRR = (init, cfs) => {
     };
   }
 
-  if (signChanges > 1 || uniqueRoots.length > 1) {
+  if (uniqueRoots.length > 1) {
     return {
       status: 'ambiguous',
       value: null,
