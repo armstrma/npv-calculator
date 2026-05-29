@@ -1,5 +1,5 @@
 import { analyzeIRR, calculateNPV, calculatePayback } from '../../lib/finance.js';
-import { getSentimentStatus, getSpreadStatus } from '../../lib/calculation.js';
+import { convertIrrAnalysisRateBasis, getAppliedRate, getSentimentStatus, getSpreadStatus } from '../../lib/calculation.js';
 
 export const exampleProjects = [
   {
@@ -40,21 +40,25 @@ export const exampleProjects = [
     subtitle: 'Customer success tooling',
     description: 'Software, training, and retention lift modeled across twelve monthly cash-flow periods.',
     initial: 48000,
-    discount: 1.1,
+    discount: 14,
     cashflows: [2400, 3200, 3900, 4600, 5200, 5700, 6100, 6500, 6800, 7100, 7400, 7600],
     periodMode: 'months',
+    rateBasis: 'annual',
     showHurdleRate: false,
     hurdleRate: 12,
   },
 ];
 
 export const getProjectPreview = (project, currency = '$') => {
+  const periodMode = ['months', 'quarters', 'years'].includes(project.periodMode) ? project.periodMode : 'years';
+  const rateBasis = project.rateBasis === 'per-period' ? 'per-period' : 'annual';
   const activeRate = project.showHurdleRate ? project.hurdleRate : project.discount;
-  const npv = calculateNPV(project.initial, activeRate, project.cashflows);
-  const irrAnalysis = analyzeIRR(project.initial, project.cashflows);
+  const appliedRate = getAppliedRate(activeRate, periodMode, rateBasis);
+  const npv = calculateNPV(project.initial, appliedRate, project.cashflows);
+  const irrAnalysis = convertIrrAnalysisRateBasis(analyzeIRR(project.initial, project.cashflows), periodMode, rateBasis);
   const irr = irrAnalysis.value;
-  const payback = calculatePayback(project.initial, activeRate, project.cashflows);
-  const downsideIrrAnalysis = analyzeIRR(project.initial, project.cashflows.map((cf) => cf * 0.9));
+  const payback = calculatePayback(project.initial, appliedRate, project.cashflows);
+  const downsideIrrAnalysis = convertIrrAnalysisRateBasis(analyzeIRR(project.initial, project.cashflows.map((cf) => cf * 0.9)), periodMode, rateBasis);
   const spreadStatus = irrAnalysis.status === 'valid'
     ? getSpreadStatus(irr - activeRate)
     : ['above-range', 'not-applicable'].includes(irrAnalysis.status)
@@ -72,6 +76,6 @@ export const getProjectPreview = (project, currency = '$') => {
     label: sentiment.label,
     tone: sentiment.tone,
     currency,
-    periodMode: project.periodMode,
+    periodMode,
   };
 };

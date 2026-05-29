@@ -676,6 +676,12 @@ input[type="range"]::-moz-range-thumb {
 }
 .rate-toggle-label,
 .hurdle-rate-label-row { font-weight: 600; color: #e2e8f0; }
+.rate-derived-line {
+  margin: 2px 0 6px;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.3;
+}
 .rate-checkbox-label {
   display: inline-flex;
   align-items: center;

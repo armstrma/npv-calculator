@@ -1,10 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { annualToPeriodRate } from './calculation.js';
 import { analyzeIRR, calculateNPV, findIRR, calculatePayback, calculateROI, calculatePI } from './finance.js';
 
 test('calculateNPV returns expected positive NPV', () => {
   const result = calculateNPV(1000, 10, [400, 400, 400]);
   assert.ok(Math.abs(result - (-5.2592)) < 0.05);
+});
+
+test('calculateNPV can use converted annual rate for monthly cash flows', () => {
+  const monthlyRate = annualToPeriodRate(12, 'months');
+  const result = calculateNPV(1000, monthlyRate, [100, 100, 100]);
+
+  assert.ok(Math.abs(result - (-705.6045)) < 0.05);
 });
 
 test('findIRR approximates zero-NPV rate', () => {

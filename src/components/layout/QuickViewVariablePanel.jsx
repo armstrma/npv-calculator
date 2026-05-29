@@ -9,6 +9,9 @@ export const QuickViewVariablePanel = ({
   irrAnalysis,
   payback,
   periodMode,
+  rateBasisPrefix,
+  appliedRateForAnalysis,
+  appliedRateLabel,
   isDesktopViewport,
   initialInput,
   setInitialInput,
@@ -74,7 +77,7 @@ export const QuickViewVariablePanel = ({
     </div>
     <div className="quick-view-row quick-view-row-compact">
       <div className="quick-view-row-top quick-view-row-top-discount quick-view-row-top-static">
-        <span>{showHurdleRate ? 'Hurdle Rate' : 'Discount Rate'}</span>
+        <span>{showHurdleRate ? `${rateBasisPrefix}Hurdle Rate` : `${rateBasisPrefix}Discount Rate`}</span>
         <input
           type="text"
           inputMode="decimal"
@@ -107,6 +110,9 @@ export const QuickViewVariablePanel = ({
         else setDiscount(nextRate);
         setRateInput(nextRate.toFixed(1));
       }} className={showHurdleRate ? 'slider-hurdle' : 'slider-discount'} />
+      <div className="rate-derived-line">
+        {appliedRateLabel}: {appliedRateForAnalysis.toFixed(2)}%
+      </div>
     </div>
     {cashflows.map((cf, index) => (
       <div key={index} className="quick-view-row quick-view-row-compact">

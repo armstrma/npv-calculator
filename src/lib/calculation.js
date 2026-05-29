@@ -141,12 +141,45 @@ export const getIrrIssueDetail = (irrAnalysis) => {
 };
 
 export const PERIOD_OPTIONS = {
-  months: { label: 'Months', singular: 'Month', short: 'mo' },
-  quarters: { label: 'Quarters', singular: 'Quarter', short: 'qtr' },
-  years: { label: 'Years', singular: 'Year', short: 'yr' },
+  months: { label: 'Months', singular: 'Month', short: 'mo', periodsPerYear: 12, appliedLabel: 'monthly' },
+  quarters: { label: 'Quarters', singular: 'Quarter', short: 'qtr', periodsPerYear: 4, appliedLabel: 'quarterly' },
+  years: { label: 'Years', singular: 'Year', short: 'yr', periodsPerYear: 1, appliedLabel: 'annually' },
 };
 
 export const getPeriodMeta = (periodMode) => PERIOD_OPTIONS[periodMode] || PERIOD_OPTIONS.years;
+
+export const getRateBasisLabel = (periodMode) => `Applied ${getPeriodMeta(periodMode).appliedLabel}`;
+
+export const annualToPeriodRate = (annualRate, periodMode) => {
+  const rate = Number(annualRate);
+  if (!Number.isFinite(rate)) return 0;
+  const periodsPerYear = getPeriodMeta(periodMode).periodsPerYear;
+  if (periodsPerYear === 1) return rate;
+  return (Math.pow(1 + rate / 100, 1 / periodsPerYear) - 1) * 100;
+};
+
+export const periodToAnnualRate = (periodRate, periodMode) => {
+  const rate = Number(periodRate);
+  if (!Number.isFinite(rate)) return 0;
+  const periodsPerYear = getPeriodMeta(periodMode).periodsPerYear;
+  if (periodsPerYear === 1) return rate;
+  return (Math.pow(1 + rate / 100, periodsPerYear) - 1) * 100;
+};
+
+export const getAppliedRate = (displayRate, periodMode, rateBasis = 'annual') => (
+  rateBasis === 'per-period' ? displayRate : annualToPeriodRate(displayRate, periodMode)
+);
+
+export const convertIrrAnalysisRateBasis = (irrAnalysis, periodMode, rateBasis = 'annual') => {
+  if (rateBasis === 'per-period' || !irrAnalysis) return irrAnalysis;
+
+  const convertRate = (rate) => periodToAnnualRate(rate, periodMode);
+  return {
+    ...irrAnalysis,
+    value: typeof irrAnalysis.value === 'number' ? convertRate(irrAnalysis.value) : irrAnalysis.value,
+    roots: Array.isArray(irrAnalysis.roots) ? irrAnalysis.roots.map(convertRate) : [],
+  };
+};
 
 export const getPeriodLabel = (periodMode, count) => `${getPeriodMeta(periodMode).singular} ${count}`;
 
@@ -261,6 +294,7 @@ export const sanitizeProjectSnapshot = (project) => {
     discount: sanitizeRateValue(project?.discount, 0),
     cashflows: cashflowValues.length ? cashflowValues : [0],
     periodMode: ['months', 'quarters', 'years'].includes(project?.periodMode) ? project.periodMode : 'years',
+    rateBasis: project?.rateBasis === 'per-period' ? 'per-period' : 'annual',
     showHurdleRate: Boolean(project?.showHurdleRate),
     hurdleRate: sanitizeRateValue(project?.hurdleRate, 12),
   };

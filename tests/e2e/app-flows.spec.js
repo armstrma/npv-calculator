@@ -71,11 +71,21 @@ test('cloud save requires authentication before opening the cloud save dialog', 
 });
 
 test('deep links hydrate project values and title', async ({ page }) => {
-  await page.goto('/?initial=3210&discount=7.5&cashflows=400,500,600&project=Deep%20Link%20Project&period=quarters');
+  await page.goto('/?initial=3210&discount=7.5&cashflows=400,500,600&project=Deep%20Link%20Project&period=quarters&rateBasis=annual');
 
   await expect(page).toHaveTitle('NPV Lab | Deep Link Project');
   await expect(quickInputs(page).first()).toHaveValue('3,210');
   await expect(page.getByText('Quarter 1')).toBeVisible();
+  await expect(page.locator('.quick-view-controls')).toContainText('Annual Discount Rate');
+  await expect(page.locator('.quick-view-controls')).toContainText('Applied quarterly: 1.82%');
+});
+
+test('monthly projects apply annual discount rates as converted monthly rates', async ({ page }) => {
+  await page.goto('/?initial=1000&discount=12&cashflows=100,100,100&period=months&rateBasis=annual');
+
+  await expect(page.locator('.quick-view-controls')).toContainText('Annual Discount Rate');
+  await expect(page.locator('.quick-view-controls')).toContainText('Applied monthly: 0.95%');
+  await expect(page.locator('.quick-view-metrics-header')).toContainText('$-705.60');
 });
 
 test('checkout failure is shown after a signed-in user starts checkout', async ({ page }) => {

@@ -1,15 +1,17 @@
 import { useMemo } from 'react';
 import { LineChart, Line, ResponsiveContainer, ReferenceLine, XAxis, YAxis } from 'recharts';
 import { analyzeIRR, calculateNPV } from '../../lib/finance.js';
-import { formatMobileIrr, formatMobileNpv, formatPaybackDisplay } from '../../lib/calculation.js';
+import { convertIrrAnalysisRateBasis, formatMobileIrr, formatMobileNpv, formatPaybackDisplay, getAppliedRate } from '../../lib/calculation.js';
 import * as projectData from './projectData.js';
 
 const { exampleProjects, getProjectPreview } = projectData;
 
 const buildDiscountCurve = (project) => {
   const data = [];
+  const periodMode = ['months', 'quarters', 'years'].includes(project.periodMode) ? project.periodMode : 'years';
+  const rateBasis = project.rateBasis === 'per-period' ? 'per-period' : 'annual';
   for (let r = 0; r <= 30; r += 1) {
-    const npv = calculateNPV(project.initial, r, project.cashflows);
+    const npv = calculateNPV(project.initial, getAppliedRate(r, periodMode, rateBasis), project.cashflows);
     data.push({
       discount: r,
       npv,
@@ -22,7 +24,7 @@ const buildDiscountCurve = (project) => {
 
 const ExampleProjectPreview = ({ project }) => {
   const data = useMemo(() => buildDiscountCurve(project), [project]);
-  const irrAnalysis = useMemo(() => analyzeIRR(project.initial, project.cashflows), [project]);
+  const irrAnalysis = useMemo(() => convertIrrAnalysisRateBasis(analyzeIRR(project.initial, project.cashflows), project.periodMode, project.rateBasis), [project]);
   const activeRate = project.showHurdleRate ? project.hurdleRate : project.discount;
 
   return (

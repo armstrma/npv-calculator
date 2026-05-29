@@ -9,14 +9,17 @@ import { startShopifyCheckout } from './lib/shopifyCheckout.js';
 import {
   MAX_CASHFLOW_PERIODS,
   PROJECT_NAME_MAX_LENGTH,
+  convertIrrAnalysisRateBasis,
   chartTooltipMotionProps,
   formatCompactCurrency,
   formatMobileIrr,
   formatMobileNpv,
   formatPaybackDisplay,
+  getAppliedRate,
   getPeriodCollectionLabel,
   getPeriodLabel,
   getPeriodMeta,
+  getRateBasisLabel,
   getIrrDisplay,
   getIrrIssueDetail,
   getIrrIssueLabel,
@@ -60,6 +63,7 @@ const App = () => {
   const [cashflows, setCashflows] = useState([200, 300, 400, 500, 600]);
   const [currency, setCurrency] = useState('$');
   const [periodMode, setPeriodMode] = useState('years');
+  const [rateBasis, setRateBasis] = useState('annual');
   const [showSensitivity, setShowSensitivity] = useState(true);
   const [sensitivityPercent, setSensitivityPercent] = useState(10);
   const [showHurdleRate, setShowHurdleRate] = useState(false);
@@ -109,6 +113,11 @@ const App = () => {
   const quickViewInputRefs = useRef([]);
   const pendingQuickViewFocusIndex = useRef(null);
   const discountRateForAnalysis = showHurdleRate ? hurdleRate : discount;
+  const appliedDiscountRate = getAppliedRate(discount, periodMode, rateBasis);
+  const appliedHurdleRate = getAppliedRate(hurdleRate, periodMode, rateBasis);
+  const appliedRateForAnalysis = showHurdleRate ? appliedHurdleRate : appliedDiscountRate;
+  const rateBasisPrefix = rateBasis === 'annual' ? 'Annual ' : '';
+  const appliedRateLabel = getRateBasisLabel(periodMode);
   useEffect(() => {
     const saved = localStorage.getItem('npvProjects');
     if (saved) setProjects(JSON.parse(saved));
@@ -136,6 +145,7 @@ const App = () => {
     const cashflowsParam = params.get('cashflows');
     const currencyParam = params.get('currency');
     const periodParam = params.get('period');
+    const rateBasisParam = params.get('rateBasis');
     const projectParam = params.get('project');
     const hurdleEnabledParam = params.get('hurdleEnabled');
     const hurdleRateParam = params.get('hurdleRate');
@@ -167,6 +177,9 @@ const App = () => {
     if (periodParam && ['months', 'quarters', 'years'].includes(periodParam)) {
       setPeriodMode(periodParam);
     }
+    if (rateBasisParam && ['annual', 'per-period'].includes(rateBasisParam)) {
+      setRateBasis(rateBasisParam);
+    }
     if (hurdleEnabledParam !== null) {
       setShowHurdleRate(hurdleEnabledParam === 'true');
     }
@@ -183,7 +196,7 @@ const App = () => {
       setLoadedProjectName(sanitizedName);
     }
 
-    if ([initialValue, discountValue, cashflowsParam, currencyParam, periodParam, projectParam, hurdleEnabledParam, hurdleRateParam].some((value) => value !== null)) {
+    if ([initialValue, discountValue, cashflowsParam, currencyParam, periodParam, rateBasisParam, projectParam, hurdleEnabledParam, hurdleRateParam].some((value) => value !== null)) {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -394,6 +407,7 @@ const App = () => {
     discount: sanitizeRateValue(discount),
     cashflows: sanitizeCashflows(cashflows, [0]),
     periodMode,
+    rateBasis,
     showHurdleRate,
     hurdleRate: sanitizeRateValue(hurdleRate, 12),
   });
@@ -489,6 +503,7 @@ const App = () => {
       setShowHurdleRate(sanitizedProject.showHurdleRate);
       setHurdleRate(sanitizedProject.hurdleRate);
       setPeriodMode(sanitizedProject.periodMode);
+      setRateBasis(sanitizedProject.rateBasis);
       setInitialInput(formatNumberWithCommas(sanitizedProject.initial));
       setCashflowInputs(sanitizedProject.cashflows.map(formatNumberWithCommas));
       setProjectName(sanitizedName);
@@ -538,19 +553,22 @@ const App = () => {
     }
   };
 
-  const npv = useMemo(() => calculateNPV(initial, discountRateForAnalysis, cashflows), [initial, discountRateForAnalysis, cashflows]);
-  const irrAnalysis = useMemo(() => analyzeIRR(initial, cashflows), [initial, cashflows]);
+  const npv = useMemo(() => calculateNPV(initial, appliedRateForAnalysis, cashflows), [initial, appliedRateForAnalysis, cashflows]);
+  const rawIrrAnalysis = useMemo(() => analyzeIRR(initial, cashflows), [initial, cashflows]);
+  const irrAnalysis = useMemo(() => convertIrrAnalysisRateBasis(rawIrrAnalysis, periodMode, rateBasis), [rawIrrAnalysis, periodMode, rateBasis]);
   const irr = irrAnalysis.value;
-  const payback = useMemo(() => calculatePayback(initial, discountRateForAnalysis, cashflows), [initial, discountRateForAnalysis, cashflows]);
+  const payback = useMemo(() => calculatePayback(initial, appliedRateForAnalysis, cashflows), [initial, appliedRateForAnalysis, cashflows]);
   const roi = useMemo(() => calculateROI(initial, cashflows), [initial, cashflows]);
   const pi = useMemo(() => calculatePI(npv, initial), [npv, initial]);
 
   const discountData = useMemo(() => {
     const data = [];
     for (let r = 0; r <= 30; r += 0.5) {
-      const npvVal = calculateNPV(initial, r, cashflows);
+      const appliedRate = getAppliedRate(r, periodMode, rateBasis);
+      const npvVal = calculateNPV(initial, appliedRate, cashflows);
       const entry = {
         discount: r,
+        appliedRate,
         npv: npvVal,
         npv_pos: npvVal >= 0 ? npvVal : null,
         npv_neg: npvVal < 0 ? npvVal : null,
@@ -559,8 +577,8 @@ const App = () => {
         const sensitivityFactor = sensitivityPercent / 100;
         const lowCashflows = cashflows.map((cf) => cf * (1 - sensitivityFactor));
         const highCashflows = cashflows.map((cf) => cf * (1 + sensitivityFactor));
-        const lowNpv = calculateNPV(initial, r, lowCashflows);
-        const highNpv = calculateNPV(initial, r, highCashflows);
+        const lowNpv = calculateNPV(initial, appliedRate, lowCashflows);
+        const highNpv = calculateNPV(initial, appliedRate, highCashflows);
 
         entry.low_npv = lowNpv;
         entry.high_npv = highNpv;
@@ -572,7 +590,7 @@ const App = () => {
       data.push(entry);
     }
     return data;
-  }, [initial, cashflows, showSensitivity, sensitivityPercent]);
+  }, [initial, cashflows, showSensitivity, sensitivityPercent, periodMode, rateBasis]);
 
   const barData = useMemo(() => {
     let cumulative = -initial;
@@ -581,7 +599,7 @@ const App = () => {
     let pvCumulative = -initial;
     let pvCumulativeLow = -initial;
     let pvCumulativeHigh = -initial;
-    const rate = discountRateForAnalysis / 100;
+    const rate = appliedRateForAnalysis / 100;
 
     return [
       {
@@ -649,15 +667,15 @@ const App = () => {
         pvCumulativeRange: null,
       },
     ];
-  }, [initial, cashflows, npv, discountRateForAnalysis, sensitivityPercent, periodMode]);
+  }, [initial, cashflows, npv, appliedRateForAnalysis, sensitivityPercent, periodMode]);
 
   const sensitivityData = useMemo(() => {
     const variations = [-sensitivityPercent, 0, sensitivityPercent];
     return variations.map((varPct) => {
       const variedCashflows = cashflows.map((cf) => cf * (1 + varPct / 100));
-      return { variation: varPct, npv: calculateNPV(initial, discountRateForAnalysis, variedCashflows) };
+      return { variation: varPct, npv: calculateNPV(initial, appliedRateForAnalysis, variedCashflows) };
     });
-  }, [initial, discountRateForAnalysis, cashflows, sensitivityPercent]);
+  }, [initial, appliedRateForAnalysis, cashflows, sensitivityPercent]);
 
   const marginalSensitivityData = useMemo(() => {
     const rows = [
@@ -667,7 +685,7 @@ const App = () => {
         note: 'Every extra $1 of upfront cost reduces NPV by $1.00.',
       },
       ...cashflows.map((_, i) => {
-        const impact = 1 / Math.pow(1 + discountRateForAnalysis / 100, i + 1);
+        const impact = 1 / Math.pow(1 + appliedRateForAnalysis / 100, i + 1);
         return {
           name: getPeriodLabel(periodMode, i + 1),
           impactPerDollar: impact,
@@ -677,12 +695,12 @@ const App = () => {
     ];
 
     return rows;
-  }, [cashflows, discountRateForAnalysis, currency, periodMode]);
+  }, [cashflows, appliedRateForAnalysis, currency, periodMode]);
 
   const downsideIrr = useMemo(() => {
     const lowCashflows = cashflows.map((cf) => cf * (1 - sensitivityPercent / 100));
-    return analyzeIRR(initial, lowCashflows);
-  }, [initial, cashflows, sensitivityPercent]);
+    return convertIrrAnalysisRateBasis(analyzeIRR(initial, lowCashflows), periodMode, rateBasis);
+  }, [initial, cashflows, sensitivityPercent, periodMode, rateBasis]);
 
   const viabilityPass = npv > 0;
   const irrIssueDetail = getIrrIssueDetail(irrAnalysis);
@@ -703,15 +721,15 @@ const App = () => {
   const fragilityPass = downsideIrrClearsActiveRate;
 
   const breakEvenCashflowUpliftPct = useMemo(() => {
-    const pvOfCashflows = cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + discountRateForAnalysis / 100, i + 1), 0);
+    const pvOfCashflows = cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + appliedRateForAnalysis / 100, i + 1), 0);
     if (pvOfCashflows <= 0) return null;
     const multiplier = initial / pvOfCashflows;
     return (multiplier - 1) * 100;
-  }, [initial, discountRateForAnalysis, cashflows]);
+  }, [initial, appliedRateForAnalysis, cashflows]);
 
   const maxInitialAtNpvZero = useMemo(() => {
-    return cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + discountRateForAnalysis / 100, i + 1), 0);
-  }, [discountRateForAnalysis, cashflows]);
+    return cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + appliedRateForAnalysis / 100, i + 1), 0);
+  }, [appliedRateForAnalysis, cashflows]);
 
   const getGradient = (type, index = null) => {
     let minVal;
@@ -738,7 +756,7 @@ const App = () => {
     for (let i = 0; i <= steps; i++) {
       const val = minVal + (maxVal - minVal) * (i / steps);
       const tempInitial = type === 'initial' ? val : initial;
-      const tempDiscount = type === 'discount' ? val : discountRateForAnalysis;
+      const tempDiscount = type === 'discount' ? getAppliedRate(val, periodMode, rateBasis) : appliedRateForAnalysis;
       const tempCashflows = [...cashflows];
       if (type === 'cashflow' && index !== null) tempCashflows[index] = val;
       npvs.push(calculateNPV(tempInitial, tempDiscount, tempCashflows));
@@ -780,7 +798,7 @@ const App = () => {
   };
 
   const exportToCSV = () => {
-    const csvContent = `Initial,${initial}\nDiscount Rate,${discount}\nHurdle Rate Enabled,${showHurdleRate}\nHurdle Rate,${showHurdleRate ? hurdleRate : ''}\nCash Flows,${cashflows.join(',')}\nNPV,${npv}\nIRR,${getIrrDisplay(irrAnalysis)}\nIRR Status,${irrAnalysis.status}\nPayback,${payback}\nROI,${roi}\nPI,${pi}`;
+    const csvContent = `Initial,${initial}\nRate Basis,${rateBasis}\nAnnual Discount Rate,${discount}\nApplied Discount Rate,${appliedDiscountRate}\nHurdle Rate Enabled,${showHurdleRate}\nAnnual Hurdle Rate,${showHurdleRate ? hurdleRate : ''}\nApplied Hurdle Rate,${showHurdleRate ? appliedHurdleRate : ''}\nCash Flows,${cashflows.join(',')}\nNPV,${npv}\nIRR,${getIrrDisplay(irrAnalysis)}\nIRR Status,${irrAnalysis.status}\nPayback,${payback}\nROI,${roi}\nPI,${pi}`;
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -798,6 +816,7 @@ const App = () => {
     params.set('cashflows', project.cashflows.join(','));
     params.set('currency', currency);
     params.set('period', project.periodMode);
+    params.set('rateBasis', project.rateBasis);
     params.set('hurdleEnabled', String(project.showHurdleRate));
     if (project.showHurdleRate) params.set('hurdleRate', String(project.hurdleRate));
     const sanitizedName = sanitizeProjectName(projectName);
@@ -813,12 +832,15 @@ const App = () => {
     if (!showMobileLibrary) return;
 
     const buildPreviews = (projectSet) => Object.entries(projectSet || {}).reduce((acc, [name, project]) => {
+      const previewPeriodMode = ['months', 'quarters', 'years'].includes(project.periodMode) ? project.periodMode : 'years';
+      const previewRateBasis = project.rateBasis === 'per-period' ? 'per-period' : 'annual';
       const previewRate = project.showHurdleRate ? (typeof project.hurdleRate === 'number' ? project.hurdleRate : project.discount) : project.discount;
-      const previewNpv = calculateNPV(project.initial, previewRate, project.cashflows);
-      const previewIrrAnalysis = analyzeIRR(project.initial, project.cashflows);
-      const previewPayback = calculatePayback(project.initial, previewRate, project.cashflows);
+      const previewAppliedRate = getAppliedRate(previewRate, previewPeriodMode, previewRateBasis);
+      const previewNpv = calculateNPV(project.initial, previewAppliedRate, project.cashflows);
+      const previewIrrAnalysis = convertIrrAnalysisRateBasis(analyzeIRR(project.initial, project.cashflows), previewPeriodMode, previewRateBasis);
+      const previewPayback = calculatePayback(project.initial, previewAppliedRate, project.cashflows);
       const viability = previewNpv > 0;
-      const previewDownsideIrr = analyzeIRR(project.initial, project.cashflows.map((cf) => cf * 0.9));
+      const previewDownsideIrr = convertIrrAnalysisRateBasis(analyzeIRR(project.initial, project.cashflows.map((cf) => cf * 0.9)), previewPeriodMode, previewRateBasis);
       const fragility = ['above-range', 'not-applicable'].includes(previewDownsideIrr.status) || (previewDownsideIrr.status === 'valid' && previewDownsideIrr.value >= previewRate);
       const previewSpread = previewIrrAnalysis.status === 'valid' ? previewIrrAnalysis.value - previewRate : Number.NaN;
       const previewSpreadStatus = previewIrrAnalysis.status === 'valid'
@@ -833,7 +855,7 @@ const App = () => {
         irr: previewIrrAnalysis.value,
         irrAnalysis: previewIrrAnalysis,
         payback: previewPayback,
-        periodMode: ['months', 'quarters', 'years'].includes(project.periodMode) ? project.periodMode : 'years',
+        periodMode: previewPeriodMode,
         label: previewSentiment.label,
         tone: previewSentiment.tone,
         currency,
@@ -880,7 +902,7 @@ const App = () => {
       const endPercent = ((i + 1) / steps) * 100;
       const val = minVal + (maxVal - minVal) * ((i + 0.5) / steps);
       const tempInitial = type === 'initial' ? val : initial;
-      const tempRate = type === 'discount' ? val : discountRateForAnalysis;
+      const tempRate = type === 'discount' ? getAppliedRate(val, periodMode, rateBasis) : appliedRateForAnalysis;
       const tempCashflows = [...cashflows];
       if (type === 'cashflow' && index !== null) tempCashflows[index] = val;
       const tempNpv = calculateNPV(tempInitial, tempRate, tempCashflows);
@@ -1225,8 +1247,12 @@ const App = () => {
               sensitivityData={sensitivityData}
               irrAnalysis={irrAnalysis}
               discount={discount}
+              appliedDiscountRate={appliedDiscountRate}
               showHurdleRate={showHurdleRate}
               hurdleRate={hurdleRate}
+              appliedHurdleRate={appliedHurdleRate}
+              rateBasis={rateBasis}
+              rateBasisLabel={appliedRateLabel}
               cashflows={cashflows}
               pvBreakEvenInfo={pvBreakEvenInfo}
               sentiment={sentiment}
@@ -1246,6 +1272,9 @@ const App = () => {
           <QuickViewVariablePanel
             sentiment={sentiment}
             periodMode={periodMode}
+            rateBasisPrefix={rateBasisPrefix}
+            appliedRateForAnalysis={appliedRateForAnalysis}
+            appliedRateLabel={appliedRateLabel}
             isDesktopViewport={isDesktopViewport}
             npvColor={npvColor}
             npv={npv}
@@ -1330,17 +1359,18 @@ const App = () => {
 
           <div className="discount-control">
             <div className="rate-toggle-row">
-              <label className="rate-toggle-label">Discount Rate: {discount.toFixed(1)}%</label>
+              <label className="rate-toggle-label">{rateBasisPrefix}Discount Rate: {discount.toFixed(1)}%</label>
               <span className="rate-checkbox-label">
                 <input type="checkbox" checked={showHurdleRate} onChange={(e) => setShowHurdleRate(e.target.checked)} />
                 Hurdle Rate
               </span>
             </div>
+            <div className="rate-derived-line">{appliedRateLabel}: {appliedDiscountRate.toFixed(2)}%</div>
             <input type="range" min={0} max={30} step={0.1} value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="slider-discount" />
             {showHurdleRate && (
               <div className="hurdle-rate-control">
                 <div className="hurdle-rate-label-row">
-                  <span>Hurdle Rate: {hurdleRate.toFixed(1)}%</span>
+                  <span>{rateBasisPrefix}Hurdle Rate: {hurdleRate.toFixed(1)}%</span>
                   {hurdleRate < discount && (
                     <div className="hurdle-warning-wrap">
                       <button
@@ -1362,6 +1392,7 @@ const App = () => {
                     </div>
                   )}
                 </div>
+                <div className="rate-derived-line">{appliedRateLabel}: {appliedHurdleRate.toFixed(2)}%</div>
                 <input type="range" min={0} max={30} step={0.1} value={hurdleRate} onChange={(e) => setHurdleRate(Number(e.target.value))} className="slider-hurdle" />
               </div>
             )}
@@ -1473,13 +1504,13 @@ const App = () => {
                     </div>
                   </div>
                   <div className="details-discount-source-badge" role="status">
-                    Discounting source: {showHurdleRate ? `Hurdle rate (${hurdleRate.toFixed(1)}%)` : `Discount rate (${discount.toFixed(1)}%)`}
+                    Discounting source: {showHurdleRate ? `${rateBasisPrefix.toLowerCase()}hurdle rate (${hurdleRate.toFixed(1)}%), applied as ${appliedHurdleRate.toFixed(2)}%` : `${rateBasisPrefix.toLowerCase()}discount rate (${discount.toFixed(1)}%), applied as ${appliedDiscountRate.toFixed(2)}%`}
                   </div>
                   <div className="details-rule-list">
                     <div className={`details-rule ${viabilityPass ? 'pass' : 'fail'}`}>
                       <span className="details-rule-name">Creates Value</span>
                       <span className="details-rule-status">{viabilityPass ? 'Pass' : 'Fail'}</span>
-                      <span className="details-rule-subtext">NPV &gt; 0 using {discountRateForAnalysis.toFixed(1)}%</span>
+                      <span className="details-rule-subtext">NPV &gt; 0 using {discountRateForAnalysis.toFixed(1)}% {rateBasis}</span>
                     </div>
                     <div className={`details-rule ${spreadStatus.tone === 'positive' ? 'pass' : spreadStatus.tone === 'negative' ? 'fail' : 'warn'}`}>
                       <span className="details-rule-name">Spread {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
@@ -1490,7 +1521,7 @@ const App = () => {
                       <span className="details-rule-name">Durable {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
                       <span className="details-rule-status">{['valid', 'above-range', 'not-applicable'].includes(downsideIrr.status) ? (fragilityPass ? 'Pass' : 'Fail') : 'N/A'}</span>
                       <span className="details-rule-subtext">
-                        {downsideIrr.status === 'not-applicable' ? getIrrIssueDetail(downsideIrr) : downsideIrr.status === 'above-range' ? `Downside IRR is above ${downsideIrr.bound}%, clearing the active rate.` : downsideIrr.status === 'valid' ? (showHurdleRate ? `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ hurdle (${hurdleRate.toFixed(1)}%)` : `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ discount (${discount.toFixed(1)}%)`) : getIrrIssueDetail(downsideIrr)}
+                        {downsideIrr.status === 'not-applicable' ? getIrrIssueDetail(downsideIrr) : downsideIrr.status === 'above-range' ? `Downside IRR is above ${downsideIrr.bound}%, clearing the active rate.` : downsideIrr.status === 'valid' ? (showHurdleRate ? `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ annual hurdle (${hurdleRate.toFixed(1)}%)` : `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ annual discount (${discount.toFixed(1)}%)`) : getIrrIssueDetail(downsideIrr)}
                       </span>
                     </div>
                   </div>
@@ -1501,7 +1532,7 @@ const App = () => {
                   <h3 className="details-panel-title">Breakeven Analysis</h3>
                   <div className="details-list">
                     <p>Break-even discount rate (IRR): <strong>{getIrrDisplay(irrAnalysis)}</strong> {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</p>
-                    <p>Discounted payback period at {discountRateForAnalysis.toFixed(1)}%: <strong>{formatPaybackDisplay(payback)}</strong></p>
+                    <p>Discounted payback period at {discountRateForAnalysis.toFixed(1)}% {rateBasis} ({appliedRateForAnalysis.toFixed(2)}% applied): <strong>{formatPaybackDisplay(payback, periodMode)}</strong></p>
                     <p>
                       Required cash flow uplift:{' '}
                       <strong>{breakEvenCashflowUpliftPct === null ? 'N/A' : `${breakEvenCashflowUpliftPct >= 0 ? '+' : ''}${breakEvenCashflowUpliftPct.toFixed(1)}%`}</strong>
@@ -1548,23 +1579,23 @@ const App = () => {
 
         <div className="right" style={{ width: '50%' }}>
           <section className="chart-section">
-            <h2 className="chart-title">NPV vs Discount Rate</h2>
-            <p className="chart-subtitle">See how the project’s discounted value changes as the required rate rises, and where it crosses into unattractive territory.</p>
+            <h2 className="chart-title">NPV vs Annual Discount Rate</h2>
+            <p className="chart-subtitle">Cash flows: {getPeriodMeta(periodMode).appliedLabel}. Discount rate: {discount.toFixed(1)}% annual, applied as {appliedDiscountRate.toFixed(2)}% per {getPeriodMeta(periodMode).singular.toLowerCase()}.</p>
             <ResponsiveContainer width="100%" height={236}>
               <LineChart data={discountData} margin={{ top: 22, right: 18, left: 0, bottom: 28 }}>
                 <XAxis dataKey="discount" type="number" domain={[0, 30]} />
                 <YAxis />
-                <Tooltip {...chartTooltipMotionProps} cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
+                <Tooltip {...chartTooltipMotionProps} cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} periodMode={periodMode} rateBasis={rateBasis} />} />
                 <Line type="monotone" dataKey="npv_pos" stroke="green" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
                 <Line type="monotone" dataKey="npv_neg" stroke="red" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
                 {irrAnalysis.roots.map((root) => (
                   <ReferenceLine key={root} x={root} stroke="#7dd3fc" strokeDasharray="3 3" label={<Label value={`IRR: ${root.toFixed(2)}%`} position="insideTopRight" fill="#7dd3fc" dx={-10} dy={-8} />} />
                 ))}
                 {!showHurdleRate && (
-                  <ReferenceLine x={discount} stroke="#c084fc" strokeDasharray="3 3" label={<Label value={`Discount Rate: ${discount.toFixed(1)}%`} position="insideBottom" fill="#c084fc" dy={-2} />} />
+                  <ReferenceLine x={discount} stroke="#c084fc" strokeDasharray="3 3" label={<Label value={`Annual Disc: ${discount.toFixed(1)}%`} position="insideBottom" fill="#c084fc" dy={-2} />} />
                 )}
                 {showHurdleRate && (
-                  <ReferenceLine x={hurdleRate} stroke="#22c55e" strokeDasharray="6 4" label={<Label value={`Hurdle Rate: ${hurdleRate.toFixed(1)}%`} position="insideBottom" fill="#22c55e" dy={-2} />} />
+                  <ReferenceLine x={hurdleRate} stroke="#22c55e" strokeDasharray="6 4" label={<Label value={`Annual Hurdle: ${hurdleRate.toFixed(1)}%`} position="insideBottom" fill="#22c55e" dy={-2} />} />
                 )}
                 {showSensitivity && (
                   <>
