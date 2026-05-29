@@ -1,5 +1,6 @@
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const ENV = import.meta.env || {};
+const SUPABASE_URL = ENV.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = ENV.VITE_SUPABASE_ANON_KEY;
 const SESSION_STORAGE_KEY = 'npvLabSupabaseSession';
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const REFRESH_WINDOW_MS = 5 * 60 * 1000;
@@ -28,7 +29,21 @@ const normalizeSession = (session) => {
 
 export const getStoredSession = () => {
   try {
-    const stored = window.localStorage.getItem(SESSION_STORAGE_KEY) || window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+    const stored = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+    const legacyStored = window.localStorage.getItem(SESSION_STORAGE_KEY);
+    if (stored) {
+      window.localStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+    if (!stored && legacyStored) {
+      window.localStorage.removeItem(SESSION_STORAGE_KEY);
+      const legacySession = normalizeSession(JSON.parse(legacyStored));
+      if (!legacySession) {
+        clearStoredSession();
+        return null;
+      }
+      window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(legacySession));
+      return legacySession;
+    }
     const session = stored ? normalizeSession(JSON.parse(stored)) : null;
     if (!session) clearStoredSession();
     return session;
@@ -43,8 +58,8 @@ export const storeSession = (session) => {
     clearStoredSession();
     return null;
   }
-  window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(normalized));
-  window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  window.localStorage.removeItem(SESSION_STORAGE_KEY);
+  window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(normalized));
   return normalized;
 };
 
