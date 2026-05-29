@@ -116,7 +116,8 @@ const App = () => {
   const appliedDiscountRate = getAppliedRate(discount, periodMode, rateBasis);
   const appliedHurdleRate = getAppliedRate(hurdleRate, periodMode, rateBasis);
   const appliedRateForAnalysis = showHurdleRate ? appliedHurdleRate : appliedDiscountRate;
-  const rateBasisPrefix = rateBasis === 'annual' ? 'Annual ' : '';
+  const shouldShowAppliedRate = periodMode !== 'years';
+  const rateBasisPrefix = rateBasis === 'annual' && shouldShowAppliedRate ? 'Annual ' : '';
   const appliedRateLabel = getRateBasisLabel(periodMode);
   useEffect(() => {
     const saved = localStorage.getItem('npvProjects');
@@ -1253,6 +1254,7 @@ const App = () => {
               appliedHurdleRate={appliedHurdleRate}
               rateBasis={rateBasis}
               rateBasisLabel={appliedRateLabel}
+              shouldShowAppliedRate={shouldShowAppliedRate}
               cashflows={cashflows}
               pvBreakEvenInfo={pvBreakEvenInfo}
               sentiment={sentiment}
@@ -1275,6 +1277,7 @@ const App = () => {
             rateBasisPrefix={rateBasisPrefix}
             appliedRateForAnalysis={appliedRateForAnalysis}
             appliedRateLabel={appliedRateLabel}
+            shouldShowAppliedRate={shouldShowAppliedRate}
             isDesktopViewport={isDesktopViewport}
             npvColor={npvColor}
             npv={npv}
@@ -1365,7 +1368,7 @@ const App = () => {
                 Hurdle Rate
               </span>
             </div>
-            <div className="rate-derived-line">{appliedRateLabel}: {appliedDiscountRate.toFixed(2)}%</div>
+            {shouldShowAppliedRate && <div className="rate-derived-line">{appliedRateLabel}: {appliedDiscountRate.toFixed(2)}%</div>}
             <input type="range" min={0} max={30} step={0.1} value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="slider-discount" />
             {showHurdleRate && (
               <div className="hurdle-rate-control">
@@ -1392,7 +1395,7 @@ const App = () => {
                     </div>
                   )}
                 </div>
-                <div className="rate-derived-line">{appliedRateLabel}: {appliedHurdleRate.toFixed(2)}%</div>
+                {shouldShowAppliedRate && <div className="rate-derived-line">{appliedRateLabel}: {appliedHurdleRate.toFixed(2)}%</div>}
                 <input type="range" min={0} max={30} step={0.1} value={hurdleRate} onChange={(e) => setHurdleRate(Number(e.target.value))} className="slider-hurdle" />
               </div>
             )}
@@ -1504,7 +1507,7 @@ const App = () => {
                     </div>
                   </div>
                   <div className="details-discount-source-badge" role="status">
-                    Discounting source: {showHurdleRate ? `${rateBasisPrefix.toLowerCase()}hurdle rate (${hurdleRate.toFixed(1)}%), applied as ${appliedHurdleRate.toFixed(2)}%` : `${rateBasisPrefix.toLowerCase()}discount rate (${discount.toFixed(1)}%), applied as ${appliedDiscountRate.toFixed(2)}%`}
+                    Discounting source: {showHurdleRate ? `${rateBasisPrefix.toLowerCase()}hurdle rate (${hurdleRate.toFixed(1)}%)${shouldShowAppliedRate ? `, applied as ${appliedHurdleRate.toFixed(2)}%` : ''}` : `${rateBasisPrefix.toLowerCase()}discount rate (${discount.toFixed(1)}%)${shouldShowAppliedRate ? `, applied as ${appliedDiscountRate.toFixed(2)}%` : ''}`}
                   </div>
                   <div className="details-rule-list">
                     <div className={`details-rule ${viabilityPass ? 'pass' : 'fail'}`}>
@@ -1579,8 +1582,12 @@ const App = () => {
 
         <div className="right" style={{ width: '50%' }}>
           <section className="chart-section">
-            <h2 className="chart-title">NPV vs Annual Discount Rate</h2>
-            <p className="chart-subtitle">Cash flows: {getPeriodMeta(periodMode).appliedLabel}. Discount rate: {discount.toFixed(1)}% annual, applied as {appliedDiscountRate.toFixed(2)}% per {getPeriodMeta(periodMode).singular.toLowerCase()}.</p>
+            <h2 className="chart-title">NPV vs {rateBasisPrefix}Discount Rate</h2>
+            <p className="chart-subtitle">
+              {shouldShowAppliedRate
+                ? `Cash flows: ${getPeriodMeta(periodMode).appliedLabel}. Discount rate: ${discount.toFixed(1)}% annual, applied as ${appliedDiscountRate.toFixed(2)}% per ${getPeriodMeta(periodMode).singular.toLowerCase()}.`
+                : 'See how the project’s discounted value changes as the required rate rises, and where it crosses into unattractive territory.'}
+            </p>
             <ResponsiveContainer width="100%" height={236}>
               <LineChart data={discountData} margin={{ top: 22, right: 18, left: 0, bottom: 28 }}>
                 <XAxis dataKey="discount" type="number" domain={[0, 30]} />

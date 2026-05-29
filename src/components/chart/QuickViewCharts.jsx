@@ -10,13 +10,14 @@ export const NpvTooltip = ({ active, payload, label, currency, showSensitivity, 
   const highNpv = typeof row.high_npv === 'number' ? row.high_npv : null;
   const lowNpv = typeof row.low_npv === 'number' ? row.low_npv : null;
   const periodMeta = getPeriodMeta(periodMode);
+  const shouldShowAppliedRate = periodMode !== 'years';
 
   return (
     <div style={tooltipShellStyle}>
       <div style={{ marginBottom: 4, color: '#d1d5db' }}>
-        {rateBasis === 'annual' ? 'Annual discount' : 'Per-period discount'}: <strong>{Number(label).toFixed(1)}%</strong>
+        {rateBasis === 'annual' && shouldShowAppliedRate ? 'Annual discount' : 'Discount'}: <strong>{Number(label).toFixed(1)}%</strong>
       </div>
-      {typeof row.appliedRate === 'number' && <div>{rateBasis === 'annual' ? `Applied ${periodMeta.appliedLabel}: ${row.appliedRate.toFixed(2)}%` : `Cash flows: ${periodMeta.appliedLabel}`}</div>}
+      {shouldShowAppliedRate && typeof row.appliedRate === 'number' && <div>{rateBasis === 'annual' ? `Applied ${periodMeta.appliedLabel}: ${row.appliedRate.toFixed(2)}%` : `Cash flows: ${periodMeta.appliedLabel}`}</div>}
       {baseNpv !== null && <div style={{ color: baseNpv >= 0 ? '#86efac' : '#fca5a5' }}>NPV: {currency}{baseNpv.toFixed(2)}</div>}
       {showSensitivity && highNpv !== null && <div style={{ color: '#c4b5fd' }}>High (+{sensitivityPercent}% CF): {currency}{highNpv.toFixed(2)}</div>}
       {showSensitivity && lowNpv !== null && <div style={{ color: '#f9a8d4' }}>Low (-{sensitivityPercent}% CF): {currency}{lowNpv.toFixed(2)}</div>}
@@ -80,6 +81,7 @@ export const QuickViewCharts = ({
   appliedHurdleRate,
   rateBasis,
   rateBasisLabel,
+  shouldShowAppliedRate,
   cashflows,
   pvBreakEvenInfo,
   sentiment,
@@ -122,7 +124,7 @@ export const QuickViewCharts = ({
         {activeView === 'npv' && (
           <>
             <div className="quick-view-stage-heading quick-view-stage-heading-with-control">
-              <h2>NPV vs {rateBasis === 'annual' ? 'Annual ' : ''}Discount Rate</h2>
+              <h2>NPV vs {rateBasis === 'annual' && shouldShowAppliedRate ? 'Annual ' : ''}Discount Rate</h2>
               <label className="quick-view-stage-control">
                 <span>Sensitivity</span>
                 <select value={showSensitivity ? String(sensitivityPercent) : 'off'} onChange={(e) => {
@@ -302,7 +304,7 @@ export const QuickViewCharts = ({
                   </button>
                 </div>
                 <div className="quick-view-analysis-detail quick-view-analysis-inline-detail">
-                  {activeAnalysisCard === 'viability' && <p>{isDesktopViewport ? `NPV stays above zero at the active ${discountRateForAnalysis.toFixed(1)}% ${rateBasis} rate (${rateBasisLabel.toLowerCase()} as ${(showHurdleRate ? appliedHurdleRate : appliedDiscountRate).toFixed(2)}%), so the project is still creating net value after discounting.` : `NPV > 0 at ${discountRateForAnalysis.toFixed(1)}% ${rateBasis}`}</p>}
+                  {activeAnalysisCard === 'viability' && <p>{isDesktopViewport ? `NPV stays above zero at the active ${discountRateForAnalysis.toFixed(1)}% ${rateBasis} rate${shouldShowAppliedRate ? ` (${rateBasisLabel.toLowerCase()} as ${(showHurdleRate ? appliedHurdleRate : appliedDiscountRate).toFixed(2)}%)` : ''}, so the project is still creating net value after discounting.` : `NPV > 0 at ${discountRateForAnalysis.toFixed(1)}% ${rateBasis}`}</p>}
                   {activeAnalysisCard === 'standard' && <p>{hasNonNumericIrr ? irrIssueDetail : isDesktopViewport ? `IRR is ${spread >= 0 ? '+' : ''}${spread.toFixed(2)} points versus the active rate, which grades this spread as ${spreadStatus.label.toLowerCase()}.` : `${spread >= 0 ? '+' : ''}${spread.toFixed(2)} pts vs active rate`}</p>}
                   {activeAnalysisCard === 'fragility' && <p>{hasNonNumericIrr ? irrIssueDetail : isDesktopViewport ? (showHurdleRate ? `Even the downside case keeps IRR above the ${hurdleRate.toFixed(1)}% annual hurdle, which makes the result more resilient.` : `Even the downside case keeps IRR above the ${discount.toFixed(1)}% annual discount rate, which suggests the outcome is holding up under pressure.`) : (showHurdleRate ? `Downside IRR ≥ hurdle ${hurdleRate.toFixed(1)}%` : `Downside IRR ≥ discount ${discount.toFixed(1)}%`)}</p>}
                 </div>

@@ -88,6 +88,15 @@ test('monthly projects apply annual discount rates as converted monthly rates', 
   await expect(page.locator('.quick-view-metrics-header')).toContainText('$-705.60');
 });
 
+test('yearly projects keep annual rate assumptions implicit', async ({ page }) => {
+  await page.goto('/?initial=1000&discount=12&cashflows=400,400,400&period=years&rateBasis=annual');
+
+  await expect(page.locator('.quick-view-controls')).toContainText('Discount Rate');
+  await expect(page.locator('.quick-view-controls')).not.toContainText('Annual Discount Rate');
+  await expect(page.locator('.quick-view-controls')).not.toContainText('Applied annually');
+  await expect(page.locator('.quick-view-stage-heading h2').first()).toHaveText('NPV vs Discount Rate');
+});
+
 test('checkout failure is shown after a signed-in user starts checkout', async ({ page }) => {
   await mockSignedInUser(page);
   await page.route('**/api/create-shopify-checkout', async (route) => {
