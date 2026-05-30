@@ -4,21 +4,63 @@
 
 Entitlement state lives in `public.user_entitlements`.
 
-For now, the only app behavior is the top-bar `PRO` badge:
+The app now resolves the raw Pro flag into a feature matrix through `src/lib/entitlementAccess.js`.
+
+Current free limits:
+
+- basic NPV calculator
+- accept / reject result
+- up to 5 years of cash flows
+- 1 saved cloud project
+- 3 saved local projects
+- basic chart
+- basic assumptions summary
+- limited analysis surface
+- free example templates
+
+Current Pro unlocks:
+
+- unlimited cash-flow horizons
+- dynamic months / quarters / years period calculations
+- sensitivity analysis
+- editable example templates
+- more cloud and local projects
+
+Future Pro/classroom candidates are represented in the feature matrix but should still be treated as heavier roadmap work:
+
+- exportable reports: CSV, XLSX, PDF, PPT
+- multi-project comparison
+- scenario comparison
+- guided educational mode
+- saved project tagging
+- classroom/institutional controls
+
+The badge remains a UI indicator:
 
 - signed out users do not see the badge
 - signed in users without a row, or with `pro_enabled = false`, do not see the badge
 - signed in users with `pro_enabled = true` see the badge
 
-To manually grant Pro during testing, insert or update the signed-in user's row in Supabase:
+Frontend gating is not a security boundary. Cloud writes still need Supabase RLS or server-side checks, and future premium Netlify Functions must verify the authenticated session and entitlement server-side.
+
+To manually grant upgraded access during testing or for a demo, insert or update the signed-in user's row in Supabase. `expires_at` can be `null` for no expiry, or a timestamp for a temporary grant.
 
 ```sql
-insert into public.user_entitlements (user_id, pro_enabled, source)
-values ('USER_UUID_HERE', true, 'manual')
+insert into public.user_entitlements (user_id, pro_enabled, source, expires_at)
+values ('USER_UUID_HERE', true, 'manual-demo', now() + interval '14 days')
 on conflict (user_id)
 do update set
   pro_enabled = excluded.pro_enabled,
-  source = excluded.source;
+  source = excluded.source,
+  expires_at = excluded.expires_at;
+```
+
+For a named user, find their id from Supabase Auth first:
+
+```sql
+select id, email
+from auth.users
+where email = 'person@example.com';
 ```
 
 Revoke the entitlement with:
@@ -26,7 +68,18 @@ Revoke the entitlement with:
 ```sql
 update public.user_entitlements
 set pro_enabled = false,
-    source = 'manual'
+    source = 'manual',
+    expires_at = now()
+where user_id = 'USER_UUID_HERE';
+```
+
+Extend an existing demo:
+
+```sql
+update public.user_entitlements
+set pro_enabled = true,
+    source = 'manual-demo',
+    expires_at = now() + interval '30 days'
 where user_id = 'USER_UUID_HERE';
 ```
 

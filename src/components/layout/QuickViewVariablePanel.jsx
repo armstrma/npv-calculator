@@ -35,7 +35,12 @@ export const QuickViewVariablePanel = ({
   quickViewInputRefs,
   removeYear,
   addQuickViewYear,
-}) => (
+  access,
+  isFreeExamplePreview,
+}) => {
+  const lockedTooltip = 'This component is locked for editing. Upgrade to premium to modify and save your own copy.';
+
+  return (
   <div className="quick-view-controls">
     <div className="mobile-metrics-header mobile-metrics-header-inline quick-view-metrics-header">
       <span className="mobile-sentiment-dot-wrap quick-view-sentiment-dot-wrap">
@@ -46,7 +51,7 @@ export const QuickViewVariablePanel = ({
       <span>IRR <strong>{formatMobileIrr(irrAnalysis)}</strong></span>
       <span>Payback <strong>{formatPaybackDisplay(payback, periodMode)}</strong></span>
     </div>
-    <div className="quick-view-row">
+    <div className={`quick-view-row ${isFreeExamplePreview ? 'locked-input-row locked-control-tooltip' : ''}`} data-tooltip={isFreeExamplePreview ? lockedTooltip : undefined}>
       <div className="quick-view-row-top quick-view-row-top-static">
         <span>Initial</span>
         <span>{currency}</span>
@@ -55,6 +60,7 @@ export const QuickViewVariablePanel = ({
           inputMode="decimal"
           autoComplete="off"
           value={initialInput}
+          disabled={isFreeExamplePreview}
           onChange={(e) => {
             const rawValue = e.target.value;
             setInitialInput(rawValue);
@@ -70,13 +76,13 @@ export const QuickViewVariablePanel = ({
           }}
         />
       </div>
-      <input type="range" min={sliderBounds.initial.min} max={sliderBounds.initial.max} step={100} value={initial} onChange={(e) => {
+      <input type="range" min={sliderBounds.initial.min} max={sliderBounds.initial.max} step={100} value={initial} disabled={isFreeExamplePreview} onChange={(e) => {
         const nextInitial = Number(e.target.value);
         setInitial(nextInitial);
         setInitialInput(formatNumberWithCommas(nextInitial));
       }} className="slider-initial" />
     </div>
-    <div className="quick-view-row quick-view-row-compact">
+    <div className={`quick-view-row quick-view-row-compact ${isFreeExamplePreview ? 'locked-input-row locked-control-tooltip' : ''}`} data-tooltip={isFreeExamplePreview ? lockedTooltip : undefined}>
       <div className="quick-view-row-top quick-view-row-top-discount quick-view-row-top-static">
         <span>{showHurdleRate ? `${rateBasisPrefix}Hurdle Rate` : `${rateBasisPrefix}Discount Rate`}</span>
         <input
@@ -84,6 +90,7 @@ export const QuickViewVariablePanel = ({
           inputMode="decimal"
           autoComplete="off"
           value={rateInput}
+          disabled={isFreeExamplePreview}
           onChange={(e) => {
             const rawValue = e.target.value;
             setRateInput(rawValue);
@@ -103,9 +110,11 @@ export const QuickViewVariablePanel = ({
           }}
         />
         <span>%</span>
-        <label className="quick-view-toggle"><input type="checkbox" checked={showHurdleRate} onChange={(e) => setShowHurdleRate(e.target.checked)} /> Hurdle</label>
+        {access?.features?.hurdleRate && (
+          <label className="quick-view-toggle"><input type="checkbox" checked={showHurdleRate} onChange={(e) => setShowHurdleRate(e.target.checked)} /> Hurdle</label>
+        )}
       </div>
-      <input type="range" min={0} max={30} step={0.1} value={showHurdleRate ? hurdleRate : discount} onChange={(e) => {
+      <input type="range" min={0} max={30} step={0.1} value={showHurdleRate ? hurdleRate : discount} disabled={isFreeExamplePreview} onChange={(e) => {
         const nextRate = Number(e.target.value);
         if (showHurdleRate) setHurdleRate(nextRate);
         else setDiscount(nextRate);
@@ -118,7 +127,7 @@ export const QuickViewVariablePanel = ({
       )}
     </div>
     {cashflows.map((cf, index) => (
-      <div key={index} className="quick-view-row quick-view-row-compact">
+      <div key={index} className={`quick-view-row quick-view-row-compact ${isFreeExamplePreview && index > 0 ? 'locked-input-row locked-control-tooltip' : ''}`} data-tooltip={isFreeExamplePreview && index > 0 ? lockedTooltip : undefined}>
         <div className="quick-view-row-top">
           <span>{getPeriodLabel(periodMode, index + 1)}</span>
           <span>{currency}</span>
@@ -127,6 +136,7 @@ export const QuickViewVariablePanel = ({
             inputMode="decimal"
             autoComplete="off"
             value={cashflowInputs[index] ?? formatNumberWithCommas(cf)}
+            disabled={isFreeExamplePreview && index > 0}
             onChange={(e) => {
               const nextInputs = [...cashflowInputs];
               nextInputs[index] = e.target.value;
@@ -153,9 +163,9 @@ export const QuickViewVariablePanel = ({
               }
             }}
           />
-          <button type="button" onClick={() => removeYear(index)}>×</button>
+          {!isFreeExamplePreview && <button type="button" onClick={() => removeYear(index)}>×</button>}
         </div>
-        <input type="range" min={sliderBounds.cashflow.min} max={sliderBounds.cashflow.max} step={100} value={cf} onChange={(e) => {
+        <input type="range" min={sliderBounds.cashflow.min} max={sliderBounds.cashflow.max} step={100} value={cf} disabled={isFreeExamplePreview && index > 0} onChange={(e) => {
           const updated = [...cashflows];
           updated[index] = Number(e.target.value);
           setCashflows(updated);
@@ -164,7 +174,8 @@ export const QuickViewVariablePanel = ({
       </div>
     ))}
     <button type="button" className="quick-view-add-space" onClick={addQuickViewYear}>
-      {getAddPeriodLabel(periodMode, isDesktopViewport)}
+      {getAddPeriodLabel(periodMode, isDesktopViewport)}{(isFreeExamplePreview || cashflows.length >= access?.limits?.maxCashflowPeriods) && <span className="pro-texture-badge">PRO</span>}
     </button>
   </div>
-);
+  );
+};

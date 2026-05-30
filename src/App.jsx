@@ -5,6 +5,7 @@ import { formatNumberWithCommas, parseNumericInput } from './lib/input.js';
 import { clearStoredSession, consumeMagicLinkSession, fetchCurrentUser, getActiveSession, getStoredSession, isCloudAuthConfigured, requestMagicLink } from './lib/cloudAuth.js';
 import { fetchUserEntitlement } from './lib/cloudEntitlements.js';
 import { deleteCloudProject, listCloudProjects, upsertCloudProject } from './lib/cloudProjects.js';
+import { canSaveProject, FREE_TIER_LIMITS, resolveAccess } from './lib/entitlementAccess.js';
 import { startShopifyCheckout } from './lib/shopifyCheckout.js';
 import {
   MAX_CASHFLOW_PERIODS,
@@ -56,6 +57,12 @@ import {
   Area,
 } from 'recharts';
 const GuideModal = lazy(() => import('./GuideModal.jsx'));
+const localProEntitlementEnabled = import.meta.env.DEV && import.meta.env.VITE_LOCAL_PRO_ENTITLEMENT === 'true';
+const applyLocalProEntitlement = (loadedEntitlement = { hasPro: false, source: null }) => (
+  localProEntitlementEnabled
+    ? { ...loadedEntitlement, hasPro: true, source: loadedEntitlement.source || 'local-dev' }
+    : loadedEntitlement
+);
 
 const App = () => {
   const [initial, setInitial] = useState(1000);
@@ -71,6 +78,7 @@ const App = () => {
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [sliderGradientsEnabled, setSliderGradientsEnabled] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProductHero, setShowProductHero] = useState(true);
   const [showMobileLibrary, setShowMobileLibrary] = useState(false);
@@ -89,7 +97,7 @@ const App = () => {
   const [authNotice, setAuthNotice] = useState('');
   const [authSession, setAuthSession] = useState(null);
   const [authUser, setAuthUser] = useState(null);
-  const [entitlement, setEntitlement] = useState({ hasPro: false, source: null });
+  const [entitlement, setEntitlement] = useState(applyLocalProEntitlement());
   const [checkoutStatus, setCheckoutStatus] = useState('idle');
   const [checkoutNotice, setCheckoutNotice] = useState('');
   const [cloudProjects, setCloudProjects] = useState({});
@@ -98,6 +106,7 @@ const App = () => {
   const [projects, setProjects] = useState({});
   const [projectName, setProjectName] = useState('');
   const [loadedProjectName, setLoadedProjectName] = useState('');
+  const [loadedProjectSource, setLoadedProjectSource] = useState('scratch');
   const [showMetricsDetails, setShowMetricsDetails] = useState(false);
   const [sliderBounds, setSliderBounds] = useState({ initial: { min: 0, max: 10000 }, cashflow: { min: -5000, max: 10000 } });
   const [copiedProjectLink, setCopiedProjectLink] = useState(false);
@@ -119,6 +128,16 @@ const App = () => {
   const shouldShowAppliedRate = periodMode !== 'years';
   const rateBasisPrefix = rateBasis === 'annual' && shouldShowAppliedRate ? 'Annual ' : '';
   const appliedRateLabel = getRateBasisLabel(periodMode);
+  const access = useMemo(() => resolveAccess(entitlement), [entitlement]);
+  const isPro = access.hasPro;
+  const isFreeExamplePreview = !isPro && loadedProjectSource === 'example';
+  const canViewAdvancedExample = isPro || isFreeExamplePreview;
+  const effectiveShowSensitivity = showSensitivity && (access.features.sensitivityAnalysis || isFreeExamplePreview);
+  const cashflowPeriodLimit = isFreeExamplePreview ? cashflows.length : access.limits.maxCashflowPeriods;
+  const canEditProjectStructure = isPro || !isFreeExamplePreview;
+  const canAddCashflowPeriod = canEditProjectStructure && cashflows.length < cashflowPeriodLimit;
+  const localSaveLimitReached = !isPro && Object.keys(projects || {}).length >= access.limits.maxLocalProjects;
+  const cloudSaveLimitReached = !isPro && Object.keys(cloudProjects || {}).length >= access.limits.maxCloudProjects;
   useEffect(() => {
     const saved = localStorage.getItem('npvProjects');
     if (saved) setProjects(JSON.parse(saved));
@@ -218,11 +237,11 @@ const App = () => {
         fetchUserEntitlement(activeSession)
           .then((loadedEntitlement) => {
             if (cancelled) return;
-            setEntitlement(loadedEntitlement);
+            setEntitlement(applyLocalProEntitlement(loadedEntitlement));
           })
           .catch(() => {
             if (cancelled) return;
-            setEntitlement({ hasPro: false, source: null });
+            setEntitlement(applyLocalProEntitlement());
           });
         return listCloudProjects(activeSession);
       })
@@ -246,6 +265,19 @@ const App = () => {
   useEffect(() => {
     setRateInput((showHurdleRate ? hurdleRate : discount).toFixed(1));
   }, [showHurdleRate, hurdleRate, discount]);
+
+  useEffect(() => {
+    if (access.hasPro) return;
+    if (showSensitivity && !isFreeExamplePreview) setShowSensitivity(false);
+    if (showHurdleRate) setShowHurdleRate(false);
+    if (!isFreeExamplePreview && periodMode !== 'years') setPeriodMode('years');
+    if (!isFreeExamplePreview && rateBasis !== 'annual') setRateBasis('annual');
+    if (!isFreeExamplePreview && cashflows.length > FREE_TIER_LIMITS.maxCashflowPeriods) {
+      const nextCashflows = cashflows.slice(0, FREE_TIER_LIMITS.maxCashflowPeriods);
+      setCashflows(nextCashflows);
+      setCashflowInputs(nextCashflows.map(formatNumberWithCommas));
+    }
+  }, [access.hasPro, isFreeExamplePreview, showSensitivity, showHurdleRate, periodMode, rateBasis, cashflows]);
 
   useEffect(() => {
     const activeProjectName = loadedProjectName?.trim() || projectName?.trim();
@@ -343,6 +375,11 @@ const App = () => {
     setShowAuthModal(true);
   };
 
+  const openUpgradeModal = (reason = '') => {
+    setUpgradeReason(reason);
+    setShowUpgradeModal(true);
+  };
+
   const handleRequestMagicLink = async () => {
     const normalizedEmail = authEmail.trim();
     if (!normalizedEmail) {
@@ -374,7 +411,7 @@ const App = () => {
     clearStoredSession();
     setAuthSession(null);
     setAuthUser(null);
-    setEntitlement({ hasPro: false, source: null });
+    setEntitlement(applyLocalProEntitlement());
     setCloudProjects({});
     setCloudStatus('');
   };
@@ -416,6 +453,15 @@ const App = () => {
   const saveProject = (name) => {
     const trimmedName = sanitizeProjectName(name);
     if (!trimmedName) return null;
+    if (isFreeExamplePreview) {
+      openUpgradeModal('Free example previews are view-only except for the first cash-flow period. Upgrade to save editable copies and build your own library.');
+      return null;
+    }
+    const saveAccess = canSaveProject({ access, target: 'local', projectName: trimmedName, projects });
+    if (!saveAccess.allowed) {
+      openUpgradeModal("You've run out of projects you can save. Upgrade to unlock more local and cloud projects.");
+      return null;
+    }
     const project = getCurrentProjectSnapshot();
     const newProjects = {
       ...projects,
@@ -425,6 +471,7 @@ const App = () => {
     localStorage.setItem('npvProjects', JSON.stringify(newProjects));
     setProjectName(trimmedName);
     setLoadedProjectName(trimmedName);
+    setLoadedProjectSource('local');
     setInitialInput(formatNumberWithCommas(initial));
     setCashflowInputs(cashflows.map(formatNumberWithCommas));
     return project;
@@ -433,6 +480,15 @@ const App = () => {
   const saveProjectToCloud = async (name) => {
     const trimmedName = sanitizeProjectName(name);
     if (!trimmedName || !authSession || !authUser?.id) return;
+    if (isFreeExamplePreview) {
+      openUpgradeModal('Free example previews are view-only except for the first cash-flow period. Upgrade to save editable copies and build your own library.');
+      return;
+    }
+    const saveAccess = canSaveProject({ access, target: 'cloud', projectName: trimmedName, projects: cloudProjects });
+    if (!saveAccess.allowed) {
+      openUpgradeModal("You've run out of cloud projects you can save. Upgrade to unlock more local and cloud projects.");
+      return;
+    }
     const project = getCurrentProjectSnapshot();
     setCloudStatus('Saving cloud project...');
     const activeSession = await getActiveSession(authSession);
@@ -455,12 +511,24 @@ const App = () => {
     }));
     setProjectName(trimmedName);
     setLoadedProjectName(trimmedName);
+    setLoadedProjectSource('cloud');
     setInitialInput(formatNumberWithCommas(initial));
     setCashflowInputs(cashflows.map(formatNumberWithCommas));
     setCloudStatus('Cloud project saved.');
+    return project;
   };
 
   const handleSaveLocally = () => {
+    if (isFreeExamplePreview) {
+      openUpgradeModal('Free example previews cannot be saved. Upgrade to save editable copies and compare your own projects.');
+      setShowSaveMenu(false);
+      return;
+    }
+    if (localSaveLimitReached) {
+      openUpgradeModal("You've run out of projects you can save. Upgrade to unlock more local and cloud projects.");
+      setShowSaveMenu(false);
+      return;
+    }
     setSaveTarget('local');
     setSaveLocalName(projectName?.trim() || loadedProjectName?.trim() || '');
     setShowSaveLocalModal(true);
@@ -468,6 +536,16 @@ const App = () => {
   };
 
   const handleSaveToCloud = () => {
+    if (isFreeExamplePreview) {
+      openUpgradeModal('Free example previews cannot be saved. Upgrade to save editable copies and sync them across devices.');
+      setShowSaveMenu(false);
+      return;
+    }
+    if (authUser && cloudSaveLimitReached) {
+      openUpgradeModal("You've run out of cloud projects you can save. Upgrade to unlock more local and cloud projects.");
+      setShowSaveMenu(false);
+      return;
+    }
     if (!authUser) {
       handleRequireAuth('signin');
       setShowSaveMenu(false);
@@ -484,9 +562,11 @@ const App = () => {
     if (!saveLocalName?.trim()) return;
     try {
       if (saveTarget === 'cloud') {
-        await saveProjectToCloud(saveLocalName);
+        const savedProject = await saveProjectToCloud(saveLocalName);
+        if (!savedProject) return;
       } else {
-        saveProject(saveLocalName);
+        const savedProject = saveProject(saveLocalName);
+        if (!savedProject) return;
       }
       setShowSaveLocalModal(false);
     } catch (error) {
@@ -494,7 +574,7 @@ const App = () => {
     }
   };
 
-  const applyProject = (name, project) => {
+  const applyProject = (name, project, source = 'project') => {
     if (project) {
       const sanitizedProject = sanitizeProjectSnapshot(project);
       const sanitizedName = sanitizeProjectName(name);
@@ -509,15 +589,17 @@ const App = () => {
       setCashflowInputs(sanitizedProject.cashflows.map(formatNumberWithCommas));
       setProjectName(sanitizedName);
       setLoadedProjectName(sanitizedName);
+      setLoadedProjectSource(source);
     }
   };
 
   const loadProject = (name, source = 'local') => {
-    applyProject(name, source === 'cloud' ? cloudProjects[name] : projects[name]);
+    applyProject(name, source === 'cloud' ? cloudProjects[name] : projects[name], source);
   };
 
   const loadExampleProject = (project) => {
-    applyProject(project.name, project);
+    applyProject(project.name, project, 'example');
+    setShowSensitivity(true);
   };
 
   const deleteProject = (name, source = 'local') => {
@@ -574,7 +656,7 @@ const App = () => {
         npv_pos: npvVal >= 0 ? npvVal : null,
         npv_neg: npvVal < 0 ? npvVal : null,
       };
-      if (showSensitivity) {
+      if (effectiveShowSensitivity) {
         const sensitivityFactor = sensitivityPercent / 100;
         const lowCashflows = cashflows.map((cf) => cf * (1 - sensitivityFactor));
         const highCashflows = cashflows.map((cf) => cf * (1 + sensitivityFactor));
@@ -591,7 +673,7 @@ const App = () => {
       data.push(entry);
     }
     return data;
-  }, [initial, cashflows, showSensitivity, sensitivityPercent, periodMode, rateBasis]);
+  }, [initial, cashflows, effectiveShowSensitivity, sensitivityPercent, periodMode, rateBasis]);
 
   const barData = useMemo(() => {
     let cumulative = -initial;
@@ -753,41 +835,32 @@ const App = () => {
     }
 
     const steps = 20;
-    const npvs = [];
+    const stops = [];
     for (let i = 0; i <= steps; i++) {
       const val = minVal + (maxVal - minVal) * (i / steps);
       const tempInitial = type === 'initial' ? val : initial;
       const tempDiscount = type === 'discount' ? getAppliedRate(val, periodMode, rateBasis) : appliedRateForAnalysis;
       const tempCashflows = [...cashflows];
       if (type === 'cashflow' && index !== null) tempCashflows[index] = val;
-      npvs.push(calculateNPV(tempInitial, tempDiscount, tempCashflows));
-    }
-
-    const minNPV = Math.min(...npvs);
-    const maxNPV = Math.max(...npvs);
-    if (minNPV === maxNPV) return 'gray';
-
-    const negMin = Math.min(minNPV, 0);
-    const posMax = Math.max(maxNPV, 0);
-
-    const stops = npvs.map((npvVal, i) => {
-      let hue;
-      if (npvVal <= 0) {
-        if (negMin === 0) hue = 60;
-        else hue = ((npvVal - negMin) / (0 - negMin)) * 60;
-      } else {
-        if (posMax === 0) hue = 60;
-        else hue = 60 + (npvVal / posMax) * 60;
-      }
-      const color = `hsl(${hue}, 100%, 50%)`;
+      const tempNpv = calculateNPV(tempInitial, tempDiscount, tempCashflows);
+      const color = getSliderSegmentColor({
+        npvValue: tempNpv,
+        activeRate: tempDiscount,
+        scenarioInitial: tempInitial,
+        scenarioCashflows: tempCashflows,
+      });
       const percent = (i / steps) * 100;
-      return `${color} ${percent}%`;
-    });
+      stops.push(`${color} ${percent}%`);
+    }
 
     return `linear-gradient(to right, ${stops.join(', ')})`;
   };
 
   const addYear = () => {
+    if (!canAddCashflowPeriod) {
+      openUpgradeModal(isFreeExamplePreview ? 'Free example previews only let you edit the first cash-flow period. Upgrade to edit the full template.' : 'Free projects are limited to 5 cash-flow periods. Upgrade to unlock longer horizons.');
+      return;
+    }
     if (cashflows.length >= MAX_CASHFLOW_PERIODS) return;
     setCashflows([...cashflows, 0]);
     setCashflowInputs([...cashflowInputs, formatNumberWithCommas(0)]);
@@ -870,9 +943,14 @@ const App = () => {
     });
   }, [showMobileLibrary, cloudProjects, projects, currency]);
 
-  const getSliderSegmentColor = ({ npvValue, activeRate }) => {
+  const getSliderSegmentColor = ({ npvValue, activeRate, scenarioInitial, scenarioCashflows }) => {
     if (npvValue < 0) return '#ef4444';
-    if (activeRate > 0 && npvValue < initial * 0.05) return '#eab308';
+    if (effectiveShowSensitivity) {
+      const sensitivityFactor = sensitivityPercent / 100;
+      const downsideCashflows = scenarioCashflows.map((cf) => cf * (1 - sensitivityFactor));
+      const downsideNpv = calculateNPV(scenarioInitial, activeRate, downsideCashflows);
+      if (downsideNpv < 0) return '#eab308';
+    }
     return '#22c55e';
   };
 
@@ -907,7 +985,12 @@ const App = () => {
       const tempCashflows = [...cashflows];
       if (type === 'cashflow' && index !== null) tempCashflows[index] = val;
       const tempNpv = calculateNPV(tempInitial, tempRate, tempCashflows);
-      const color = getSliderSegmentColor({ npvValue: tempNpv, activeRate: tempRate });
+      const color = getSliderSegmentColor({
+        npvValue: tempNpv,
+        activeRate: tempRate,
+        scenarioInitial: tempInitial,
+        scenarioCashflows: tempCashflows,
+      });
       segments.push(`${color} ${startPercent}%`, `${color} ${endPercent}%`);
     }
 
@@ -949,12 +1032,20 @@ const App = () => {
               : 'Accept Project: The base case, spread, and downside case all pass strongly.';
 
   const addQuickViewYear = () => {
+    if (!canAddCashflowPeriod) {
+      openUpgradeModal(isFreeExamplePreview ? 'Free example previews only let you edit the first cash-flow period. Upgrade to edit the full template.' : 'Free projects are limited to 5 cash-flow periods. Upgrade to unlock longer horizons.');
+      return;
+    }
     if (cashflows.length >= MAX_CASHFLOW_PERIODS) return;
     setCashflows((current) => [...current, 0]);
     setCashflowInputs((current) => [...current, formatNumberWithCommas(0)]);
   };
 
   const insertQuickViewYearAfter = (index) => {
+    if (!canAddCashflowPeriod) {
+      openUpgradeModal(isFreeExamplePreview ? 'Free example previews only let you edit the first cash-flow period. Upgrade to edit the full template.' : 'Free projects are limited to 5 cash-flow periods. Upgrade to unlock longer horizons.');
+      return;
+    }
     if (cashflows.length >= MAX_CASHFLOW_PERIODS) return;
     const insertAt = index + 1;
     pendingQuickViewFocusIndex.current = insertAt;
@@ -1012,7 +1103,7 @@ const App = () => {
           <div className="product-page-copy-top">
             <h1 className="product-page-title">Learn capital budgeting with a calculator that actually explains the decision.</h1>
             <p className="product-page-subtitle">
-              NPV Lab Pro combines fast scenario analysis, visual reasoning, and a growing premium workflow for students, instructors, and finance learners.
+              NPV Lab combines fast scenario analysis, visual reasoning, and a growing premium workflow for students, instructors, and finance learners.
             </p>
             <div className="product-page-actions product-page-actions-top desktop-hero-actions">
               <button type="button" className="button-primary hero-pricing-button" onClick={() => setShowUpgradeModal(true)}>
@@ -1071,11 +1162,15 @@ const App = () => {
             </svg>
           </button>
           <div className="mobile-topbar-menu-wrap">
-            <button type="button" className="mobile-topbar-action mobile-topbar-action-left mobile-topbar-save" onClick={() => {
+            <button type="button" className={`mobile-topbar-action mobile-topbar-action-left mobile-topbar-save ${isFreeExamplePreview ? 'is-disabled' : ''}`} onClick={() => {
+              if (isFreeExamplePreview) {
+                openUpgradeModal('Free example previews cannot be saved. Upgrade to save editable copies and build your own project library.');
+                return;
+              }
               setShowSaveMenu((value) => !value);
               setShowQuickViewMenu(false);
               setShowShareMenu(false);
-            }} aria-label="Save options">
+            }} aria-label="Save options" aria-disabled={isFreeExamplePreview} title={isFreeExamplePreview ? 'Saving is locked for free example previews.' : 'Save options'}>
               <svg className="mobile-topbar-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M5 4.75h11.5l2.75 2.75v11A1.5 1.5 0 0 1 17.75 20h-11.5A1.5 1.5 0 0 1 4.75 18.5v-12A1.75 1.75 0 0 1 6.5 4.75Z" />
                 <path d="M8 4.75v5.5h7v-4" />
@@ -1090,6 +1185,7 @@ const App = () => {
                   onClick={handleSaveToCloud}
                 >
                   {authUser ? 'Save to Cloud' : 'Sign In to Save to Cloud'}
+                  {cloudSaveLimitReached && <span className="pro-texture-badge">PRO</span>}
                 </button>
                 <button
                   type="button"
@@ -1100,13 +1196,14 @@ const App = () => {
                   }}
                 >
                   Save Locally
+                  {localSaveLimitReached && <span className="pro-texture-badge">PRO</span>}
                 </button>
               </div>
             )}
           </div>
           <div className="mobile-topbar-brand">
             <span className="mobile-topbar-title">NPV Lab</span>
-            {entitlement.hasPro && <span className="mobile-topbar-pro-badge">PRO</span>}
+            {entitlement.hasPro && <span className="mobile-topbar-pro-badge" aria-label="Upgraded account">Pro</span>}
           </div>
           <div className="mobile-topbar-menu-wrap">
             <button type="button" className="mobile-topbar-action mobile-topbar-action-right" onClick={() => {
@@ -1155,6 +1252,11 @@ const App = () => {
                 <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
                   <span>Periods</span>
                   <select value={periodMode} onChange={(e) => {
+                    if (!access.features.dynamicPeriods && e.target.value !== 'years') {
+                      openUpgradeModal('Dynamic monthly and quarterly period calculations are unlocked with an upgraded account.');
+                      setShowQuickViewMenu(false);
+                      return;
+                    }
                     setPeriodMode(e.target.value);
                     setShowQuickViewMenu(false);
                   }}>
@@ -1165,11 +1267,17 @@ const App = () => {
                 </label>
                 <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
                   <span>Sensitivity</span>
-                  <select value={showSensitivity ? String(sensitivityPercent) : '10'} onChange={(e) => {
+                  <select className={!access.features.sensitivityAnalysis && !isFreeExamplePreview ? 'locked-select-blur' : ''} value={effectiveShowSensitivity ? String(sensitivityPercent) : 'locked'} onChange={(e) => {
+                    if (!access.features.sensitivityAnalysis && !isFreeExamplePreview) {
+                      openUpgradeModal('Sensitivity analysis is locked on the free tier. Upgrade to see downside and upside cash-flow swings.');
+                      setShowQuickViewMenu(false);
+                      return;
+                    }
                     setShowSensitivity(true);
                     setSensitivityPercent(Number(e.target.value));
                     setShowQuickViewMenu(false);
                   }}>
+                    {!access.features.sensitivityAnalysis && !isFreeExamplePreview && <option value="locked">••••</option>}
                     <option value="5">5%</option>
                     <option value="10">10%</option>
                     <option value="20">20%</option>
@@ -1229,7 +1337,7 @@ const App = () => {
       <div className={`app-shell-header ${(showProductHero && !quickViewEnabled) ? '' : 'app-shell-header-hidden-mobile'}`}>
         <div className="app-shell-brand">
           <h1 className="app-title">NPV Lab</h1>
-          {entitlement.hasPro && <span className="app-shell-pro-badge">PRO</span>}
+          {entitlement.hasPro && <span className="app-shell-pro-badge" aria-label="Upgraded account">Pro</span>}
         </div>
       </div>
 
@@ -1239,9 +1347,12 @@ const App = () => {
             <QuickViewCharts
               currency={currency}
               periodMode={periodMode}
-              showSensitivity={showSensitivity}
+              showSensitivity={effectiveShowSensitivity}
               sensitivityPercent={sensitivityPercent}
               setSensitivityPercent={setSensitivityPercent}
+              access={access}
+              canViewAdvancedExample={canViewAdvancedExample}
+              onRequestUpgrade={openUpgradeModal}
               discountData={discountData}
               barData={barData}
               marginalSensitivityData={marginalSensitivityData}
@@ -1305,6 +1416,9 @@ const App = () => {
             quickViewInputRefs={quickViewInputRefs}
             removeYear={removeYear}
             addQuickViewYear={addQuickViewYear}
+            access={access}
+            onRequestUpgrade={openUpgradeModal}
+            isFreeExamplePreview={isFreeExamplePreview}
           />
         </div>
       ) : (
@@ -1363,10 +1477,12 @@ const App = () => {
           <div className="discount-control">
             <div className="rate-toggle-row">
               <label className="rate-toggle-label">{rateBasisPrefix}Discount Rate: {discount.toFixed(1)}%</label>
-              <span className="rate-checkbox-label">
-                <input type="checkbox" checked={showHurdleRate} onChange={(e) => setShowHurdleRate(e.target.checked)} />
-                Hurdle Rate
-              </span>
+              {access.features.hurdleRate && (
+                <span className="rate-checkbox-label">
+                  <input type="checkbox" checked={showHurdleRate} onChange={(e) => setShowHurdleRate(e.target.checked)} />
+                  Hurdle Rate
+                </span>
+              )}
             </div>
             {shouldShowAppliedRate && <div className="rate-derived-line">{appliedRateLabel}: {appliedDiscountRate.toFixed(2)}%</div>}
             <input type="range" min={0} max={30} step={0.1} value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="slider-discount" />
@@ -1402,7 +1518,7 @@ const App = () => {
           </div>
 
           <h3 className="factor-subheader">Cash Flows</h3>
-          <button onClick={addYear} className="button-secondary add-year-button">Add {getPeriodMeta(periodMode).singular}</button>
+          <button onClick={addYear} className="button-secondary add-year-button">Add {getPeriodMeta(periodMode).singular}{!canAddCashflowPeriod && <span className="pro-texture-badge">PRO</span>}</button>
 
           {cashflows.map((cf, index) => (
             <div key={index} className="cashflow-row">
@@ -1551,10 +1667,15 @@ const App = () => {
 
           <label style={{ display: 'block', marginTop: 10 }}>
             Sensitivity{' '}
-            <select value={showSensitivity ? String(sensitivityPercent) : '10'} onChange={(e) => {
+            <select className={!access.features.sensitivityAnalysis && !isFreeExamplePreview ? 'locked-select-blur' : ''} value={effectiveShowSensitivity ? String(sensitivityPercent) : 'locked'} onChange={(e) => {
+              if (!access.features.sensitivityAnalysis && !isFreeExamplePreview) {
+                openUpgradeModal('Sensitivity analysis is locked on the free tier. Upgrade to see downside and upside cash-flow swings.');
+                return;
+              }
               setShowSensitivity(true);
               setSensitivityPercent(Number(e.target.value));
             }}>
+              {!access.features.sensitivityAnalysis && !isFreeExamplePreview && <option value="locked">••••</option>}
               <option value="5">5%</option>
               <option value="10">10%</option>
               <option value="20">20%</option>
@@ -1562,11 +1683,17 @@ const App = () => {
           </label>
 
           <div className="action-button-row">
-            <button onClick={exportToCSV} className="button-secondary">Export CSV</button>
+            <button onClick={() => {
+              if (!access.features.exportReports) {
+                openUpgradeModal('Exportable reports are locked on the free tier. Upgrade to prepare CSV now and richer XLSX, PDF, and presentation exports later.');
+                return;
+              }
+              exportToCSV();
+            }} className="button-secondary">Export CSV</button>
             <button onClick={copyProjectLink} className="button-secondary">{copiedProjectLink ? 'Copied Project Link' : 'Copy Project Link'}</button>
           </div>
 
-          {showSensitivity && (
+          {effectiveShowSensitivity && (
             <table>
               <thead>
                 <tr><th>Variation</th><th>NPV</th></tr>
@@ -1592,7 +1719,7 @@ const App = () => {
               <LineChart data={discountData} margin={{ top: 22, right: 18, left: 0, bottom: 28 }}>
                 <XAxis dataKey="discount" type="number" domain={[0, 30]} />
                 <YAxis />
-                <Tooltip {...chartTooltipMotionProps} cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} periodMode={periodMode} rateBasis={rateBasis} />} />
+                <Tooltip {...chartTooltipMotionProps} cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={effectiveShowSensitivity} sensitivityPercent={sensitivityPercent} periodMode={periodMode} rateBasis={rateBasis} />} />
                 <Line type="monotone" dataKey="npv_pos" stroke="green" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
                 <Line type="monotone" dataKey="npv_neg" stroke="red" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
                 {irrAnalysis.roots.map((root) => (
@@ -1604,7 +1731,7 @@ const App = () => {
                 {showHurdleRate && (
                   <ReferenceLine x={hurdleRate} stroke="#22c55e" strokeDasharray="6 4" label={<Label value={`Annual Hurdle: ${hurdleRate.toFixed(1)}%`} position="insideBottom" fill="#22c55e" dy={-2} />} />
                 )}
-                {showSensitivity && (
+                {effectiveShowSensitivity && (
                   <>
                     <Line type="monotone" dataKey="high_npv_pos" stroke="#a78bfa" dot={false} activeDot={{ r: 3 }} strokeWidth={2} strokeDasharray="4 3" isAnimationActive={false} />
                     <Line type="monotone" dataKey="high_npv_neg" stroke="#ef4444" dot={false} activeDot={{ r: 3 }} strokeWidth={2} strokeDasharray="4 3" isAnimationActive={false} />
@@ -1624,7 +1751,7 @@ const App = () => {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={2} />
-                <Tooltip {...chartTooltipMotionProps} content={<CashflowTooltip currency={currency} showSensitivity={showSensitivity} sensitivityPercent={sensitivityPercent} />} />
+                <Tooltip {...chartTooltipMotionProps} content={<CashflowTooltip currency={currency} showSensitivity={effectiveShowSensitivity} sensitivityPercent={sensitivityPercent} />} />
                 <Legend payload={[{ value: 'PV Cumulative', type: 'line', color: '#a78bfa' }, { value: 'Cash Cumulative', type: 'line', color: '#60a5fa' }]} />
                 {cashflows.length > 0 && (
                   <>
@@ -1653,7 +1780,7 @@ const App = () => {
                     return <Cell key={`pv-cell-${index}`} fill={fill} />;
                   })}
                 </Bar>
-                {showSensitivity && (
+                {effectiveShowSensitivity && (
                   <>
                     <Area type="monotone" dataKey="cumulativeLow" stackId="cashBand" legendType="none" stroke="none" fill="transparent" isAnimationActive={false} />
                     <Area type="monotone" dataKey="cumulativeRange" stackId="cashBand" legendType="none" stroke="none" fill="#60a5fa" fillOpacity={0.16} isAnimationActive={false} />
@@ -1688,10 +1815,12 @@ const App = () => {
       </div>
       )}
 
-      <button type="button" className="floating-upgrade-button" onClick={() => setShowUpgradeModal(true)}>
-        <span className="floating-upgrade-label">Upgrade</span>
-        <span className="floating-upgrade-badge">PRO</span>
-      </button>
+      {!isPro && (
+        <button type="button" className="floating-upgrade-button" onClick={() => openUpgradeModal('Upgrade to unlock more saved projects, full editing on examples, sensitivity analysis, and deeper charts.')}>
+          <span className="floating-upgrade-label">Upgrade</span>
+          <span className="floating-upgrade-badge pro-texture-badge">PRO</span>
+        </button>
+      )}
 
       {showGuideModal && (
         <Suspense
@@ -1731,6 +1860,7 @@ const App = () => {
         }}
         projectPreviews={projectPreviews}
         cloudStatus={cloudStatus}
+        access={access}
       />
 
       {showSaveLocalModal && (
@@ -1783,11 +1913,12 @@ const App = () => {
       <ProductModal
         open={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        title="Upgrade to NPV Lab Pro"
+        title="Upgrade NPV Lab"
         isAuthenticated={Boolean(authUser)}
         userLabel={authUser ? authUser.email : 'Not signed in'}
         checkoutStatus={checkoutStatus}
         checkoutNotice={checkoutNotice}
+        reason={upgradeReason}
         onStartCheckout={handleStartCheckout}
         onRequireAuth={() => handleRequireAuth('register')}
       />

@@ -71,45 +71,76 @@ This is stronger than positioning it as just “an NPV calculator.”
 ## Free vs Paid Structure
 
 ## Free Tier
-Likely includes:
+Current working boundary:
 - basic NPV calculator
-- colored sliders
-- one editable investment slider
-- basic cash flow entry/sliders
-- discount rate slider
-- simple top-line outputs: NPV / IRR / Payback / Sentiment
-- Export CSV
+- accept / reject result
+- up to 5 years of cash flows
+- 1 saved cloud project
+- 3 saved local projects
+- basic chart
+- basic assumptions summary
+- limited analysis tab
 - Copy Project Link
 
-Possible free restrictions:
-- no saving projects
-- no hurdle rate
-- no advanced charts
-- no detailed analysis panels
-- no sensitivity analysis toggle
-- no browser/local saved project library
+Locked or blurred from free:
+- sensitivity analysis
+- dynamic period calculations
+- exportable reports: CSV, XLSX, PDF, PPT
+- multi-project comparison
+- unlimited horizons
+- educational explanations / guided mode
+- scenario comparison: base, conservative, aggressive, worst case, delayed launch, higher cost
+- saved project tagging
+- full editing and saving for example templates
+
+Free examples:
+- Equipment Purchase
+- Small Business Project
+- Cost-Saving Project
+- Investment Property Repair
+- Cybersecurity Remediation
 
 ### Strong idea from user
 Free mode could expose only a simplified calculator and a **sample premium project preview** where advanced features are visible but mostly locked.
 
 That preview could be a high-conversion mechanic if done carefully.
 
+Near-term implementation note:
+- let free users open free templates and understand the shape of Pro quickly
+- prevent abuse by limiting free saves and limiting advanced editing depth
+- examples should be the same in both modes; free users can open them in preview mode, edit only the first period, and cannot save copies
+
 ---
 
 ## Premium Individual Tier
 Likely includes:
-- save projects
+- more saved projects
 - full chart suite
 - hurdle rate
 - full sentiment / fragility / breakeven analysis
 - sensitivity analysis
 - scenario comparison
-- maybe assignment templates / study packs later
+- editable example templates / save as a new project
+- saved project tagging later
 
 Possible cloud features:
 - minimal account system
 - saved projects in lightweight DB
 - project history or versions later if needed
+
+Example templates:
+- Cybersecurity Business Case
+- SaaS Launch
+- Real Estate Renovation
+- Hiring vs Automation
+- Multi-Scenario Capital Project
+
+Heavy-lift future features that should stay out of the first entitlement pass:
+- exportable XLSX/PDF/PPT reports, because they need document generation, layout QA, and likely server-side handling
+- multi-project comparison, because it needs durable project identity, comparison state, and UI for multiple active models
+- scenario comparison, because base/conservative/aggressive/worst/delayed/higher-cost cases need a scenario data model, duplication rules, and probably history/version behavior
+- guided educational mode, because it needs structured lesson metadata, UI anchors, and an overlay runtime
+- project tagging, because it affects saved-project schema, search/filter UI, and migration/backfill behavior
 
 ---
 
