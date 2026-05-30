@@ -29,8 +29,8 @@ const ExampleProjectPreview = ({ project }) => {
 
   return (
     <div className="example-project-preview" aria-hidden="true">
-      <ResponsiveContainer width="100%" height={112} minWidth={0} minHeight={112}>
-        <LineChart data={data} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
+      <ResponsiveContainer width="100%" height={96} minWidth={0} minHeight={96}>
+        <LineChart data={data} margin={{ top: 8, right: 10, left: 8, bottom: 8 }}>
           <XAxis dataKey="discount" type="number" domain={[0, 30]} hide />
           <YAxis hide />
           <ReferenceLine y={0} stroke="rgba(148, 163, 184, 0.55)" strokeWidth={1} />
@@ -44,7 +44,7 @@ const ExampleProjectPreview = ({ project }) => {
   );
 };
 
-export const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, localProjects, cloudProjects, onLoadProject, onLoadExampleProject, pendingDeleteProjectKey, onRequestDeleteProject, onCancelDeleteProject, onConfirmDeleteProject, projectPreviews, cloudStatus }) => {
+export const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isAuthenticated, onRequireAuth, localProjects, cloudProjects, onLoadProject, onLoadExampleProject, pendingDeleteProjectKey, onRequestDeleteProject, onCancelDeleteProject, onConfirmDeleteProject, projectPreviews, cloudStatus, access }) => {
   if (!open) return null;
 
   const localProjectNames = Object.keys(localProjects || {});
@@ -164,35 +164,42 @@ export const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isA
             </section>
           </div>
         ) : (
-          <div className="mobile-library-grid">
-            {exampleProjects.map((project) => {
-              const preview = getProjectPreview(project);
+          <>
+            <div className="mobile-library-example-intro">
+              <h3>Example Templates</h3>
+              <p>Open a complete case. Free preview mode lets you test the first period before upgrading to edit and save a copy.</p>
+            </div>
+            <div className="mobile-library-grid">
+              {exampleProjects.map((project) => {
+                const preview = getProjectPreview(project);
+                const isPreviewLocked = !access?.hasPro;
 
-              return (
-                <article key={project.name} className={`mobile-library-card example-project-card tone-${preview.tone}`}>
-                  <button
-                    type="button"
-                    className="example-project-open"
-                    onClick={() => {
-                      onLoadExampleProject(project);
-                      onClose();
-                    }}
-                  >
-                    <ExampleProjectPreview project={project} />
-                    <span className="example-project-kicker">{project.subtitle}</span>
-                    <h4>{project.name}</h4>
-                    <p>{project.description}</p>
-                    <div className="mobile-library-saved-metrics example-project-metrics">
-                      <span className={`tone-${preview.tone}`}>{preview.label}</span>
-                      <span style={{ color: preview.npv >= 0 ? '#22c55e' : '#ef4444' }}>NPV {formatMobileNpv(preview.npv, preview.currency)}</span>
-                      <span>IRR {formatMobileIrr(preview.irrAnalysis)}</span>
-                      <span>{project.periodMode}</span>
-                    </div>
-                  </button>
-                </article>
-              );
-            })}
-          </div>
+                return (
+                  <article key={project.name} className={`mobile-library-card example-project-card tone-${preview.tone} ${isPreviewLocked ? 'locked' : ''}`}>
+                    <button
+                      type="button"
+                      className="example-project-open"
+                      onClick={() => {
+                        onLoadExampleProject(project);
+                        onClose();
+                      }}
+                    >
+                      <h4>{project.name}</h4>
+                      <span className="example-project-kicker">{project.subtitle}</span>
+                      <ExampleProjectPreview project={project} />
+                      <p>{project.description}</p>
+                      <div className="mobile-library-saved-metrics example-project-metrics">
+                        <span className={`tone-${preview.tone}`}>{preview.label}</span>
+                        <span style={{ color: preview.npv >= 0 ? '#22c55e' : '#ef4444' }}>NPV {formatMobileNpv(preview.npv, preview.currency)}</span>
+                        <span>IRR {formatMobileIrr(preview.irrAnalysis)}</span>
+                        <span>{project.periodMode}</span>
+                      </div>
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>

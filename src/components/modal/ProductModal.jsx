@@ -1,6 +1,6 @@
 import { checkoutPlans, pricingPlan, upgradeFeatures } from '../../lib/calculation.js';
 
-export const ProductModal = ({ open, onClose, title = 'Upgrade to Pro', isAuthenticated, userLabel, checkoutStatus, checkoutNotice, onStartCheckout, onRequireAuth }) => {
+export const ProductModal = ({ open, onClose, title = 'Upgrade', reason = '', isAuthenticated, userLabel, checkoutStatus, checkoutNotice, onStartCheckout, onRequireAuth }) => {
   if (!open) return null;
 
   return (
@@ -14,6 +14,12 @@ export const ProductModal = ({ open, onClose, title = 'Upgrade to Pro', isAuthen
             </p>
           </div>
         </div>
+
+        {reason && (
+          <div className="upgrade-reason-callout" role="status">
+            {reason}
+          </div>
+        )}
 
         <div className="upgrade-account-state">
           <span className="upgrade-account-label">Account</span>

@@ -225,11 +225,11 @@ export const chartTooltipMotionProps = {
 };
 
 export const upgradeFeatures = [
-  'Save and organize projects',
-  'Share polished project links',
-  'Unlock guided decision support',
-  'Use hurdle-rate-driven analysis',
-  'Get upcoming comparison and presentation workflows',
+  'Unlimited cash-flow horizons and dynamic periods',
+  'Sensitivity analysis and deeper decision diagnostics',
+  'Editable example templates and saved project organization',
+  'More cloud and local projects',
+  'Future report export, scenario comparison, and presentation workflows',
 ];
 
 export const productHighlights = [
@@ -248,7 +248,7 @@ export const productHighlights = [
 ];
 
 export const pricingPlan = {
-  name: 'NPV Lab Pro',
+  name: 'NPV Lab Upgrade',
   price: '$2.99/month',
   annual: '$20/year',
 };

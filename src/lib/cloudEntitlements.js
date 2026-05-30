@@ -23,7 +23,7 @@ export const fetchUserEntitlement = async (session) => {
     return { hasPro: false, source: null };
   }
 
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/user_entitlements?select=pro_enabled,source&limit=1`, {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/user_entitlements?select=pro_enabled,source,expires_at&limit=1`, {
     headers: getHeaders(session.accessToken),
   });
 
@@ -36,8 +36,12 @@ export const fetchUserEntitlement = async (session) => {
   }
 
   const [row] = await response.json();
+  const expiresAt = row?.expires_at ? Date.parse(row.expires_at) : null;
+  const isExpired = Number.isFinite(expiresAt) && expiresAt <= Date.now();
   return {
-    hasPro: Boolean(row?.pro_enabled),
+    hasPro: Boolean(row?.pro_enabled) && !isExpired,
     source: row?.source || null,
+    expiresAt: row?.expires_at || null,
+    expired: isExpired,
   };
 };
