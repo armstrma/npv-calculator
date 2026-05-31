@@ -6,6 +6,8 @@ import * as projectData from './projectData.js';
 
 const { exampleProjects, getProjectPreview } = projectData;
 
+const formatExamplePayback = (preview, project) => formatPaybackDisplay(preview.payback, project.periodMode);
+
 const buildDiscountCurve = (project) => {
   const data = [];
   const periodMode = ['months', 'quarters', 'years'].includes(project.periodMode) ? project.periodMode : 'years';
@@ -192,7 +194,7 @@ export const MobileLibraryPanel = ({ open, onClose, activeTab, setActiveTab, isA
                         <span className={`tone-${preview.tone}`}>{preview.label}</span>
                         <span style={{ color: preview.npv >= 0 ? '#22c55e' : '#ef4444' }}>NPV {formatMobileNpv(preview.npv, preview.currency)}</span>
                         <span>IRR {formatMobileIrr(preview.irrAnalysis)}</span>
-                        <span>{project.periodMode}</span>
+                        <span>Payback {formatExamplePayback(preview, project)}</span>
                       </div>
                     </button>
                   </article>

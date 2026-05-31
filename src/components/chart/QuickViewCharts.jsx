@@ -111,7 +111,7 @@ export const QuickViewCharts = ({
   const sensitivityLocked = !access?.features?.sensitivityAnalysis && !canViewAdvancedExample;
   const deeperAnalysisLocked = !access?.features?.sensitivityAnalysis && !canViewAdvancedExample;
   const cashflowsLocked = !access?.hasPro && !canViewAdvancedExample;
-  const shouldShowAnalysisSensitivity = isDesktopViewport && (showSensitivity || sensitivityLocked);
+  const shouldShowAnalysisSensitivity = access?.features?.sensitivityAnalysis || canViewAdvancedExample || sensitivityLocked;
   const handleLockedFeature = (reason) => {
     if (onRequestUpgrade) onRequestUpgrade(reason);
   };
@@ -395,7 +395,7 @@ export const QuickViewCharts = ({
                     <div className={`quick-view-analysis-sensitivity-table-wrap ${sensitivityLocked ? 'locked-sensitivity-content' : ''}`}>
                       <table className="quick-view-analysis-sensitivity-table">
                         <thead>
-                          <tr><th>Variation</th><th>NPV</th></tr>
+                          <tr><th><span className="sensitivity-heading-desktop">Variation</span><span className="sensitivity-heading-mobile">%</span></th><th>NPV</th></tr>
                         </thead>
                         <tbody>
                           {sensitivityData.map((d) => (
