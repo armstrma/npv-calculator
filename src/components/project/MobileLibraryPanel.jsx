@@ -29,7 +29,7 @@ const ExampleProjectPreview = ({ project }) => {
 
   return (
     <div className="example-project-preview" aria-hidden="true">
-      <ResponsiveContainer width="100%" height={96} minWidth={0} minHeight={96}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={132}>
         <LineChart data={data} margin={{ top: 8, right: 10, left: 8, bottom: 8 }}>
           <XAxis dataKey="discount" type="number" domain={[0, 30]} hide />
           <YAxis hide />

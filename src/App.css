@@ -1117,6 +1117,15 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   .mobile-topbar-shell {
     grid-template-columns: auto auto minmax(0, 1fr) auto auto;
   }
+  .mobile-topbar-shell-desktop {
+    display: none;
+  }
+  .mobile-topbar-shell:not(.mobile-topbar-shell-desktop) .mobile-topbar-brand {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
   .mobile-topbar-action {
     min-height: 38px;
     border-radius: 10px;
@@ -1765,6 +1774,9 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     font-weight: 700;
     padding: 0 8px;
   }
+  .quick-view-stage-tab .pro-texture-badge {
+    margin-left: 6px;
+  }
   .quick-view-stage-tab.active {
     background: rgba(139, 92, 246, 0.22);
     border-color: rgba(167, 139, 250, 0.55);
@@ -2350,8 +2362,8 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 .example-project-preview {
   width: 100%;
   min-width: 0;
-  height: 96px;
-  min-height: 96px;
+  height: 132px;
+  min-height: 132px;
   border-radius: 10px;
   border: 1px solid rgba(71, 85, 105, 0.45);
   background:
@@ -2385,6 +2397,21 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 }
 .example-project-metrics {
   padding-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .mobile-library-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .example-project-open {
+    gap: 10px;
+    padding: 12px;
+  }
+  .example-project-preview {
+    height: 148px;
+    min-height: 148px;
+  }
 }
 
 .auth-modal {

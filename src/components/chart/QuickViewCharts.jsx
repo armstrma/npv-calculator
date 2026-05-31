@@ -70,6 +70,7 @@ export const QuickViewCharts = ({
   currency,
   showSensitivity,
   sensitivityPercent,
+  setShowSensitivity,
   setSensitivityPercent,
   discountData,
   barData,
@@ -163,6 +164,7 @@ export const QuickViewCharts = ({
                   if (value === 'off') {
                     return;
                   }
+                  if (setShowSensitivity) setShowSensitivity(true);
                   setSensitivityPercent(Number(value));
                 }}>
                   {sensitivityLocked && <option value="locked">••••</option>}
@@ -218,6 +220,7 @@ export const QuickViewCharts = ({
                   if (value === 'off') {
                     return;
                   }
+                  if (setShowSensitivity) setShowSensitivity(true);
                   setSensitivityPercent(Number(value));
                 }}>
                   {sensitivityLocked && <option value="locked">••••</option>}
@@ -316,6 +319,7 @@ export const QuickViewCharts = ({
                   if (value === 'off') {
                     return;
                   }
+                  if (setShowSensitivity) setShowSensitivity(true);
                   setSensitivityPercent(Number(value));
                 }}>
                   {sensitivityLocked && <option value="locked">••••</option>}

@@ -267,6 +267,10 @@ const App = () => {
   }, [showHurdleRate, hurdleRate, discount]);
 
   useEffect(() => {
+    if ((access.hasPro || isFreeExamplePreview) && !showSensitivity) {
+      setShowSensitivity(true);
+      return;
+    }
     if (access.hasPro) return;
     if (showSensitivity && !isFreeExamplePreview) setShowSensitivity(false);
     if (showHurdleRate) setShowHurdleRate(false);
@@ -1349,6 +1353,7 @@ const App = () => {
               periodMode={periodMode}
               showSensitivity={effectiveShowSensitivity}
               sensitivityPercent={sensitivityPercent}
+              setShowSensitivity={setShowSensitivity}
               setSensitivityPercent={setSensitivityPercent}
               access={access}
               canViewAdvancedExample={canViewAdvancedExample}
