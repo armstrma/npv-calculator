@@ -806,6 +806,11 @@ const App = () => {
   ), [irrAnalysis.status, spread, irrIssueDetail, irrSupportsPositiveDecision]);
   const spreadPass = irrClearsActiveRate;
   const fragilityPass = downsideIrrClearsActiveRate;
+  const downsideSpread = downsideIrr.status === 'valid' ? downsideIrr.value - discountRateForAnalysis : Number.NaN;
+  const formatSignedRateFactor = (value) => Number.isFinite(value) ? `${value >= 0 ? '+' : ''}${value.toFixed(2)}%` : 'N/A';
+  const valueRuleFactor = `NPV: ${formatCompactCurrency(npv, currency)}`;
+  const spreadRuleFactor = `Spread: ${formatSignedRateFactor(spread)}`;
+  const durabilityRuleFactor = `Downside: ${formatSignedRateFactor(downsideSpread)}`;
 
   const breakEvenCashflowUpliftPct = useMemo(() => {
     const pvOfCashflows = cashflows.reduce((sum, cf, i) => sum + cf / Math.pow(1 + appliedRateForAnalysis / 100, i + 1), 0);
@@ -1375,10 +1380,12 @@ const App = () => {
               pvBreakEvenInfo={pvBreakEvenInfo}
               sentiment={sentiment}
               recommendation={recommendation}
+              npv={npv}
               viabilityPass={viabilityPass}
               spreadPass={spreadPass}
               spread={spread}
               spreadStatus={spreadStatus}
+              downsideIrr={downsideIrr}
               fragilityPass={fragilityPass}
               discountRateForAnalysis={discountRateForAnalysis}
               payback={payback}
@@ -1633,19 +1640,28 @@ const App = () => {
                   <div className="details-rule-list">
                     <div className={`details-rule ${viabilityPass ? 'pass' : 'fail'}`}>
                       <span className="details-rule-name">Creates Value</span>
-                      <span className="details-rule-status">{viabilityPass ? 'Pass' : 'Fail'}</span>
+                      <span className="details-rule-result">
+                        <span className="details-rule-factor">{valueRuleFactor}</span>
+                        <span className="details-rule-status">{viabilityPass ? 'Pass' : 'Fail'}</span>
+                      </span>
                       <span className="details-rule-subtext">NPV &gt; 0 using {discountRateForAnalysis.toFixed(1)}% {rateBasis}</span>
                     </div>
                     <div className={`details-rule ${spreadStatus.tone === 'positive' ? 'pass' : spreadStatus.tone === 'negative' ? 'fail' : 'warn'}`}>
                       <span className="details-rule-name">Spread {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
-                      <span className="details-rule-status">{spreadStatus.label}</span>
+                      <span className="details-rule-result">
+                        <span className="details-rule-factor">{spreadRuleFactor}</span>
+                        <span className="details-rule-status">{spreadStatus.label}</span>
+                      </span>
                       <span className="details-rule-subtext">{irrAnalysis.status === 'valid' ? `IRR spread versus active rate: ${spread >= 0 ? '+' : ''}${spread.toFixed(2)} pts` : irrIssueDetail}</span>
                     </div>
                     <div className={`details-rule ${fragilityPass ? 'pass' : 'fail'}`}>
-                      <span className="details-rule-name">Durable {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
-                      <span className="details-rule-status">{['valid', 'above-range', 'not-applicable'].includes(downsideIrr.status) ? (fragilityPass ? 'Pass' : 'Fail') : 'N/A'}</span>
+                      <span className="details-rule-name">Durability {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
+                      <span className="details-rule-result">
+                        <span className="details-rule-factor">{durabilityRuleFactor}</span>
+                        <span className="details-rule-status">{['valid', 'above-range', 'not-applicable'].includes(downsideIrr.status) ? (fragilityPass ? 'Pass' : 'Fail') : 'N/A'}</span>
+                      </span>
                       <span className="details-rule-subtext">
-                        {downsideIrr.status === 'not-applicable' ? getIrrIssueDetail(downsideIrr) : downsideIrr.status === 'above-range' ? `Downside IRR is above ${downsideIrr.bound}%, clearing the active rate.` : downsideIrr.status === 'valid' ? (showHurdleRate ? `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ annual hurdle (${hurdleRate.toFixed(1)}%)` : `Downside IRR (${downsideIrr.value.toFixed(2)}%) ≥ annual discount (${discount.toFixed(1)}%)`) : getIrrIssueDetail(downsideIrr)}
+                        {downsideIrr.status === 'not-applicable' ? getIrrIssueDetail(downsideIrr) : downsideIrr.status === 'above-range' ? `Downside IRR is above ${downsideIrr.bound}%, clearing the active rate.` : downsideIrr.status === 'valid' ? (showHurdleRate ? `Downside IRR (${downsideIrr.value.toFixed(2)}%) ${fragilityPass ? '≥' : '<'} annual hurdle (${hurdleRate.toFixed(1)}%)` : `Downside IRR (${downsideIrr.value.toFixed(2)}%) ${fragilityPass ? '≥' : '<'} annual discount (${discount.toFixed(1)}%)`) : getIrrIssueDetail(downsideIrr)}
                       </span>
                     </div>
                   </div>
