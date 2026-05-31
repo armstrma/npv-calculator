@@ -1126,6 +1126,9 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     transform: translateX(-50%);
     pointer-events: none;
   }
+  .mobile-topbar-shell:not(.mobile-topbar-shell-desktop) .mobile-topbar-brand + .mobile-topbar-menu-wrap {
+    justify-self: end;
+  }
   .mobile-topbar-action {
     min-height: 38px;
     border-radius: 10px;
