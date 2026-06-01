@@ -1338,6 +1338,9 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   color: #f5f3ff;
   box-shadow: 0 10px 20px rgba(76, 29, 149, 0.22);
 }
+.quick-view-shell-desktop .quick-view-stage-tab .pro-texture-badge {
+  margin-left: 8px;
+}
 .quick-view-shell-desktop .quick-view-stage-chart {
   min-height: 0;
   display: grid;
@@ -1539,6 +1542,9 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
+}
+.quick-view-shell-desktop .quick-view-analysis-detail-factor {
+  display: none;
 }
 .quick-view-shell-desktop .quick-view-analysis-detail {
   min-height: 0;
@@ -2078,6 +2084,13 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
     font-size: 9px;
     font-weight: 700;
     white-space: nowrap;
+  }
+  .quick-view-analysis-detail-factor {
+    display: block;
+    margin-bottom: 4px;
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 700;
   }
   .quick-view-analysis-detail {
     min-height: 0;

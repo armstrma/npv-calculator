@@ -117,6 +117,11 @@ export const QuickViewCharts = ({
   const viabilityFactor = `NPV: ${formatCompactCurrency(npv, currency)}`;
   const spreadFactor = `Spread: ${formatSignedPercent(spread)}`;
   const durabilityFactor = `Downside: ${formatSignedPercent(downsideSpread)}`;
+  const activeAnalysisFactor = activeAnalysisCard === 'standard'
+    ? spreadFactor
+    : activeAnalysisCard === 'fragility'
+      ? durabilityFactor
+      : viabilityFactor;
   const sensitivityLocked = !access?.features?.sensitivityAnalysis && !canViewAdvancedExample;
   const deeperAnalysisLocked = !access?.features?.sensitivityAnalysis && !canViewAdvancedExample;
   const cashflowsLocked = !access?.hasPro && !canViewAdvancedExample;
@@ -347,7 +352,7 @@ export const QuickViewCharts = ({
                 <div className="quick-view-analysis-rules-list">
                   <button type="button" className={`quick-view-analysis-rule ${activeAnalysisCard === 'viability' ? 'active' : ''} ${viabilityPass ? 'pass' : 'fail'}`} onClick={() => setActiveAnalysisCard('viability')}>
                     <span>Creates Value</span>
-                    <span className="quick-view-analysis-rule-result"><span className="quick-view-analysis-rule-factor">{viabilityFactor}</span><strong>{viabilityPass ? 'Pass' : 'Fail'}</strong></span>
+                    <span className="quick-view-analysis-rule-result">{isDesktopViewport && <span className="quick-view-analysis-rule-factor">{viabilityFactor}</span>}<strong>{viabilityPass ? 'Pass' : 'Fail'}</strong></span>
                   </button>
                   <button type="button" className={`quick-view-analysis-rule ${activeAnalysisCard === 'standard' ? 'active' : ''} ${spreadStatus.tone === 'positive' ? 'pass' : spreadStatus.tone === 'negative' ? 'fail' : ''}`} onClick={() => {
                     if (deeperAnalysisLocked) {
@@ -357,7 +362,7 @@ export const QuickViewCharts = ({
                     setActiveAnalysisCard('standard');
                   }}>
                     <span>Spread {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
-                    <span className="quick-view-analysis-rule-result"><span className="quick-view-analysis-rule-factor">{deeperAnalysisLocked ? <LockedValue /> : spreadFactor}</span><strong>{deeperAnalysisLocked ? <LockedValue /> : spreadStatus.label}</strong></span>
+                    <span className="quick-view-analysis-rule-result">{isDesktopViewport && <span className="quick-view-analysis-rule-factor">{deeperAnalysisLocked ? <LockedValue /> : spreadFactor}</span>}<strong>{deeperAnalysisLocked ? <LockedValue /> : spreadStatus.label}</strong></span>
                   </button>
                   <button type="button" className={`quick-view-analysis-rule ${activeAnalysisCard === 'fragility' ? 'active' : ''} ${fragilityPass ? 'pass' : 'fail'}`} onClick={() => {
                     if (deeperAnalysisLocked) {
@@ -367,10 +372,11 @@ export const QuickViewCharts = ({
                     setActiveAnalysisCard('fragility');
                   }}>
                     <span>Durability {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
-                    <span className="quick-view-analysis-rule-result"><span className="quick-view-analysis-rule-factor">{deeperAnalysisLocked ? <LockedValue /> : durabilityFactor}</span><strong>{deeperAnalysisLocked ? <LockedValue /> : fragilityPass ? 'Pass' : 'Fail'}</strong></span>
+                    <span className="quick-view-analysis-rule-result">{isDesktopViewport && <span className="quick-view-analysis-rule-factor">{deeperAnalysisLocked ? <LockedValue /> : durabilityFactor}</span>}<strong>{deeperAnalysisLocked ? <LockedValue /> : fragilityPass ? 'Pass' : 'Fail'}</strong></span>
                   </button>
                 </div>
                 <div className="quick-view-analysis-detail quick-view-analysis-inline-detail">
+                  {!isDesktopViewport && <span className="quick-view-analysis-detail-factor">{activeAnalysisFactor}</span>}
                   {activeAnalysisCard === 'viability' && <p>{viabilityPass ? (isDesktopViewport ? `NPV stays above zero at the active ${discountRateForAnalysis.toFixed(1)}% ${rateBasis} rate${shouldShowAppliedRate ? ` (${rateBasisLabel.toLowerCase()} as ${(showHurdleRate ? appliedHurdleRate : appliedDiscountRate).toFixed(2)}%)` : ''}, so the project is still creating net value after discounting.` : `NPV > 0 at ${discountRateForAnalysis.toFixed(1)}% ${rateBasis}`) : (isDesktopViewport ? `NPV is below zero at the active ${discountRateForAnalysis.toFixed(1)}% ${rateBasis} rate${shouldShowAppliedRate ? ` (${rateBasisLabel.toLowerCase()} as ${(showHurdleRate ? appliedHurdleRate : appliedDiscountRate).toFixed(2)}%)` : ''}, so the project is not creating value after discounting.` : `NPV < 0 at ${discountRateForAnalysis.toFixed(1)}% ${rateBasis}`)}</p>}
                   {activeAnalysisCard === 'standard' && <p>{hasNonNumericIrr ? irrIssueDetail : isDesktopViewport ? `IRR is ${spread >= 0 ? '+' : ''}${spread.toFixed(2)} points versus the active rate, which grades this spread as ${spreadStatus.label.toLowerCase()}.` : `${spread >= 0 ? '+' : ''}${spread.toFixed(2)} pts vs active rate`}</p>}
                   {activeAnalysisCard === 'fragility' && <p>{hasNonNumericDownsideIrr ? downsideIrrIssueDetail : fragilityPass ? (isDesktopViewport ? (showHurdleRate ? `Even the downside case keeps IRR above the ${hurdleRate.toFixed(1)}% annual hurdle, which makes the result more resilient.` : `Even the downside case keeps IRR above the ${discount.toFixed(1)}% annual discount rate, which suggests the outcome is holding up under pressure.`) : (showHurdleRate ? `Downside IRR ≥ hurdle ${hurdleRate.toFixed(1)}%` : `Downside IRR ≥ discount ${discount.toFixed(1)}%`)) : (isDesktopViewport ? (showHurdleRate ? `The downside case falls below the ${hurdleRate.toFixed(1)}% annual hurdle, so the result is more fragile under pressure.` : `The downside case falls below the ${discount.toFixed(1)}% annual discount rate, so the outcome is not holding up under pressure.`) : (showHurdleRate ? `Downside IRR < hurdle ${hurdleRate.toFixed(1)}%` : `Downside IRR < discount ${discount.toFixed(1)}%`))}</p>}
