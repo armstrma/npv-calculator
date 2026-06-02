@@ -784,7 +784,7 @@ input[type="range"]::-moz-range-thumb {
   margin-bottom: 4px;
   border: 1px solid #475569;
   border-radius: 10px;
-  overflow: hidden;
+  overflow: visible;
   background: rgba(15, 23, 42, 0.92);
 }
 .cashflow-input-segment {
@@ -812,6 +812,73 @@ input[type="range"]::-moz-range-thumb {
   color: #f8fafc;
   background: transparent;
   outline: none;
+}
+.currency-expression-field {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+.currency-expression-field input {
+  padding-right: 42px;
+}
+.currency-expression-trigger {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  width: 30px;
+  height: 26px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  place-items: center;
+  gap: 0;
+  transform: translateY(-50%);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 7px;
+  background: linear-gradient(180deg, rgba(51, 65, 85, 0.88), rgba(15, 23, 42, 0.92));
+  box-shadow: 0 6px 14px rgba(2, 6, 23, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 9px;
+  line-height: 1;
+}
+.currency-expression-trigger:hover,
+.currency-expression-field.is-open .currency-expression-trigger {
+  border-color: rgba(96, 165, 250, 0.68);
+  color: #f8fafc;
+}
+.currency-expression-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+.currency-expression-pad {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(4, 38px);
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(71, 85, 105, 0.78);
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.98);
+  box-shadow: 0 18px 36px rgba(2, 6, 23, 0.46);
+}
+.currency-expression-pad button {
+  width: 38px;
+  height: 34px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.95);
+  color: #f8fafc;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+.currency-expression-pad button:hover {
+  border-color: rgba(96, 165, 250, 0.72);
+  background: rgba(30, 64, 175, 0.55);
 }
 .delete-btn {
   width: 34px;
@@ -1875,12 +1942,24 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   background: rgba(30, 41, 59, 0.35);
   color: #e2e8f0;
 }
-.quick-view-row-top button {
+.quick-view-row-top > button {
   border: 0;
   background: transparent;
   color: #94a3b8;
   font-size: 24px;
   line-height: 1;
+}
+.quick-view-row-top .currency-expression-trigger {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: linear-gradient(180deg, rgba(51, 65, 85, 0.88), rgba(15, 23, 42, 0.92));
+  color: #cbd5e1;
+  font-size: 9px;
+}
+.quick-view-row-top .currency-expression-pad button {
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  background: rgba(30, 41, 59, 0.95);
+  color: #f8fafc;
+  font-size: 18px;
 }
 .quick-view-toggle {
   display: inline-flex;

@@ -1,5 +1,6 @@
-import { formatNumberWithCommas, parseNumericInput } from '../../lib/input.js';
+import { formatNumberWithCommas, hasArithmeticOperator, parseNumericInput } from '../../lib/input.js';
 import { formatMobileIrr, formatMobileNpv, formatPaybackDisplay, getAddPeriodLabel, getPeriodLabel, sanitizeFinancialValue, sanitizeRateValue } from '../../lib/calculation.js';
+import { CurrencyExpressionInput } from '../input/CurrencyExpressionInput.jsx';
 
 export const QuickViewVariablePanel = ({
   sentiment,
@@ -37,8 +38,10 @@ export const QuickViewVariablePanel = ({
   addQuickViewYear,
   access,
   isFreeExamplePreview,
+  resolveOperations,
 }) => {
   const lockedTooltip = 'This component is locked for editing. Upgrade to premium to modify and save your own copy.';
+  const shouldResolveInput = (value) => resolveOperations || !hasArithmeticOperator(value);
 
   return (
   <div className="quick-view-controls">
@@ -55,7 +58,7 @@ export const QuickViewVariablePanel = ({
       <div className="quick-view-row-top quick-view-row-top-static">
         <span>Initial</span>
         <span>{currency}</span>
-        <input
+        <CurrencyExpressionInput
           type="text"
           inputMode="decimal"
           autoComplete="off"
@@ -67,10 +70,24 @@ export const QuickViewVariablePanel = ({
             const parsed = parseNumericInput(rawValue);
             if (parsed !== null) setInitial(sanitizeFinancialValue(parsed));
           }}
-          onBlur={() => setInitialInput(formatNumberWithCommas(initial))}
+          onBlur={(e) => {
+            const parsed = parseNumericInput(e.target.value);
+            if (shouldResolveInput(e.target.value)) {
+              setInitialInput(formatNumberWithCommas(parsed ?? initial));
+            }
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
+              if (hasArithmeticOperator(e.currentTarget.value)) {
+                if (resolveOperations) {
+                  const parsed = parseNumericInput(e.currentTarget.value);
+                  setInitialInput(formatNumberWithCommas(parsed ?? initial));
+                  e.currentTarget.focus();
+                }
+                return;
+              }
+
               insertQuickViewYearAfter(-1);
             }
           }}
@@ -131,7 +148,7 @@ export const QuickViewVariablePanel = ({
         <div className="quick-view-row-top">
           <span>{getPeriodLabel(periodMode, index + 1)}</span>
           <span>{currency}</span>
-          <input
+          <CurrencyExpressionInput
             type="text"
             inputMode="decimal"
             autoComplete="off"
@@ -148,17 +165,35 @@ export const QuickViewVariablePanel = ({
                 setCashflows(updated);
               }
             }}
-            onBlur={() => {
-              const nextInputs = [...cashflowInputs];
-              nextInputs[index] = formatNumberWithCommas(cashflows[index] ?? 0);
-              setCashflowInputs(nextInputs);
+            onBlur={(e) => {
+              const parsed = parseNumericInput(e.target.value);
+              if (shouldResolveInput(e.target.value)) {
+                setCashflowInputs((currentInputs) => {
+                  const nextInputs = [...currentInputs];
+                  nextInputs[index] = formatNumberWithCommas(parsed ?? cashflows[index] ?? 0);
+                  return nextInputs;
+                });
+              }
             }}
-            ref={(node) => {
+            inputRef={(node) => {
               quickViewInputRefs.current[index] = node;
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
+                if (hasArithmeticOperator(e.currentTarget.value)) {
+                  if (resolveOperations) {
+                    const parsed = parseNumericInput(e.currentTarget.value);
+                    setCashflowInputs((currentInputs) => {
+                      const nextInputs = [...currentInputs];
+                      nextInputs[index] = formatNumberWithCommas(parsed ?? cashflows[index] ?? 0);
+                      return nextInputs;
+                    });
+                    e.currentTarget.focus();
+                  }
+                  return;
+                }
+
                 insertQuickViewYearAfter(index);
               }
             }}

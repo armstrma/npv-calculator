@@ -1,7 +1,7 @@
 import React, { lazy, Suspense, useState, useMemo, useEffect, useRef } from 'react';
 import './App.css';
 import { analyzeIRR, calculateNPV, calculatePayback, calculateROI, calculatePI } from './lib/finance.js';
-import { formatNumberWithCommas, parseNumericInput } from './lib/input.js';
+import { formatNumberWithCommas, hasArithmeticOperator, parseNumericInput } from './lib/input.js';
 import { clearStoredSession, consumeMagicLinkSession, fetchCurrentUser, getActiveSession, getStoredSession, isCloudAuthConfigured, requestMagicLink } from './lib/cloudAuth.js';
 import { fetchUserEntitlement } from './lib/cloudEntitlements.js';
 import { deleteCloudProject, listCloudProjects, upsertCloudProject } from './lib/cloudProjects.js';
@@ -36,6 +36,7 @@ import {
 } from './lib/calculation.js';
 import { AuthModal } from './components/auth/AuthModal.jsx';
 import { CashflowTooltip, MarginalSensitivityTooltip, NpvTooltip, QuickViewCharts } from './components/chart/QuickViewCharts.jsx';
+import { CurrencyExpressionInput } from './components/input/CurrencyExpressionInput.jsx';
 import { QuickViewVariablePanel } from './components/layout/QuickViewVariablePanel.jsx';
 import { ProductModal } from './components/modal/ProductModal.jsx';
 import { MobileLibraryPanel } from './components/project/MobileLibraryPanel.jsx';
@@ -63,6 +64,10 @@ const applyLocalProEntitlement = (loadedEntitlement = { hasPro: false, source: n
     ? { ...loadedEntitlement, hasPro: true, source: loadedEntitlement.source || 'local-dev' }
     : loadedEntitlement
 );
+const formatTableCurrencyValue = (value) => Number(value || 0).toLocaleString(undefined, {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 const App = () => {
   const [initial, setInitial] = useState(1000);
@@ -88,6 +93,7 @@ const App = () => {
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [quickViewEnabled, setQuickViewEnabled] = useState(true);
+  const [resolveOperations, setResolveOperations] = useState(true);
   const mobileTopbarRef = useRef(null);
   const projectToolbarRef = useRef(null);
   const [returnToUpgradeAfterAuth, setReturnToUpgradeAfterAuth] = useState(false);
@@ -1293,6 +1299,13 @@ const App = () => {
                   </select>
                 </label>
                 <label className="mobile-topbar-menu-item mobile-topbar-menu-item-toggle">
+                  <span>Resolve Operations</span>
+                  <input type="checkbox" checked={resolveOperations} onChange={(e) => {
+                    setResolveOperations(e.target.checked);
+                    setShowQuickViewMenu(false);
+                  }} />
+                </label>
+                <label className="mobile-topbar-menu-item mobile-topbar-menu-item-toggle">
                   <span>Slider Gradients</span>
                   <input type="checkbox" checked={sliderGradientsEnabled} onChange={(e) => {
                     setSliderGradientsEnabled(e.target.checked);
@@ -1431,6 +1444,7 @@ const App = () => {
             access={access}
             onRequestUpgrade={openUpgradeModal}
             isFreeExamplePreview={isFreeExamplePreview}
+            resolveOperations={resolveOperations}
           />
         </div>
       ) : (
@@ -1455,7 +1469,7 @@ const App = () => {
             <div className="cashflow-input-row">
               <div className="cashflow-input-segment">Initial</div>
               <div className="cashflow-input-segment currency">{currency}</div>
-              <input
+              <CurrencyExpressionInput
                 type="text"
                 inputMode="decimal"
                 autoComplete="off"
@@ -1467,7 +1481,12 @@ const App = () => {
                   const parsed = parseNumericInput(rawValue);
                   if (parsed !== null) setInitial(sanitizeFinancialValue(parsed));
                 }}
-                onBlur={() => setInitialInput(formatNumberWithCommas(initial))}
+                onBlur={(e) => {
+                  const parsed = parseNumericInput(e.target.value);
+                  if (resolveOperations || !hasArithmeticOperator(e.target.value)) {
+                    setInitialInput(formatNumberWithCommas(parsed ?? initial));
+                  }
+                }}
                 aria-label="Initial investment value"
               />
             </div>
@@ -1538,7 +1557,7 @@ const App = () => {
                 <div className="cashflow-input-row">
                   <div className="cashflow-input-segment">{getPeriodLabel(periodMode, index + 1)}</div>
                   <div className="cashflow-input-segment currency">{currency}</div>
-                  <input
+                  <CurrencyExpressionInput
                     type="text"
                     inputMode="decimal"
                     autoComplete="off"
@@ -1556,10 +1575,15 @@ const App = () => {
                         setCashflows(newCashflows);
                       }
                     }}
-                    onBlur={() => {
-                      const newCashflowInputs = [...cashflowInputs];
-                      newCashflowInputs[index] = formatNumberWithCommas(cashflows[index]);
-                      setCashflowInputs(newCashflowInputs);
+                    onBlur={(e) => {
+                      const parsed = parseNumericInput(e.target.value);
+                      if (resolveOperations || !hasArithmeticOperator(e.target.value)) {
+                        setCashflowInputs((currentInputs) => {
+                          const newCashflowInputs = [...currentInputs];
+                          newCashflowInputs[index] = formatNumberWithCommas(parsed ?? cashflows[index]);
+                          return newCashflowInputs;
+                        });
+                      }
                     }}
                     aria-label={`${getPeriodLabel(periodMode, index + 1)} cash flow value`}
                   />
@@ -1721,7 +1745,7 @@ const App = () => {
               </thead>
               <tbody>
                 {sensitivityData.map((d) => (
-                  <tr key={d.variation}><td>{d.variation}%</td><td>{currency}{d.npv.toFixed(2)}</td></tr>
+                  <tr key={d.variation}><td>{d.variation}%</td><td>{currency}{formatTableCurrencyValue(d.npv)}</td></tr>
                 ))}
               </tbody>
             </table>

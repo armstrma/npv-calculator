@@ -2,6 +2,11 @@ import { useState } from 'react';
 import { Area, Bar, BarChart, Cell, ComposedChart, Label, Legend, Line, LineChart, ReferenceArea, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { chartTooltipMotionProps, formatCompactCurrency, formatPaybackDisplay, getIrrDisplay, getIrrIssueDetail, getIrrIssueLabel, getPeriodLabel, getPeriodMeta, tooltipShellStyle } from '../../lib/calculation.js';
 
+const formatTableCurrencyValue = (value) => Number(value || 0).toLocaleString(undefined, {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 export const NpvTooltip = ({ active, payload, label, currency, showSensitivity, sensitivityPercent, periodMode, rateBasis }) => {
   if (!active || !payload || !payload.length) return null;
 
@@ -416,7 +421,7 @@ export const QuickViewCharts = ({
                           {sensitivityData.map((d) => (
                             <tr key={d.variation}>
                               <td>{d.variation > 0 ? '+' : ''}{d.variation}%</td>
-                              <td className={d.npv >= 0 ? 'positive' : 'negative'}>{currency}{d.npv.toFixed(2)}</td>
+                              <td className={d.npv >= 0 ? 'positive' : 'negative'}>{currency}{formatTableCurrencyValue(d.npv)}</td>
                             </tr>
                           ))}
                         </tbody>
