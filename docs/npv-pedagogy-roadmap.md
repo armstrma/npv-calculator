@@ -693,6 +693,11 @@ Potential product implication:
 - keep the first pricing surface compact, but make deeper plan comparison easy to reach when intent is high
 - ensure sample preview, trial prompts, and upgrade modals all point to the same plan narrative so the product feels coherent
 
+SEO note:
+- SPA route handling is acceptable for an MVP when paired with strong default `index.html` metadata, React-updated route metadata, sitemap entries, and Netlify SPA redirects
+- `/pricing` deserves better route-specific crawlability than legal pages over time
+- future `/learn/*` and `/examples/*` pages should use prerendering or static generation because those routes will carry the highest educational search intent
+
 ### First-run empty-state refinement
 A useful product-scaffolding refinement is to think carefully about empty states for each major mode, especially before users have any saved work or classes.
 
@@ -1073,6 +1078,7 @@ SSO note:
 - ability to extend trials manually
 - support-side entitlement overrides when needed
 - admin/support visibility into institution setup and access issues
+- support request endpoint with the validation, rate limiting, server-side entitlement lookup, safe `replyTo`, and generic response rules from `docs/security.md`
 
 This sequencing keeps scope sane.
 
@@ -1343,6 +1349,14 @@ Email sharing depends on:
 - invite email sending path
 - share table and RLS/server checks
 - clear view/copy/edit permission model
+
+Support requests depend on:
+- authenticated user lookup
+- rate limiting by user ID and contextual IP
+- subject/message validation
+- sanitized email header construction
+- server-side entitlement lookup for authorization or support priority decisions
+- generic client-facing success messaging
 
 ### Practical milestone plan
 

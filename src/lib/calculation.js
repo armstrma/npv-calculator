@@ -229,7 +229,7 @@ export const upgradeFeatures = [
   'Sensitivity analysis and deeper decision diagnostics',
   'Editable example templates and saved project organization',
   'More cloud and local projects',
-  'Future report export, scenario comparison, and presentation workflows',
+  'Planned for Pro: exportable reports and expanded scenario workflows',
 ];
 
 export const productHighlights = [

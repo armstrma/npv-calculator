@@ -27,3 +27,28 @@ The CSP blocks:
 ## Future Server-Mediated Sessions
 
 A stronger model would move auth session handling behind server-mediated, HttpOnly, Secure, SameSite cookies. That would reduce token exposure to injected JavaScript, but it requires a backend session exchange/refresh flow and changes to how Supabase-authenticated API calls are made.
+
+## Support Request Backend Guardrails
+
+Future support request endpoints should treat the client as untrusted and return generic success messaging.
+
+Required validation:
+- `subject`: required, 3-120 characters
+- `message`: required, 10-5000 characters
+
+Required abuse controls:
+- rate-limit by authenticated user ID when present
+- rate-limit by request IP as an additional context signal
+- derive request IP from the first value in `x-forwarded-for`, but do not treat it as trusted identity
+- return the same generic success response for accepted and safely ignored support submissions so callers cannot enumerate account, entitlement, or delivery details
+
+Required auth and entitlement controls:
+- verify the Supabase session server-side
+- prefer a server-side Supabase lookup for entitlement status
+- client-provided entitlement may be included as context, but must not be trusted for authorization or support priority
+
+Required email controls:
+- if user input touches the email subject, strip control characters and block or normalize header-like content before sending
+- avoid placing raw user input into email headers beyond a sanitized subject
+- set `replyTo` to the authenticated user's email when the mail provider allows it safely
+- do not expose provider-specific email delivery failures to the client

@@ -1,31 +1,15 @@
 import { useMemo } from 'react';
 import { LineChart, Line, ResponsiveContainer, ReferenceLine, XAxis, YAxis } from 'recharts';
-import { analyzeIRR, calculateNPV } from '../../lib/finance.js';
-import { convertIrrAnalysisRateBasis, formatMobileIrr, formatMobileNpv, formatPaybackDisplay, getAppliedRate } from '../../lib/calculation.js';
+import { analyzeIRR } from '../../lib/finance.js';
+import { convertIrrAnalysisRateBasis, formatMobileIrr, formatMobileNpv, formatPaybackDisplay } from '../../lib/calculation.js';
 import * as projectData from './projectData.js';
 
-const { exampleProjects, getProjectPreview } = projectData;
+const { buildExampleDiscountCurve, exampleProjects, getProjectPreview } = projectData;
 
 const formatExamplePayback = (preview, project) => formatPaybackDisplay(preview.payback, project.periodMode);
 
-const buildDiscountCurve = (project) => {
-  const data = [];
-  const periodMode = ['months', 'quarters', 'years'].includes(project.periodMode) ? project.periodMode : 'years';
-  const rateBasis = project.rateBasis === 'per-period' ? 'per-period' : 'annual';
-  for (let r = 0; r <= 30; r += 1) {
-    const npv = calculateNPV(project.initial, getAppliedRate(r, periodMode, rateBasis), project.cashflows);
-    data.push({
-      discount: r,
-      npv,
-      npv_pos: npv >= 0 ? npv : null,
-      npv_neg: npv < 0 ? npv : null,
-    });
-  }
-  return data;
-};
-
 const ExampleProjectPreview = ({ project }) => {
-  const data = useMemo(() => buildDiscountCurve(project), [project]);
+  const data = useMemo(() => buildExampleDiscountCurve(project), [project]);
   const irrAnalysis = useMemo(() => convertIrrAnalysisRateBasis(analyzeIRR(project.initial, project.cashflows), project.periodMode, project.rateBasis), [project]);
   const activeRate = project.showHurdleRate ? project.hurdleRate : project.discount;
 

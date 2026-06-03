@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 const desktopToolbar = (page) => page.locator('.mobile-topbar-shell-desktop');
 const quickInputs = (page) => page.locator('.quick-view-controls input[type="text"]');
+const testSessionHash = '#access_token=test-token&refresh_token=refresh-token&expires_in=3600&token_type=bearer';
 
 const clearBrowserState = async (page) => {
   await page.goto('/');
@@ -11,7 +13,7 @@ const clearBrowserState = async (page) => {
   });
 };
 
-const mockSignedInUser = async (page) => {
+const mockSignedInUser = async (page, { hasPro = false } = {}) => {
   await page.route('**/auth/v1/user', async (route) => {
     await route.fulfill({
       status: 200,
@@ -23,7 +25,7 @@ const mockSignedInUser = async (page) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify([{ pro_enabled: false, source: null }]),
+      body: JSON.stringify([{ pro_enabled: hasPro, source: hasPro ? 'e2e' : null }]),
     });
   });
   await page.route('**/rest/v1/user_projects**', async (route) => {
@@ -37,6 +39,56 @@ const mockSignedInUser = async (page) => {
 
 test.beforeEach(async ({ page }) => {
   await clearBrowserState(page);
+});
+
+test.describe('public legal and pricing routes', () => {
+  [
+    { path: '/pricing', title: 'Pricing | NPV Lab', heading: 'NPV Lab Pro' },
+    { path: '/terms', title: 'Terms | NPV Lab', heading: 'Terms of use' },
+    { path: '/privacy', title: 'Privacy | NPV Lab', heading: 'Privacy overview' },
+  ].forEach(({ path, title, heading }) => {
+    test(`direct navigation to ${path} works and updates the title`, async ({ page }) => {
+      await page.goto(path);
+
+      await expect(page).toHaveTitle(title);
+      await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `https://npvlab.com${path}`);
+    });
+  });
+
+  test('sitemap contains only canonical URLs', () => {
+    const sitemap = readFileSync(new URL('../../public/sitemap.xml', import.meta.url), 'utf8');
+    const urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/gu)].map((match) => match[1]);
+
+    expect(urls).toEqual([
+      'https://npvlab.com/',
+      'https://npvlab.com/pricing',
+      'https://npvlab.com/terms',
+      'https://npvlab.com/privacy',
+      'https://npvlab.com/disclaimer',
+    ]);
+    expect(new Set(urls).size).toBe(urls.length);
+
+    for (const url of urls) {
+      const parsed = new URL(url);
+      expect(parsed.origin).toBe('https://npvlab.com');
+      expect(parsed.search).toBe('');
+      expect(parsed.hash).toBe('');
+      expect(parsed.pathname === '/' || !parsed.pathname.endsWith('/')).toBeTruthy();
+    }
+  });
+
+  test('support modal validates empty subject and message', async ({ page }) => {
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'More options' }).click();
+    await page.getByRole('button', { name: 'Support' }).click();
+    await expect(page.getByRole('heading', { name: 'Contact Support' })).toBeVisible();
+    await page.getByRole('button', { name: 'Send Support Request' }).click();
+
+    await expect(page.getByText('Subject must be 3-120 characters.')).toBeVisible();
+    await expect(page.getByText('Message must be 10-5000 characters.')).toBeVisible();
+  });
 });
 
 test('saves and reloads a local project through the UI', async ({ page }) => {
@@ -71,7 +123,8 @@ test('cloud save requires authentication before opening the cloud save dialog', 
 });
 
 test('deep links hydrate project values and title', async ({ page }) => {
-  await page.goto('/?initial=3210&discount=7.5&cashflows=400,500,600&project=Deep%20Link%20Project&period=quarters&rateBasis=annual');
+  await mockSignedInUser(page, { hasPro: true });
+  await page.goto(`/?initial=3210&discount=7.5&cashflows=400,500,600&project=Deep%20Link%20Project&period=quarters&rateBasis=annual${testSessionHash}`);
 
   await expect(page).toHaveTitle('NPV Lab | Deep Link Project');
   await expect(quickInputs(page).first()).toHaveValue('3,210');
@@ -81,7 +134,8 @@ test('deep links hydrate project values and title', async ({ page }) => {
 });
 
 test('monthly projects apply annual discount rates as converted monthly rates', async ({ page }) => {
-  await page.goto('/?initial=1000&discount=12&cashflows=100,100,100&period=months&rateBasis=annual');
+  await mockSignedInUser(page, { hasPro: true });
+  await page.goto(`/?initial=1000&discount=12&cashflows=100,100,100&period=months&rateBasis=annual${testSessionHash}`);
 
   await expect(page.locator('.quick-view-controls')).toContainText('Annual Discount Rate');
   await expect(page.locator('.quick-view-controls')).toContainText('Applied monthly: 0.95%');
@@ -107,7 +161,7 @@ test('checkout failure is shown after a signed-in user starts checkout', async (
     });
   });
 
-  await page.goto('/?signedIn=e2e#access_token=test-token&refresh_token=refresh-token&expires_in=3600&token_type=bearer');
+  await page.goto(`/?signedIn=e2e${testSessionHash}`);
   await page.getByRole('button', { name: 'More options' }).click();
   await expect(page.getByText('test@example.com').last()).toBeVisible();
   await page.getByRole('button', { name: 'More options' }).click();
@@ -119,7 +173,8 @@ test('checkout failure is shown after a signed-in user starts checkout', async (
 });
 
 test('edge-case calculations render non-numeric IRR without fake precision', async ({ page }) => {
-  await page.goto('/?initial=1000&discount=10&cashflows=-100,-100&project=No%20Root');
+  await mockSignedInUser(page, { hasPro: true });
+  await page.goto(`/?initial=1000&discount=10&cashflows=-100,-100&project=No%20Root${testSessionHash}`);
   await page.getByRole('button', { name: 'Analyze' }).click();
   await expect(page.locator('.quick-view-analysis-facts-list')).toContainText('IRR');
   await expect(page.locator('.quick-view-analysis-facts-list')).toContainText('N/A');

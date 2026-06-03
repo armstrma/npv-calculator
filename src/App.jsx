@@ -27,6 +27,7 @@ import {
   getSentimentStatus,
   getSliderBounds,
   getSpreadStatus,
+  pricingPlan,
   productHighlights,
   sanitizeCashflows,
   sanitizeFinancialValue,
@@ -39,7 +40,9 @@ import { CashflowTooltip, MarginalSensitivityTooltip, NpvTooltip, QuickViewChart
 import { CurrencyExpressionInput } from './components/input/CurrencyExpressionInput.jsx';
 import { QuickViewVariablePanel } from './components/layout/QuickViewVariablePanel.jsx';
 import { ProductModal } from './components/modal/ProductModal.jsx';
+import { ExamplesPage } from './components/project/ExamplesPage.jsx';
 import { MobileLibraryPanel } from './components/project/MobileLibraryPanel.jsx';
+import { getExampleBySlug } from './components/project/projectData.js';
 import {
   ResponsiveContainer,
   LineChart,
@@ -69,6 +72,258 @@ const formatTableCurrencyValue = (value) => Number(value || 0).toLocaleString(un
   maximumFractionDigits: 2,
 });
 
+const SITE_ORIGIN = 'https://npvlab.com';
+const DEFAULT_SEO = {
+  title: 'NPV Lab | Educational NPV Calculator',
+  description: 'NPV Lab is an educational net present value calculator for learning capital budgeting, cash-flow modeling, IRR, payback, and sensitivity analysis.',
+  path: '/',
+};
+const SEO_BY_PATH = {
+  '/pricing': {
+    title: 'Pricing | NPV Lab',
+    description: 'Review NPV Lab Pro pricing, digital software access, billing provider details, cancellation notes, refunds, and educational-use terms.',
+  },
+  '/terms': {
+    title: 'Terms | NPV Lab',
+    description: 'Read NPV Lab terms for digital software access, subscriptions, cancellation, refunds, support, checkout provider billing, and educational-use limitations.',
+  },
+  '/privacy': {
+    title: 'Privacy | NPV Lab',
+    description: 'Read the NPV Lab privacy overview for account data, project storage, checkout provider data, support requests, and educational product analytics.',
+  },
+  '/disclaimer': {
+    title: 'Disclaimer | NPV Lab',
+    description: 'NPV Lab is an educational and informational tool, not financial, investment, accounting, tax, legal, lending, or business advice.',
+  },
+  '/examples': {
+    title: 'Examples | NPV Lab',
+    description: 'Explore interactive NPV Lab example templates with NPV curves, variables, IRR, payback, and calculator deeplinks.',
+  },
+};
+
+const upsertMeta = (selector, createElement, content) => {
+  let element = document.head.querySelector(selector);
+  if (!element) {
+    element = createElement();
+    document.head.appendChild(element);
+  }
+  element.setAttribute('content', content);
+};
+
+const applySeoMetadata = ({ title, description, path }) => {
+  document.title = title;
+  upsertMeta('meta[name="description"]', () => {
+    const element = document.createElement('meta');
+    element.setAttribute('name', 'description');
+    return element;
+  }, description);
+  upsertMeta('meta[property="og:title"]', () => {
+    const element = document.createElement('meta');
+    element.setAttribute('property', 'og:title');
+    return element;
+  }, title);
+  upsertMeta('meta[property="og:description"]', () => {
+    const element = document.createElement('meta');
+    element.setAttribute('property', 'og:description');
+    return element;
+  }, description);
+  upsertMeta('meta[property="og:url"]', () => {
+    const element = document.createElement('meta');
+    element.setAttribute('property', 'og:url');
+    return element;
+  }, `${SITE_ORIGIN}${path}`);
+  upsertMeta('meta[name="twitter:title"]', () => {
+    const element = document.createElement('meta');
+    element.setAttribute('name', 'twitter:title');
+    return element;
+  }, title);
+  upsertMeta('meta[name="twitter:description"]', () => {
+    const element = document.createElement('meta');
+    element.setAttribute('name', 'twitter:description');
+    return element;
+  }, description);
+
+  let canonical = document.head.querySelector('link[rel="canonical"]');
+  if (!canonical) {
+    canonical = document.createElement('link');
+    canonical.setAttribute('rel', 'canonical');
+    document.head.appendChild(canonical);
+  }
+  canonical.setAttribute('href', `${SITE_ORIGIN}${path}`);
+};
+
+const getSeoForPath = ({ path, activeProjectName }) => {
+  if (path.startsWith('/examples')) return { ...SEO_BY_PATH['/examples'], path: '/examples' };
+  if (SEO_BY_PATH[path]) return { ...SEO_BY_PATH[path], path };
+  if (activeProjectName) {
+    return {
+      ...DEFAULT_SEO,
+      title: `NPV Lab | ${activeProjectName}`,
+    };
+  }
+  return DEFAULT_SEO;
+};
+
+const LegalFooter = ({ onNavigateExamples, onNavigatePricing, onNavigateTerms, onNavigatePrivacy, onNavigateDisclaimer, onOpenSupport }) => (
+  <footer className="site-footer">
+    <nav className="site-footer-links" aria-label="Legal and pricing">
+      <a href="/examples" className="site-footer-link" onClick={onNavigateExamples}>Examples</a>
+      <a href="/pricing" className="site-footer-link" onClick={onNavigatePricing}>Pricing</a>
+      <a href="/terms" className="site-footer-link" onClick={onNavigateTerms}>Terms</a>
+      <a href="/privacy" className="site-footer-link" onClick={onNavigatePrivacy}>Privacy</a>
+      <a href="/disclaimer" className="site-footer-link" onClick={onNavigateDisclaimer}>Disclaimer</a>
+      <button type="button" className="site-footer-link" onClick={onOpenSupport}>Support</button>
+    </nav>
+    <p>
+      Educational tool, not financial advice. See <a href="/disclaimer" onClick={onNavigateDisclaimer}>Disclaimer</a>.
+    </p>
+  </footer>
+);
+
+const LegalPageShell = ({ children, onBackToApp, onNavigateExamples, onNavigatePricing, onNavigateTerms, onNavigatePrivacy, onNavigateDisclaimer, onOpenSupport }) => (
+  <div className="legal-page-shell">
+    <header className="legal-page-header">
+      <a href="/" className="legal-brand" onClick={onBackToApp}>NPV Lab</a>
+      <button type="button" className="button-secondary" onClick={onBackToApp}>Back to Calculator</button>
+    </header>
+
+    {children}
+
+    <LegalFooter
+      onNavigateExamples={onNavigateExamples}
+      onNavigatePricing={onNavigatePricing}
+      onNavigateTerms={onNavigateTerms}
+      onNavigatePrivacy={onNavigatePrivacy}
+      onNavigateDisclaimer={onNavigateDisclaimer}
+      onOpenSupport={onOpenSupport}
+    />
+  </div>
+);
+
+const PricingPage = ({ onBackToApp, onNavigateExamples, onNavigatePricing, onNavigateTerms, onNavigatePrivacy, onNavigateDisclaimer, onOpenSupport, onOpenCheckout }) => (
+  <LegalPageShell
+    onBackToApp={onBackToApp}
+    onNavigateExamples={onNavigateExamples}
+    onNavigatePricing={onNavigatePricing}
+    onNavigateTerms={onNavigateTerms}
+    onNavigatePrivacy={onNavigatePrivacy}
+    onNavigateDisclaimer={onNavigateDisclaimer}
+    onOpenSupport={onOpenSupport}
+  >
+    <main className="legal-page-main">
+      <p className="legal-eyebrow">Pricing</p>
+      <h1>NPV Lab Pro</h1>
+      <div className="legal-copy">
+        <p>
+          NPV Lab Pro is digital product and software access for educational capital-budgeting workflows.
+        </p>
+        <ul className="legal-list">
+          <li>Current price: {pricingPlan.price} or {pricingPlan.annual}.</li>
+          <li>Subscriptions renew automatically when the selected checkout plan is configured as a recurring subscription.</li>
+          <li>Cancellation stops future renewals. Access may continue through the paid billing period, then revert to the free tier.</li>
+          <li>Refunds are handled under the refund policy shown at checkout or in the Terms.</li>
+          <li>Checkout is handled by Shopify or another checkout provider, and billing emails or receipts are sent by that provider.</li>
+          <li>Taxes, fees, and payment processing details may be calculated and handled by the checkout provider.</li>
+          <li>Support is handled through in-app support when available.</li>
+          <li>NPV Lab is educational and informational only, with no guarantee of financial outcome.</li>
+        </ul>
+        <button type="button" className="button-primary legal-action-button" onClick={onOpenCheckout}>View Checkout Options</button>
+      </div>
+    </main>
+  </LegalPageShell>
+);
+
+const TermsPage = ({ onBackToApp, onNavigateExamples, onNavigatePricing, onNavigateTerms, onNavigatePrivacy, onNavigateDisclaimer, onOpenSupport }) => (
+  <LegalPageShell
+    onBackToApp={onBackToApp}
+    onNavigateExamples={onNavigateExamples}
+    onNavigatePricing={onNavigatePricing}
+    onNavigateTerms={onNavigateTerms}
+    onNavigatePrivacy={onNavigatePrivacy}
+    onNavigateDisclaimer={onNavigateDisclaimer}
+    onOpenSupport={onOpenSupport}
+  >
+    <main className="legal-page-main">
+      <p className="legal-eyebrow">Terms</p>
+      <h1>Terms of use</h1>
+      <div className="legal-copy">
+        <p>
+          NPV Lab provides digital product and software access for educational and informational use. It is not financial, investment, accounting, tax, legal, lending, or business advice.
+        </p>
+        <ul className="legal-list">
+          <li>No financial outcome is guaranteed. Results depend on user-entered assumptions and simplified educational models.</li>
+          <li>Paid access may be sold as a subscription. If applicable, the subscription renews automatically until canceled.</li>
+          <li>Cancellation prevents future renewal charges. Access may remain available through the already-paid billing period, then change to free-tier access.</li>
+          <li>Refund eligibility depends on the refund policy presented at checkout or by the checkout provider.</li>
+          <li>Checkout is handled by Shopify or another checkout provider. Billing emails, receipts, taxes, fees, and payment records may be handled by that provider.</li>
+          <li>Support is handled through in-app support when available. Support responses do not create financial advice or a guarantee of outcome.</li>
+        </ul>
+      </div>
+    </main>
+  </LegalPageShell>
+);
+
+const PrivacyPage = ({ onBackToApp, onNavigateExamples, onNavigatePricing, onNavigateTerms, onNavigatePrivacy, onNavigateDisclaimer, onOpenSupport }) => (
+  <LegalPageShell
+    onBackToApp={onBackToApp}
+    onNavigateExamples={onNavigateExamples}
+    onNavigatePricing={onNavigatePricing}
+    onNavigateTerms={onNavigateTerms}
+    onNavigatePrivacy={onNavigatePrivacy}
+    onNavigateDisclaimer={onNavigateDisclaimer}
+    onOpenSupport={onOpenSupport}
+  >
+    <main className="legal-page-main">
+      <p className="legal-eyebrow">Privacy</p>
+      <h1>Privacy overview</h1>
+      <div className="legal-copy">
+        <p>
+          NPV Lab collects only the information needed to operate an educational software product, manage accounts, save projects, process checkout, and respond to support requests.
+        </p>
+        <ul className="legal-list">
+          <li>Account data may include your email address and authentication identifiers from Supabase Auth.</li>
+          <li>Project data may include calculator inputs, saved project names, and related educational workflow settings.</li>
+          <li>Checkout, payment, tax, fee, receipt, and billing details may be handled by Shopify or another checkout provider.</li>
+          <li>Support requests may include the message you submit, your authenticated email, and contextual account or entitlement information verified server-side.</li>
+          <li>Product analytics, if added, should support educational workflow improvement and operational reliability.</li>
+          <li>NPV Lab should not sell personal information or use saved project assumptions to provide financial advice.</li>
+        </ul>
+      </div>
+    </main>
+  </LegalPageShell>
+);
+
+const DisclaimerPage = ({ onBackToApp, onNavigateExamples, onNavigatePricing, onNavigateTerms, onNavigatePrivacy, onNavigateDisclaimer, onOpenSupport }) => (
+  <LegalPageShell
+    onBackToApp={onBackToApp}
+    onNavigateExamples={onNavigateExamples}
+    onNavigatePricing={onNavigatePricing}
+    onNavigateTerms={onNavigateTerms}
+    onNavigatePrivacy={onNavigatePrivacy}
+    onNavigateDisclaimer={onNavigateDisclaimer}
+    onOpenSupport={onOpenSupport}
+  >
+    <main className="legal-page-main">
+      <p className="legal-eyebrow">Disclaimer</p>
+      <h1>Educational tool, not financial advice.</h1>
+      <div className="legal-copy">
+        <p>
+          NPV Lab is designed for learning, classroom use, and exploratory financial modeling. It helps explain net present value, IRR, payback, sensitivity, and related concepts using the assumptions you enter.
+        </p>
+        <p>
+          The calculator does not provide investment, accounting, tax, legal, lending, or business advice. Results are estimates based on simplified inputs and may not reflect financing costs, taxes, market risk, operational constraints, or other factors that matter in a real decision.
+        </p>
+        <p>
+          Do not rely on NPV Lab as the sole basis for buying, selling, funding, approving, or rejecting any investment, project, asset, security, loan, or business opportunity. Review important decisions with qualified professionals who understand your circumstances.
+        </p>
+        <p>
+          Paid features, where available, improve workflow and convenience. They do not make the outputs financial advice, guarantee accuracy, or guarantee any result.
+        </p>
+      </div>
+    </main>
+  </LegalPageShell>
+);
+
 const App = () => {
   const [initial, setInitial] = useState(1000);
   const [discount, setDiscount] = useState(10);
@@ -84,6 +339,12 @@ const App = () => {
   const [sliderGradientsEnabled, setSliderGradientsEnabled] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState('');
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportSubject, setSupportSubject] = useState('');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [supportErrors, setSupportErrors] = useState({});
+  const [supportStatus, setSupportStatus] = useState('idle');
+  const [supportNotice, setSupportNotice] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProductHero, setShowProductHero] = useState(true);
   const [showMobileLibrary, setShowMobileLibrary] = useState(false);
@@ -104,6 +365,7 @@ const App = () => {
   const [authSession, setAuthSession] = useState(null);
   const [authUser, setAuthUser] = useState(null);
   const [entitlement, setEntitlement] = useState(applyLocalProEntitlement());
+  const [entitlementResolved, setEntitlementResolved] = useState(false);
   const [checkoutStatus, setCheckoutStatus] = useState('idle');
   const [checkoutNotice, setCheckoutNotice] = useState('');
   const [cloudProjects, setCloudProjects] = useState({});
@@ -122,6 +384,7 @@ const App = () => {
   const [pendingDeleteProjectName, setPendingDeleteProjectName] = useState('');
   const [projectPreviews, setProjectPreviews] = useState({});
   const [isDesktopViewport, setIsDesktopViewport] = useState(false);
+  const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
   const [initialInput, setInitialInput] = useState(formatNumberWithCommas(1000));
   const [rateInput, setRateInput] = useState('10.0');
   const [cashflowInputs, setCashflowInputs] = useState([200, 300, 400, 500, 600].map(formatNumberWithCommas));
@@ -144,6 +407,36 @@ const App = () => {
   const canAddCashflowPeriod = canEditProjectStructure && cashflows.length < cashflowPeriodLimit;
   const localSaveLimitReached = !isPro && Object.keys(projects || {}).length >= access.limits.maxLocalProjects;
   const cloudSaveLimitReached = !isPro && Object.keys(cloudProjects || {}).length >= access.limits.maxCloudProjects;
+  const navigateToPath = (path) => {
+    window.history.pushState({}, '', path);
+    setCurrentPath(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const handleBackToApp = (event) => {
+    event?.preventDefault();
+    navigateToPath('/');
+  };
+  const handleNavigatePricing = (event) => {
+    event?.preventDefault();
+    navigateToPath('/pricing');
+  };
+  const handleNavigateTerms = (event) => {
+    event?.preventDefault();
+    navigateToPath('/terms');
+  };
+  const handleNavigatePrivacy = (event) => {
+    event?.preventDefault();
+    navigateToPath('/privacy');
+  };
+  const handleNavigateDisclaimer = (event) => {
+    event?.preventDefault();
+    navigateToPath('/disclaimer');
+  };
+  const handleNavigateExamples = (event) => {
+    event?.preventDefault();
+    navigateToPath('/examples');
+  };
+
   useEffect(() => {
     const saved = localStorage.getItem('npvProjects');
     if (saved) setProjects(JSON.parse(saved));
@@ -152,17 +445,26 @@ const App = () => {
     const session = sessionFromUrl || getStoredSession();
     if (session) {
       getActiveSession(session).then((activeSession) => {
-        if (!activeSession) return null;
+        if (!activeSession) {
+          setEntitlementResolved(true);
+          return null;
+        }
         setAuthSession(activeSession);
         return fetchCurrentUser(activeSession);
       }).then((user) => {
-        if (!user) return;
+        if (!user) {
+          setEntitlementResolved(true);
+          return;
+        }
         setAuthUser(user);
         setAuthEmail(user.email || '');
         setAuthNotice(sessionFromUrl ? 'You are signed in. Cloud saves are available now.' : '');
       }).catch(() => {
         clearStoredSession();
+        setEntitlementResolved(true);
       });
+    } else {
+      setEntitlementResolved(true);
     }
 
     const params = new URLSearchParams(window.location.search);
@@ -173,8 +475,34 @@ const App = () => {
     const periodParam = params.get('period');
     const rateBasisParam = params.get('rateBasis');
     const projectParam = params.get('project');
+    const exampleParam = params.get('example');
     const hurdleEnabledParam = params.get('hurdleEnabled');
     const hurdleRateParam = params.get('hurdleRate');
+    const examplePathMatch = window.location.pathname.match(/^\/examples\/([^/?#]+)/);
+    const exampleSlug = exampleParam || (examplePathMatch ? decodeURIComponent(examplePathMatch[1]) : '');
+    const exampleProject = exampleSlug ? getExampleBySlug(exampleSlug) : null;
+
+    if (exampleProject) {
+      const sanitizedProject = sanitizeProjectSnapshot(exampleProject);
+      const sanitizedName = sanitizeProjectName(exampleProject.name);
+      setInitial(sanitizedProject.initial);
+      setDiscount(sanitizedProject.discount);
+      setCashflows(sanitizedProject.cashflows);
+      setShowHurdleRate(sanitizedProject.showHurdleRate);
+      setHurdleRate(sanitizedProject.hurdleRate);
+      setPeriodMode(sanitizedProject.periodMode);
+      setRateBasis(sanitizedProject.rateBasis);
+      setInitialInput(formatNumberWithCommas(sanitizedProject.initial));
+      setCashflowInputs(sanitizedProject.cashflows.map(formatNumberWithCommas));
+      setProjectName(sanitizedName);
+      setLoadedProjectName(sanitizedName);
+      setLoadedProjectSource('example');
+      setShowSensitivity(true);
+      if (examplePathMatch) {
+        window.history.replaceState({}, '', `/?example=${encodeURIComponent(exampleSlug)}`);
+        setCurrentPath('/');
+      }
+    }
 
     if (initialValue !== null) {
       const parsedInitial = sanitizeFinancialValue(initialValue);
@@ -228,9 +556,16 @@ const App = () => {
   }, []);
 
   useEffect(() => {
+    const handlePopState = () => setCurrentPath(window.location.pathname);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
     if (!authUser || !authSession) return;
 
     let cancelled = false;
+    setEntitlementResolved(false);
     getActiveSession(authSession)
       .then((activeSession) => {
         if (!activeSession) {
@@ -244,10 +579,12 @@ const App = () => {
           .then((loadedEntitlement) => {
             if (cancelled) return;
             setEntitlement(applyLocalProEntitlement(loadedEntitlement));
+            setEntitlementResolved(true);
           })
           .catch(() => {
             if (cancelled) return;
             setEntitlement(applyLocalProEntitlement());
+            setEntitlementResolved(true);
           });
         return listCloudProjects(activeSession);
       })
@@ -258,6 +595,7 @@ const App = () => {
       })
       .catch((error) => {
         if (cancelled) return;
+        setEntitlementResolved(true);
         setCloudStatus(error.message || 'Cloud projects could not be loaded.');
       });
 
@@ -273,6 +611,7 @@ const App = () => {
   }, [showHurdleRate, hurdleRate, discount]);
 
   useEffect(() => {
+    if (!entitlementResolved) return;
     if ((access.hasPro || isFreeExamplePreview) && !showSensitivity) {
       setShowSensitivity(true);
       return;
@@ -287,12 +626,12 @@ const App = () => {
       setCashflows(nextCashflows);
       setCashflowInputs(nextCashflows.map(formatNumberWithCommas));
     }
-  }, [access.hasPro, isFreeExamplePreview, showSensitivity, showHurdleRate, periodMode, rateBasis, cashflows]);
+  }, [access.hasPro, entitlementResolved, isFreeExamplePreview, showSensitivity, showHurdleRate, periodMode, rateBasis, cashflows]);
 
   useEffect(() => {
     const activeProjectName = loadedProjectName?.trim() || projectName?.trim();
-    document.title = activeProjectName ? `NPV Lab | ${activeProjectName}` : 'NPV Lab';
-  }, [projectName, loadedProjectName]);
+    applySeoMetadata(getSeoForPath({ path: currentPath, activeProjectName }));
+  }, [projectName, loadedProjectName, currentPath]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return undefined;
@@ -390,6 +729,73 @@ const App = () => {
     setShowUpgradeModal(true);
   };
 
+  const validateSupportFields = () => {
+    const errors = {};
+    const trimmedSubject = supportSubject.trim();
+    const trimmedMessage = supportMessage.trim();
+
+    if (trimmedSubject.length < 3 || trimmedSubject.length > 120) {
+      errors.subject = 'Subject must be 3-120 characters.';
+    }
+    if (trimmedMessage.length < 10 || trimmedMessage.length > 5000) {
+      errors.message = 'Message must be 10-5000 characters.';
+    }
+
+    setSupportErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmitSupport = async () => {
+    setSupportNotice('');
+    if (!validateSupportFields()) {
+      setSupportStatus('error');
+      return;
+    }
+    if (!authSession) {
+      setSupportStatus('error');
+      setSupportNotice('Sign in before contacting support.');
+      return;
+    }
+
+    setSupportStatus('sending');
+    try {
+      const activeSession = await getActiveSession(authSession);
+      if (!activeSession) {
+        throw new Error('Sign in before contacting support.');
+      }
+      if (activeSession.accessToken !== authSession.accessToken || activeSession.expiresAt !== authSession.expiresAt) {
+        setAuthSession(activeSession);
+      }
+      const response = await fetch('/api/contact-support', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${activeSession.accessToken}`,
+        },
+        body: JSON.stringify({
+          subject: supportSubject,
+          message: supportMessage,
+          entitlementContext: {
+            hasPro: entitlement.hasPro,
+            source: entitlement.source || null,
+          },
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to send support request.');
+      }
+      setSupportStatus('sent');
+      setSupportNotice(result.message || 'Thanks. If support is available for your account, we will review your message.');
+      setSupportSubject('');
+      setSupportMessage('');
+      setSupportErrors({});
+    } catch (error) {
+      setSupportStatus('error');
+      setSupportNotice(error.message || 'Unable to send support request.');
+    }
+  };
+
   const handleRequestMagicLink = async () => {
     const normalizedEmail = authEmail.trim();
     if (!normalizedEmail) {
@@ -422,6 +828,7 @@ const App = () => {
     setAuthSession(null);
     setAuthUser(null);
     setEntitlement(applyLocalProEntitlement());
+    setEntitlementResolved(true);
     setCloudProjects({});
     setCloudStatus('');
   };
@@ -1108,6 +1515,112 @@ const App = () => {
     };
   }, [barData]);
 
+  const legalPageProps = {
+    onBackToApp: handleBackToApp,
+    onNavigateExamples: handleNavigateExamples,
+    onNavigatePricing: handleNavigatePricing,
+    onNavigateTerms: handleNavigateTerms,
+    onNavigatePrivacy: handleNavigatePrivacy,
+    onNavigateDisclaimer: handleNavigateDisclaimer,
+    onOpenSupport: () => setShowSupportModal(true),
+  };
+  const handleOpenExampleDeeplink = (event, slug) => {
+    event?.preventDefault();
+    const exampleProject = getExampleBySlug(slug);
+    if (!exampleProject) return;
+    loadExampleProject(exampleProject);
+    window.history.pushState({}, '', `/?example=${encodeURIComponent(slug)}`);
+    setCurrentPath('/');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  if (currentPath === '/examples' || currentPath === '/examples/') {
+    return (
+      <>
+        <style>{`${sliderCss}`}</style>
+        <ExamplesPage
+          onBackToApp={handleBackToApp}
+          onOpenExample={handleOpenExampleDeeplink}
+        />
+      </>
+    );
+  }
+
+  if (['/pricing', '/terms', '/privacy', '/disclaimer'].includes(currentPath)) {
+    const activeLegalPage = currentPath === '/pricing'
+      ? (
+        <PricingPage
+          {...legalPageProps}
+          onOpenCheckout={() => setShowUpgradeModal(true)}
+        />
+      )
+      : currentPath === '/terms'
+        ? <TermsPage {...legalPageProps} />
+        : currentPath === '/privacy'
+          ? <PrivacyPage {...legalPageProps} />
+          : <DisclaimerPage {...legalPageProps} />;
+
+    return (
+      <>
+        <style>{`${sliderCss}`}</style>
+        {activeLegalPage}
+        {showSupportModal && (
+          <div className="modal" onClick={() => setShowSupportModal(false)}>
+            <div className="modal-content support-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="upgrade-modal-header">
+                <div>
+                  <h2>Contact Support</h2>
+                  <p>Send a note about account access, billing, saved projects, or app behavior.</p>
+                </div>
+              </div>
+              <label className="auth-field">
+                <span>Subject</span>
+                <input
+                  type="text"
+                  value={supportSubject}
+                  onChange={(e) => setSupportSubject(e.target.value.slice(0, 120))}
+                  maxLength={120}
+                  aria-invalid={Boolean(supportErrors.subject)}
+                />
+                {supportErrors.subject && <span className="support-field-error">{supportErrors.subject}</span>}
+              </label>
+              <label className="auth-field">
+                <span>Message</span>
+                <textarea
+                  value={supportMessage}
+                  onChange={(e) => setSupportMessage(e.target.value.slice(0, 5000))}
+                  maxLength={5000}
+                  rows={6}
+                  aria-invalid={Boolean(supportErrors.message)}
+                />
+                {supportErrors.message && <span className="support-field-error">{supportErrors.message}</span>}
+              </label>
+              {supportNotice && <p className={`auth-footnote auth-notice ${supportStatus === 'error' ? 'error' : ''}`}>{supportNotice}</p>}
+              <div className="auth-actions">
+                <button type="button" className="button-primary" onClick={handleSubmitSupport} disabled={supportStatus === 'sending'}>
+                  {supportStatus === 'sending' ? 'Sending...' : 'Send Support Request'}
+                </button>
+                <button type="button" className="button-secondary" onClick={() => setShowSupportModal(false)}>Close</button>
+              </div>
+            </div>
+          </div>
+        )}
+        <ProductModal
+          open={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          title="Upgrade NPV Lab"
+          isAuthenticated={Boolean(authUser)}
+          userLabel={authUser ? authUser.email : 'Not signed in'}
+          checkoutStatus={checkoutStatus}
+          checkoutNotice={checkoutNotice}
+          reason={upgradeReason}
+          onStartCheckout={handleStartCheckout}
+          onRequireAuth={() => handleRequireAuth('register')}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <style>{`${sliderCss}`}</style>
@@ -1312,6 +1825,37 @@ const App = () => {
                     setShowQuickViewMenu(false);
                   }} />
                 </label>
+                <div className="mobile-topbar-menu-divider" />
+                <button type="button" className="mobile-topbar-menu-item" onClick={(event) => {
+                  handleNavigatePricing(event);
+                  setShowQuickViewMenu(false);
+                }}>
+                  Pricing
+                </button>
+                <button type="button" className="mobile-topbar-menu-item" onClick={(event) => {
+                  handleNavigateTerms(event);
+                  setShowQuickViewMenu(false);
+                }}>
+                  Terms
+                </button>
+                <button type="button" className="mobile-topbar-menu-item" onClick={(event) => {
+                  handleNavigatePrivacy(event);
+                  setShowQuickViewMenu(false);
+                }}>
+                  Privacy
+                </button>
+                <button type="button" className="mobile-topbar-menu-item" onClick={(event) => {
+                  handleNavigateDisclaimer(event);
+                  setShowQuickViewMenu(false);
+                }}>
+                  Disclaimer
+                </button>
+                <button type="button" className="mobile-topbar-menu-item" onClick={() => {
+                  setShowSupportModal(true);
+                  setShowQuickViewMenu(false);
+                }}>
+                  Support
+                </button>
               </div>
             )}
           </div>
@@ -1406,6 +1950,12 @@ const App = () => {
               maxInitialAtNpvZero={maxInitialAtNpvZero}
               isDesktopViewport={isDesktopViewport}
             />
+            {isDesktopViewport && (
+              <div className="quick-view-stage-disclaimer">
+                <span>Educational tool, not financial advice. See </span>
+                <a href="/disclaimer" onClick={handleNavigateDisclaimer}>Disclaimer.</a>
+              </div>
+            )}
           </div>
           <QuickViewVariablePanel
             sentiment={sentiment}
@@ -1730,7 +2280,7 @@ const App = () => {
           <div className="action-button-row">
             <button onClick={() => {
               if (!access.features.exportReports) {
-                openUpgradeModal('Exportable reports are locked on the free tier. Upgrade to prepare CSV now and richer XLSX, PDF, and presentation exports later.');
+                openUpgradeModal('Exportable reports are locked on the free tier. Planned for Pro: exportable reports and expanded scenario workflows.');
                 return;
               }
               exportToCSV();
@@ -1938,6 +2488,48 @@ const App = () => {
                 <button type="button" className="button-primary" onClick={handleConfirmSave}>{saveTarget === 'cloud' ? 'Save to Cloud' : 'Save Locally'}</button>
                 <button type="button" className="button-secondary" onClick={() => setShowSaveLocalModal(false)}>Cancel</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSupportModal && (
+        <div className="modal" onClick={() => setShowSupportModal(false)}>
+          <div className="modal-content support-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="upgrade-modal-header">
+              <div>
+                <h2>Contact Support</h2>
+                <p>Send a note about account access, billing, saved projects, or app behavior.</p>
+              </div>
+            </div>
+            <label className="auth-field">
+              <span>Subject</span>
+              <input
+                type="text"
+                value={supportSubject}
+                onChange={(e) => setSupportSubject(e.target.value.slice(0, 120))}
+                maxLength={120}
+                aria-invalid={Boolean(supportErrors.subject)}
+              />
+              {supportErrors.subject && <span className="support-field-error">{supportErrors.subject}</span>}
+            </label>
+            <label className="auth-field">
+              <span>Message</span>
+              <textarea
+                value={supportMessage}
+                onChange={(e) => setSupportMessage(e.target.value.slice(0, 5000))}
+                maxLength={5000}
+                rows={6}
+                aria-invalid={Boolean(supportErrors.message)}
+              />
+              {supportErrors.message && <span className="support-field-error">{supportErrors.message}</span>}
+            </label>
+            {supportNotice && <p className={`auth-footnote auth-notice ${supportStatus === 'error' ? 'error' : ''}`}>{supportNotice}</p>}
+            <div className="auth-actions">
+              <button type="button" className="button-primary" onClick={handleSubmitSupport} disabled={supportStatus === 'sending'}>
+                {supportStatus === 'sending' ? 'Sending...' : 'Send Support Request'}
+              </button>
+              <button type="button" className="button-secondary" onClick={() => setShowSupportModal(false)}>Close</button>
             </div>
           </div>
         </div>

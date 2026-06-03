@@ -131,6 +131,34 @@ export const proExampleProjects = [
 
 export const exampleProjects = [...freeExampleProjects, ...proExampleProjects];
 
+export const slugifyExampleName = (name = '') => name
+  .toLowerCase()
+  .replace(/&/g, 'and')
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '');
+
+export const getExampleSlug = (project) => project.slug || slugifyExampleName(project.name);
+
+export const getExampleBySlug = (slug) => exampleProjects.find((project) => getExampleSlug(project) === slug);
+
+export const buildExampleDiscountCurve = (project) => {
+  const data = [];
+  const periodMode = ['months', 'quarters', 'years'].includes(project.periodMode) ? project.periodMode : 'years';
+  const rateBasis = project.rateBasis === 'per-period' ? 'per-period' : 'annual';
+
+  for (let r = 0; r <= 30; r += 1) {
+    const npv = calculateNPV(project.initial, getAppliedRate(r, periodMode, rateBasis), project.cashflows);
+    data.push({
+      discount: r,
+      npv,
+      npv_pos: npv >= 0 ? npv : null,
+      npv_neg: npv < 0 ? npv : null,
+    });
+  }
+
+  return data;
+};
+
 export const getProjectPreview = (project, currency = '$') => {
   const periodMode = ['months', 'quarters', 'years'].includes(project.periodMode) ? project.periodMode : 'years';
   const rateBasis = project.rateBasis === 'per-period' ? 'per-period' : 'annual';
