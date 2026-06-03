@@ -74,8 +74,8 @@ const formatTableCurrencyValue = (value) => Number(value || 0).toLocaleString(un
 
 const SITE_ORIGIN = 'https://npvlab.com';
 const DEFAULT_SEO = {
-  title: 'NPV Lab | Educational NPV Calculator',
-  description: 'NPV Lab is an educational net present value calculator for learning capital budgeting, cash-flow modeling, IRR, payback, and sensitivity analysis.',
+  title: 'NPV Lab | NPV Calculator for Cash Flow Analysis',
+  description: 'Model investment cash flows with NPV, IRR, payback, and sensitivity analysis. Compare scenarios faster with an educational finance calculator.',
   path: '/',
 };
 const SEO_BY_PATH = {
