@@ -1,10 +1,14 @@
 # NPV Lab
 
-A browser-based project evaluation tool for comparing discounted cash flow scenarios, IRR, discounted payback, profitability, and sensitivity ranges.
+A browser-based project evaluation tool for comparing discounted cash flow scenarios, IRR, discounted payback, profitability, sensitivity ranges, and Pro presentation-ready decision walkthroughs.
 
 ## Purpose
 
 This application helps evaluate whether a project creates value under a given discount rate and optional hurdle rate. It is designed for quick scenario testing with visual feedback rather than accounting-grade audit output.
+
+## Pro Workflow
+
+NPV Lab Pro adds Presentation Mode, which turns a modeled project into a guided decision walkthrough with summary, assumptions, cash-flow recovery, rate risk, sensitivity, arguments, and next-step slides. It is designed for presenting live from the model instead of rebuilding the analysis in a separate deck.
 
 ## Core Assumptions
 

@@ -9,6 +9,7 @@ test('free access exposes basic capabilities and finite project limits', () => {
   assert.equal(access.features.basicCalculator, true);
   assert.equal(access.features.sensitivityAnalysis, false);
   assert.equal(access.features.dynamicPeriods, false);
+  assert.equal(access.features.presentationMode, false);
   assert.equal(access.limits.maxCashflowPeriods, FREE_TIER_LIMITS.maxCashflowPeriods);
 });
 
@@ -18,6 +19,7 @@ test('pro access unlocks advanced capabilities and unlimited limits', () => {
   assert.equal(access.tier, 'pro');
   assert.equal(access.features.sensitivityAnalysis, true);
   assert.equal(access.features.proTemplates, true);
+  assert.equal(access.features.presentationMode, true);
   assert.equal(access.limits.maxCashflowPeriods, Infinity);
 });
 

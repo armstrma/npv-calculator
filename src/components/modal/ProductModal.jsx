@@ -10,7 +10,7 @@ export const ProductModal = ({ open, onClose, title = 'Upgrade', reason = '', is
           <div>
             <h2>{title}</h2>
             <p>
-              Unlock the premium NPV Calculator for clearer insights and guided decision-making.
+              Unlock Presentation Mode, clearer insights, and guided decision-making.
             </p>
           </div>
         </div>
@@ -32,7 +32,7 @@ export const ProductModal = ({ open, onClose, title = 'Upgrade', reason = '', is
             <strong>{pricingPlan.price}</strong>
             <span>or {pricingPlan.annual}</span>
           </div>
-          <p className="upgrade-price-note">Premium tools for saving, sharing, and guided decision-making.</p>
+          <p className="upgrade-price-note">Premium tools for presenting, saving, sharing, and guided decision-making.</p>
         </div>
 
         <div className="upgrade-grid single-column">

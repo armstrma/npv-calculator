@@ -133,6 +133,38 @@ test('deep links hydrate project values and title', async ({ page }) => {
   await expect(page.locator('.quick-view-controls')).toContainText('Applied quarterly: 1.82%');
 });
 
+test('desktop share menu gates presentation mode for free users', async ({ page }) => {
+  await page.goto('/?project=Presentation%20Case');
+
+  await desktopToolbar(page).getByLabel('Share options').click();
+  await page.getByRole('button', { name: 'Presentation Mode' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Upgrade NPV Lab' })).toBeVisible();
+  await expect(page.getByText('Presentation Mode is a Pro feature.')).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Presentation mode' })).toBeHidden();
+});
+
+test('desktop share menu opens presentation mode for pro users', async ({ page }) => {
+  await mockSignedInUser(page, { hasPro: true });
+  await page.goto(`/?project=Presentation%20Case${testSessionHash}`);
+
+  await desktopToolbar(page).getByLabel('Share options').click();
+  await page.getByRole('button', { name: 'Presentation Mode' }).click();
+
+  await expect(page.getByRole('dialog', { name: 'Presentation mode' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Decision Summary', exact: true })).toBeVisible();
+  await expect(page.getByText('Presentation Case')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Assumptions', exact: true })).toBeVisible();
+
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('heading', { name: 'Cash Flows', exact: true })).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Presentation mode' })).toBeHidden();
+});
+
 test('monthly projects apply annual discount rates as converted monthly rates', async ({ page }) => {
   await mockSignedInUser(page, { hasPro: true });
   await page.goto(`/?initial=1000&discount=12&cashflows=100,100,100&period=months&rateBasis=annual${testSessionHash}`);

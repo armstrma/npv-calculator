@@ -34,6 +34,7 @@ export const resolveAccess = (entitlement = {}) => {
       multiProjectComparison: hasPro,
       unlimitedHorizons: hasPro,
       guidedMode: hasPro,
+      presentationMode: hasPro,
       scenarioComparison: hasPro,
       projectTagging: hasPro,
       proTemplates: hasPro,

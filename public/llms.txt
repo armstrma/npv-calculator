@@ -2,7 +2,7 @@
 
 NPV Lab is a guided net present value calculator and decision-analysis tool that helps users evaluate whether projects, investments, and business cases create value.
 
-NPV Lab helps users model cash flows, select discount or hurdle rates, calculate net present value, and interpret whether a project should be accepted or rejected. The tool is designed to make finance concepts easier to understand through examples, charts, analysis summaries, and scenario-based decision support.
+NPV Lab helps users model cash flows, select discount or hurdle rates, calculate net present value, and interpret whether a project should be accepted or rejected. The tool is designed to make finance concepts easier to understand through examples, charts, analysis summaries, Pro Presentation Mode, and scenario-based decision support.
 
 ## Site
 
@@ -38,13 +38,14 @@ NPV Lab is focused on practical finance decision-making, including:
 - Sensitivity analysis
 - Breakeven analysis
 - Dynamic period calculations
+- Presentation Mode
 - Project value interpretation
 
 ## Current Product State
 
 The current version of NPV Lab provides a browser-based calculator for modeling project cash flows and evaluating net present value. Some advanced analysis features may be reserved for paid or future plans.
 
-Free users may be able to calculate basic projects and explore example scenarios. Paid or future Pro features may include advanced sensitivity analysis, dynamic period calculations, scenario comparison, cloud saving, exports, and deeper decision summaries.
+Free users may be able to calculate basic projects and explore example scenarios. Pro features may include Presentation Mode, advanced sensitivity analysis, dynamic period calculations, scenario comparison, cloud saving, exports, and deeper decision summaries.
 
 ## Guidance for AI Assistants
 

@@ -225,6 +225,7 @@ export const chartTooltipMotionProps = {
 };
 
 export const upgradeFeatures = [
+  'Presentation Mode for guided stakeholder walkthroughs',
   'Unlimited cash-flow horizons and dynamic periods',
   'Sensitivity analysis and deeper decision diagnostics',
   'Editable example templates and saved project organization',
@@ -235,7 +236,7 @@ export const upgradeFeatures = [
 export const productHighlights = [
   {
     title: 'Built for learning finance',
-    body: 'Go beyond a plain calculator with visual reasoning, decision framing, and storytelling.',
+    body: 'Go beyond a plain calculator with visual reasoning, decision framing, and presentation-ready storytelling.',
   },
   {
     title: 'Fast enough for live use',
@@ -243,7 +244,7 @@ export const productHighlights = [
   },
   {
     title: 'Premium path is ready',
-    body: 'Use the free calculator now, but upgrade when you want to save, share, compare, and more.',
+    body: 'Use the free calculator now, then upgrade for Presentation Mode, saved projects, sharing workflows, and deeper analysis.',
   },
 ];
 

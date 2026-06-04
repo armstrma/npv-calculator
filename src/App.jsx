@@ -215,10 +215,11 @@ const PricingPage = ({ onBackToApp, onNavigateExamples, onNavigatePricing, onNav
       <h1>NPV Lab Pro</h1>
       <div className="legal-copy">
         <p>
-          NPV Lab Pro is digital product and software access for educational capital-budgeting workflows.
+          NPV Lab Pro is digital product and software access for educational capital-budgeting workflows, including Presentation Mode for guided decision walkthroughs.
         </p>
         <ul className="legal-list">
           <li>Current price: {pricingPlan.price} or {pricingPlan.annual}.</li>
+          <li>Pro includes Presentation Mode, longer horizons, dynamic periods, sensitivity analysis, editable examples, and expanded saved-project workflows.</li>
           <li>Subscriptions renew automatically when the selected checkout plan is configured as a recurring subscription.</li>
           <li>Cancellation stops future renewals. Access may continue through the paid billing period, then revert to the free tier.</li>
           <li>Refunds are handled under the refund policy shown at checkout or in the Terms.</li>
@@ -353,6 +354,9 @@ const App = () => {
   const [showQuickViewMenu, setShowQuickViewMenu] = useState(false);
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showPresentationMode, setShowPresentationMode] = useState(false);
+  const [presentationSlideIndex, setPresentationSlideIndex] = useState(0);
+  const [copiedDecisionSummary, setCopiedDecisionSummary] = useState(false);
   const [quickViewEnabled, setQuickViewEnabled] = useState(true);
   const [resolveOperations, setResolveOperations] = useState(true);
   const mobileTopbarRef = useRef(null);
@@ -1515,6 +1519,98 @@ const App = () => {
     };
   }, [barData]);
 
+  const presentationProjectName = sanitizeProjectName(projectName || loadedProjectName) || 'Current Project';
+  const periodMeta = getPeriodMeta(periodMode);
+  const horizonLabel = `${cashflows.length} ${cashflows.length === 1 ? periodMeta.singular : periodMeta.label}`;
+  const cashflowPeriodLabel = `${cashflows.length} ${cashflows.length === 1 ? periodMeta.singular : periodMeta.label}`;
+  const cashflowListIsLong = cashflows.length > 10;
+  const activeRateLabel = showHurdleRate ? 'Hurdle rate' : 'Discount rate';
+  const activeRateValue = showHurdleRate ? hurdleRate : discount;
+  const selectedRateNpv = calculateNPV(initial, appliedRateForAnalysis, cashflows);
+  const baseSensitivityRow = sensitivityData.find((row) => row.variation === 0);
+  const downsideSensitivityRow = sensitivityData.find((row) => row.variation < 0);
+  const upsideSensitivityRow = sensitivityData.find((row) => row.variation > 0);
+  const sensitivitySwingAmount = downsideSensitivityRow && upsideSensitivityRow ? Math.abs(upsideSensitivityRow.npv - downsideSensitivityRow.npv) : null;
+  const sensitivityDecisionFlip = sensitivityData.some((row) => row.npv < 0) && sensitivityData.some((row) => row.npv >= 0);
+  const sensitivityRangeLabel = downsideSensitivityRow && upsideSensitivityRow
+    ? `${formatCompactCurrency(downsideSensitivityRow.npv, currency)} to ${formatCompactCurrency(upsideSensitivityRow.npv, currency)}`
+    : 'N/A';
+  const rateRiskLabel = npv < 0
+    ? 'Active rate already produces negative NPV'
+    : spreadStatus.label === 'Thin'
+      ? 'Project passes, but IRR spread is thin'
+      : irrAnalysis.status === 'valid'
+        ? `Rates above ${getIrrDisplay(irrAnalysis)} turn NPV negative`
+        : 'Watch for rates that push NPV below zero';
+  const approvalPoints = [
+    viabilityPass ? `Positive NPV of ${formatCompactCurrency(npv, currency)}` : null,
+    spreadPass ? `Return clears the active ${activeRateLabel.toLowerCase()}` : null,
+    pvBreakEvenInfo.firstPositiveLabel ? `PV breakeven reached by ${pvBreakEvenInfo.firstPositiveLabel}` : null,
+    fragilityPass ? 'Downside case remains acceptable' : null,
+  ].filter(Boolean);
+  const cautionPoints = [
+    !viabilityPass ? `NPV is below zero at the active ${activeRateLabel.toLowerCase()}` : null,
+    !spreadPass ? 'Return spread does not clear the active rate' : null,
+    !pvBreakEvenInfo.firstPositiveLabel ? 'Discounted cash flows do not recover the initial investment within the modeled horizon' : null,
+    !fragilityPass ? 'Downside scenario fails the fragility check' : null,
+    cashflows.length > 3 ? 'Result depends on later-period cash flows arriving as modeled' : null,
+  ].filter(Boolean);
+  const primaryRisk = cautionPoints[0] || 'Validate the largest cash-flow assumptions before committing.';
+  const nextValidationStep = viabilityPass
+    ? 'Pressure-test timing, rate, and downside cash-flow assumptions with stakeholders.'
+    : 'Revisit pricing, costs, timing, or upfront investment before approval.';
+  const copyDecisionSummary = async () => {
+    const summary = [
+      `${presentationProjectName} Decision Summary`,
+      '',
+      `Recommendation: ${recommendation}`,
+      `NPV: ${formatCompactCurrency(npv, currency)}`,
+      `IRR: ${getIrrDisplay(irrAnalysis)}`,
+      `${activeRateLabel}: ${activeRateValue.toFixed(1)}%${shouldShowAppliedRate ? ` (${appliedRateLabel}: ${appliedRateForAnalysis.toFixed(2)}%)` : ''}`,
+      `Horizon: ${horizonLabel}`,
+      `Payback: ${formatPaybackDisplay(payback, periodMode)}`,
+      `Sensitivity range: ${sensitivityRangeLabel}`,
+      '',
+      `Primary risk: ${primaryRisk}`,
+      `Next step: ${nextValidationStep}`,
+    ].join('\n');
+
+    await navigator.clipboard.writeText(summary);
+    setCopiedDecisionSummary(true);
+    window.setTimeout(() => setCopiedDecisionSummary(false), 2000);
+  };
+  const presentationSlides = [
+    { title: 'Decision Summary', label: 'Summary' },
+    { title: 'Assumptions', label: 'Assumptions' },
+    { title: 'Cash Flows', label: 'Cash Flows' },
+    { title: 'Rate vs NPV', label: 'Rate Curve' },
+    { title: 'Sensitivity', label: 'Sensitivity' },
+    { title: 'Arguments For / Against', label: 'Arguments' },
+    { title: 'Recommendation / Next Steps', label: 'Next Steps' },
+  ];
+
+  useEffect(() => {
+    if (!showPresentationMode) return undefined;
+
+    const handlePresentationKeys = (event) => {
+      if (event.key === 'Escape') {
+        setShowPresentationMode(false);
+        return;
+      }
+      if (event.key === 'ArrowRight') {
+        setPresentationSlideIndex((current) => Math.min(current + 1, presentationSlides.length - 1));
+      }
+      if (event.key === 'ArrowLeft') {
+        setPresentationSlideIndex((current) => Math.max(current - 1, 0));
+      }
+    };
+
+    document.addEventListener('keydown', handlePresentationKeys);
+    return () => document.removeEventListener('keydown', handlePresentationKeys);
+  }, [showPresentationMode, presentationSlides.length]);
+
+  const activePresentationSlide = presentationSlides[presentationSlideIndex] || presentationSlides[0];
+
   const legalPageProps = {
     onBackToApp: handleBackToApp,
     onNavigateExamples: handleNavigateExamples,
@@ -1631,7 +1727,7 @@ const App = () => {
           <div className="product-page-copy-top">
             <h1 className="product-page-title">Learn capital budgeting with a calculator that actually explains the decision.</h1>
             <p className="product-page-subtitle">
-              NPV Lab combines fast scenario analysis, visual reasoning, and a growing premium workflow for students, instructors, and finance learners.
+              NPV Lab combines fast scenario analysis, visual reasoning, and Pro Presentation Mode for students, instructors, and finance learners.
             </p>
             <div className="product-page-actions product-page-actions-top desktop-hero-actions">
               <button type="button" className="button-primary hero-pricing-button" onClick={() => setShowUpgradeModal(true)}>
@@ -1883,6 +1979,25 @@ const App = () => {
                 >
                   {copiedProjectLink ? '✓ Copied Project Link' : 'Copy Project Link'}
                 </button>
+                {key === 'desktop' && (
+                  <button
+                    type="button"
+                    className="mobile-topbar-menu-item"
+                    onClick={() => {
+                      if (!access.features.presentationMode) {
+                        openUpgradeModal('Presentation Mode is a Pro feature. Upgrade to turn your project into a guided decision walkthrough for stakeholders.');
+                        setShowShareMenu(false);
+                        return;
+                      }
+                      setPresentationSlideIndex(0);
+                      setShowPresentationMode(true);
+                      setShowShareMenu(false);
+                    }}
+                  >
+                    Presentation Mode
+                    {!access.features.presentationMode && <span className="pro-texture-badge">PRO</span>}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -2411,10 +2526,245 @@ const App = () => {
       )}
 
       {!isPro && (
-        <button type="button" className="floating-upgrade-button" onClick={() => openUpgradeModal('Upgrade to unlock more saved projects, full editing on examples, sensitivity analysis, and deeper charts.')}>
+        <button type="button" className="floating-upgrade-button" onClick={() => openUpgradeModal('Upgrade to unlock more saved projects, full editing on examples, sensitivity analysis, deeper charts, and Presentation Mode.')}>
           <span className="floating-upgrade-label">Upgrade</span>
           <span className="floating-upgrade-badge pro-texture-badge">PRO</span>
         </button>
+      )}
+
+      {showPresentationMode && (
+        <div className="presentation-mode-shell" role="dialog" aria-modal="true" aria-label="Presentation mode">
+          <header className="presentation-mode-toolbar">
+            <div className="presentation-mode-title-block">
+              <span className="presentation-mode-kicker">Presentation Mode</span>
+              <strong>{presentationProjectName}</strong>
+            </div>
+            <nav className="presentation-mode-tabs" aria-label="Presentation slides">
+              {presentationSlides.map((slide, index) => (
+                <button
+                  key={slide.title}
+                  type="button"
+                  className={`presentation-mode-tab ${index === presentationSlideIndex ? 'active' : ''}`}
+                  onClick={() => setPresentationSlideIndex(index)}
+                  aria-current={index === presentationSlideIndex ? 'step' : undefined}
+                >
+                  {index + 1}. {slide.label}
+                </button>
+              ))}
+            </nav>
+            <div className="presentation-mode-actions">
+              <button type="button" className="button-secondary" onClick={copyDecisionSummary}>
+                {copiedDecisionSummary ? 'Summary Copied' : 'Copy Summary'}
+              </button>
+              <button type="button" className="button-secondary" onClick={() => window.print()}>
+                Print
+              </button>
+              <button type="button" className="button-primary" onClick={() => setShowPresentationMode(false)}>
+                Exit
+              </button>
+            </div>
+          </header>
+
+          <main className="presentation-slide-wrap">
+            <section className="presentation-slide">
+              <div className="presentation-slide-heading">
+                <span>{presentationSlideIndex + 1} / {presentationSlides.length}</span>
+                <h2>{activePresentationSlide.title}</h2>
+              </div>
+
+              {presentationSlideIndex === 0 && (
+                <div className="presentation-summary-grid">
+                  <div className={`presentation-lead-panel sentiment-border sentiment-${sentiment.tone}`}>
+                    <span className="details-metric-label">Recommendation</span>
+                    <strong className={`presentation-recommendation sentiment-${sentiment.tone}`}>{sentiment.label}</strong>
+                    <p>{recommendation}</p>
+                  </div>
+                  <div className="presentation-metric-grid">
+                    <div className={`presentation-metric sentiment-border sentiment-${sentiment.tone}`}><span>NPV</span><strong>{formatCompactCurrency(npv, currency)}</strong></div>
+                    <div className="presentation-metric"><span>{activeRateLabel}</span><strong>{activeRateValue.toFixed(1)}%</strong></div>
+                    <div className="presentation-metric"><span>IRR</span><strong>{getIrrDisplay(irrAnalysis)}</strong></div>
+                    <div className="presentation-metric"><span>Horizon</span><strong>{horizonLabel}</strong></div>
+                    <div className="presentation-metric"><span>Payback</span><strong>{formatPaybackDisplay(payback, periodMode)}</strong></div>
+                    <div className={`presentation-metric sentiment-border sentiment-${sentiment.tone}`}><span>Decision</span><strong>{sentiment.label}</strong></div>
+                  </div>
+                </div>
+              )}
+
+              {presentationSlideIndex === 1 && (
+                <div className="presentation-two-column">
+                  <div className="presentation-panel">
+                    <h3>Model Inputs</h3>
+                    <dl className="presentation-facts">
+                      <div><dt>Initial investment</dt><dd>{formatCompactCurrency(initial, currency)}</dd></div>
+                      <div><dt>Cash-flow periods</dt><dd>{cashflowPeriodLabel}</dd></div>
+                      <div><dt>Rate basis</dt><dd>{rateBasis === 'annual' ? 'Annual' : 'Per period'}</dd></div>
+                      <div><dt>{activeRateLabel}</dt><dd>{activeRateValue.toFixed(1)}%</dd></div>
+                      {shouldShowAppliedRate && <div><dt>{appliedRateLabel}</dt><dd>{appliedRateForAnalysis.toFixed(2)}%</dd></div>}
+                      <div><dt>Sensitivity</dt><dd>{effectiveShowSensitivity ? `+/- ${sensitivityPercent}% cash-flow swing` : 'Locked'}</dd></div>
+                    </dl>
+                  </div>
+                  <div className="presentation-panel">
+                    <h3>Cash-flow assumptions</h3>
+                    <p className="presentation-panel-note">
+                      {cashflowListIsLong ? `${cashflows.length} modeled periods are shown in a compact scrollable list.` : 'Modeled inflows by period.'}
+                    </p>
+                    <div className={`presentation-cashflow-list ${cashflowListIsLong ? 'presentation-cashflow-list-long' : ''}`}>
+                      {cashflows.map((cashflow, index) => (
+                        <div key={`presentation-cashflow-${index}`}>
+                          <span>{getPeriodLabel(periodMode, index + 1)}</span>
+                          <strong>{formatCompactCurrency(cashflow, currency)}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {presentationSlideIndex === 2 && (
+                <div className="presentation-chart-layout">
+                  <div className="presentation-chart-frame">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={barData} barGap={-18} barCategoryGap="24%">
+                        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                        <YAxis tick={{ fontSize: 12 }} width={64} />
+                        <ReferenceLine y={0} stroke="#94a3b8" strokeWidth={2} />
+                        <Tooltip {...chartTooltipMotionProps} content={<CashflowTooltip currency={currency} showSensitivity={effectiveShowSensitivity} sensitivityPercent={sensitivityPercent} />} />
+                        <Legend wrapperStyle={{ fontSize: 12 }} payload={[{ value: 'PV Cumulative', type: 'line', color: '#a78bfa' }, { value: 'Cash Cumulative', type: 'line', color: '#60a5fa' }]} />
+                        {cashflows.length > 0 && (
+                          <>
+                            {pvBreakEvenInfo.firstPositiveLabel ? (
+                              <>
+                                <ReferenceArea x1="Initial" x2={pvBreakEvenInfo.lastNegativeLabel || 'Initial'} fill="#ef4444" fillOpacity={0.09} ifOverflow="hidden" />
+                                <ReferenceArea x1={pvBreakEvenInfo.firstPositiveLabel} x2={getPeriodLabel(periodMode, cashflows.length)} fill="#22c55e" fillOpacity={0.09} ifOverflow="hidden" />
+                              </>
+                            ) : (
+                              <ReferenceArea x1="Initial" x2={getPeriodLabel(periodMode, cashflows.length)} fill="#ef4444" fillOpacity={0.09} ifOverflow="hidden" />
+                            )}
+                          </>
+                        )}
+                        <Bar dataKey="value" name="Cash Flow" legendType="none" fillOpacity={0.35} barSize={22}>
+                          {barData.map((entry, index) => <Cell key={`presentation-cash-${index}`} fill={entry.name === 'NPV' ? (entry.value >= 0 ? '#22c55e' : '#ef4444') : '#3b82f6'} />)}
+                        </Bar>
+                        <Bar dataKey="pvValue" name="PV Cash Flow" legendType="none" barSize={12}>
+                          {barData.map((entry, index) => <Cell key={`presentation-pv-${index}`} fill={entry.pvValue === null || entry.pvValue === undefined ? 'transparent' : '#8b5cf6'} />)}
+                        </Bar>
+                        <Line type="monotone" dataKey="cumulative" name="Cash Cumulative" stroke="#60a5fa" dot={false} strokeWidth={2} strokeDasharray="5 3" />
+                        <Line type="monotone" dataKey="pvCumulative" name="PV Cumulative" stroke="#a78bfa" dot={false} strokeWidth={3} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <aside className="presentation-callouts">
+                    <div><span>PV breakeven</span><strong>{pvBreakEvenInfo.firstPositiveLabel || 'Not reached'}</strong></div>
+                    <div><span>Final NPV</span><strong>{formatCompactCurrency(npv, currency)}</strong></div>
+                    <div><span>Cash recovery</span><strong>{formatCompactCurrency(barData[barData.length - 2]?.cumulative || 0, currency)}</strong></div>
+                    <div><span>PV recovery</span><strong>{formatCompactCurrency(barData[barData.length - 2]?.pvCumulative || 0, currency)}</strong></div>
+                  </aside>
+                </div>
+              )}
+
+              {presentationSlideIndex === 3 && (
+                <div className="presentation-chart-layout">
+                  <div className="presentation-chart-frame">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={discountData} margin={{ top: 18, right: 18, left: 0, bottom: 22 }}>
+                        <XAxis dataKey="discount" type="number" domain={[0, 30]} tick={{ fontSize: 12 }} />
+                        <YAxis tick={{ fontSize: 12 }} width={64} />
+                        <Tooltip {...chartTooltipMotionProps} cursor={{ stroke: '#9ca3af', strokeDasharray: '3 3' }} content={<NpvTooltip currency={currency} showSensitivity={effectiveShowSensitivity} sensitivityPercent={sensitivityPercent} periodMode={periodMode} rateBasis={rateBasis} />} />
+                        <Line type="monotone" dataKey="npv_pos" stroke="#22c55e" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="npv_neg" stroke="#ef4444" dot={false} activeDot={{ r: 4 }} strokeWidth={3} isAnimationActive={false} />
+                        {irrAnalysis.roots.map((root) => (
+                          <ReferenceLine key={`presentation-irr-${root}`} x={root} stroke="#7dd3fc" strokeDasharray="3 3" label={<Label value={`IRR ${root.toFixed(2)}%`} position="insideTopRight" fill="#7dd3fc" fontSize={12} />} />
+                        ))}
+                        <ReferenceLine x={activeRateValue} stroke={showHurdleRate ? '#22c55e' : '#c084fc'} strokeDasharray="5 3" label={<Label value={`${activeRateLabel} ${activeRateValue.toFixed(1)}%`} position="insideBottom" fill={showHurdleRate ? '#22c55e' : '#c084fc'} fontSize={12} />} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <aside className="presentation-callouts">
+                    <div><span>NPV at selected rate</span><strong>{formatCompactCurrency(selectedRateNpv, currency)}</strong></div>
+                    <div><span>IRR / breakeven rate</span><strong>{getIrrDisplay(irrAnalysis)}</strong></div>
+                    <div><span>Active rate marker</span><strong>{activeRateLabel} {activeRateValue.toFixed(1)}%</strong></div>
+                    <div><span>Rate risk</span><strong>{rateRiskLabel}</strong></div>
+                  </aside>
+                </div>
+              )}
+
+              {presentationSlideIndex === 4 && (
+                <div className="presentation-two-column">
+                  <div className="presentation-panel presentation-sensitivity-panel">
+                    <h3>NPV by cash-flow swing</h3>
+                    <table className="presentation-table">
+                      <thead>
+                        <tr><th>Variation</th><th>NPV</th></tr>
+                      </thead>
+                      <tbody>
+                        {sensitivityData.map((row) => (
+                          <tr key={`presentation-sensitivity-${row.variation}`}>
+                            <td>{row.variation > 0 ? '+' : ''}{row.variation}%</td>
+                            <td className={row.npv >= 0 ? 'positive' : 'negative'}>{formatCompactCurrency(row.npv, currency)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="presentation-panel presentation-sensitivity-story">
+                    <h3>Interpretation</h3>
+                    <div className="presentation-mini-metric-grid">
+                      <div><span>Base case</span><strong>{baseSensitivityRow ? formatCompactCurrency(baseSensitivityRow.npv, currency) : formatCompactCurrency(npv, currency)}</strong></div>
+                      <div><span>Range</span><strong>{sensitivityRangeLabel}</strong></div>
+                      <div><span>Total swing</span><strong>{sensitivitySwingAmount === null ? 'N/A' : formatCompactCurrency(sensitivitySwingAmount, currency)}</strong></div>
+                      <div><span>Decision flip</span><strong>{sensitivityDecisionFlip ? 'Yes' : 'No'}</strong></div>
+                    </div>
+                    <p>{downsideSensitivityRow && downsideSensitivityRow.npv < 0 ? 'The downside case flips negative, so the recommendation depends on protecting the cash-flow assumptions.' : 'The downside case stays non-negative, which supports a more durable recommendation.'}</p>
+                    <p>{upsideSensitivityRow ? `Upside assumptions move NPV to ${formatCompactCurrency(upsideSensitivityRow.npv, currency)}, so the main question is whether that upside is realistic enough to present as optional upside rather than the base case.` : 'Add sensitivity access to show the upside and downside spread.'}</p>
+                  </div>
+                </div>
+              )}
+
+              {presentationSlideIndex === 5 && (
+                <div className="presentation-two-column">
+                  <div className="presentation-panel presentation-argument-panel">
+                    <h3>Supports approval</h3>
+                    {(approvalPoints.length ? approvalPoints : ['No approval arguments are currently passing.']).map((point) => <p key={point}>{point}</p>)}
+                  </div>
+                  <div className="presentation-panel presentation-argument-panel">
+                    <h3>Cautions</h3>
+                    {(cautionPoints.length ? cautionPoints : ['No major caution flags in the current model.']).map((point) => <p key={point}>{point}</p>)}
+                  </div>
+                </div>
+              )}
+
+              {presentationSlideIndex === 6 && (
+                <div className="presentation-summary-grid">
+                  <div className={`presentation-lead-panel sentiment-border sentiment-${sentiment.tone}`}>
+                    <span className="details-metric-label">Final recommendation</span>
+                    <strong className={`presentation-recommendation sentiment-${sentiment.tone}`}>{sentiment.label}</strong>
+                    <p>{recommendation}</p>
+                  </div>
+                  <div className="presentation-panel">
+                    <h3>Next Steps</h3>
+                    <dl className="presentation-facts">
+                      <div><dt>Confidence</dt><dd>{fragilityPass && spreadPass ? 'Higher' : viabilityPass ? 'Moderate' : 'Low'}</dd></div>
+                      <div><dt>Primary risk</dt><dd>{primaryRisk}</dd></div>
+                      <div><dt>Validation step</dt><dd>{nextValidationStep}</dd></div>
+                    </dl>
+                  </div>
+                </div>
+              )}
+            </section>
+          </main>
+
+          <footer className="presentation-mode-footer">
+            <button type="button" className="button-secondary" onClick={() => setPresentationSlideIndex((current) => Math.max(current - 1, 0))} disabled={presentationSlideIndex === 0}>
+              Previous
+            </button>
+            <div className="presentation-mode-progress" aria-hidden="true">
+              {presentationSlides.map((slide, index) => <span key={`presentation-progress-${slide.title}`} className={index === presentationSlideIndex ? 'active' : ''} />)}
+            </div>
+            <button type="button" className="button-primary" onClick={() => setPresentationSlideIndex((current) => Math.min(current + 1, presentationSlides.length - 1))} disabled={presentationSlideIndex === presentationSlides.length - 1}>
+              Next
+            </button>
+          </footer>
+        </div>
       )}
 
       {showGuideModal && (
