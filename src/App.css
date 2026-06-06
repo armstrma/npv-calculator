@@ -1410,6 +1410,27 @@ input[type="range"]::-moz-range-thumb {
   line-height: 1;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 5px 14px rgba(88, 28, 135, 0.22);
 }
+.beta-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 18px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 234, 212, 0.62);
+  background: rgba(20, 184, 166, 0.16);
+  color: #99f6e4;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+.presentation-mode-menu-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
 .locked-value-blur,
 .locked-inline-blur,
 .locked-tab-blur,
@@ -2179,6 +2200,10 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   font-size: 16px;
 }
 .presentation-mode-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
   color: #5eead4;
   font-size: 10px;
   font-weight: 800;

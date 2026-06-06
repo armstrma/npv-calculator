@@ -1994,7 +1994,10 @@ const App = () => {
                       setShowShareMenu(false);
                     }}
                   >
-                    Presentation Mode
+                    <span className="presentation-mode-menu-label">
+                      Presentation Mode
+                      <span className="beta-pill">BETA</span>
+                    </span>
                     {!access.features.presentationMode && <span className="pro-texture-badge">PRO</span>}
                   </button>
                 )}
@@ -2536,7 +2539,10 @@ const App = () => {
         <div className="presentation-mode-shell" role="dialog" aria-modal="true" aria-label="Presentation mode">
           <header className="presentation-mode-toolbar">
             <div className="presentation-mode-title-block">
-              <span className="presentation-mode-kicker">Presentation Mode</span>
+              <span className="presentation-mode-kicker">
+                Presentation Mode
+                <span className="beta-pill">BETA</span>
+              </span>
               <strong>{presentationProjectName}</strong>
             </div>
             <nav className="presentation-mode-tabs" aria-label="Presentation slides">
