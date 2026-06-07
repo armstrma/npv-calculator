@@ -10,6 +10,7 @@ import { startShopifyCheckout } from './lib/shopifyCheckout.js';
 import {
   MAX_CASHFLOW_PERIODS,
   PROJECT_NAME_MAX_LENGTH,
+  cashflowChartMotionProps,
   convertIrrAnalysisRateBasis,
   chartTooltipMotionProps,
   formatCompactCurrency,
@@ -2478,14 +2479,14 @@ const App = () => {
                     )}
                   </>
                 )}
-                <Bar dataKey="value" name="Cash Flow" legendType="none" fillOpacity={0.35} barSize={24}>
+                <Bar {...cashflowChartMotionProps} dataKey="value" name="Cash Flow" legendType="none" fillOpacity={0.35} barSize={24}>
                   {barData.map((entry, index) => {
                     const isNpv = entry.name === 'NPV';
                     const fill = isNpv ? (entry.value >= 0 ? '#22c55e' : '#ef4444') : '#3b82f6';
                     return <Cell key={`cash-cell-${index}`} fill={fill} />;
                   })}
                 </Bar>
-                <Bar dataKey="pvValue" name="PV Cash Flow" legendType="none" barSize={14}>
+                <Bar {...cashflowChartMotionProps} dataKey="pvValue" name="PV Cash Flow" legendType="none" barSize={14}>
                   {barData.map((entry, index) => {
                     if (entry.pvValue === null || entry.pvValue === undefined) return <Cell key={`pv-cell-${index}`} fill="transparent" />;
                     const isNpv = entry.name === 'NPV';
@@ -2501,8 +2502,8 @@ const App = () => {
                     <Area type="monotone" dataKey="pvCumulativeRange" stackId="pvBand" legendType="none" stroke="none" fill="#a78bfa" fillOpacity={0.16} isAnimationActive={false} />
                   </>
                 )}
-                <Line type="monotone" dataKey="cumulative" name="Cash Cumulative" stroke="#60a5fa" dot={false} strokeWidth={2} strokeDasharray="5 3" />
-                <Line type="monotone" dataKey="pvCumulative" name="PV Cumulative" stroke="#a78bfa" dot={false} strokeWidth={3} />
+                <Line {...cashflowChartMotionProps} type="monotone" dataKey="cumulative" name="Cash Cumulative" stroke="#60a5fa" dot={false} strokeWidth={2} strokeDasharray="5 3" />
+                <Line {...cashflowChartMotionProps} type="monotone" dataKey="pvCumulative" name="PV Cumulative" stroke="#a78bfa" dot={false} strokeWidth={3} />
               </ComposedChart>
             </ResponsiveContainer>
           </section>
@@ -2648,14 +2649,14 @@ const App = () => {
                             )}
                           </>
                         )}
-                        <Bar dataKey="value" name="Cash Flow" legendType="none" fillOpacity={0.35} barSize={22}>
+                        <Bar {...cashflowChartMotionProps} dataKey="value" name="Cash Flow" legendType="none" fillOpacity={0.35} barSize={22}>
                           {barData.map((entry, index) => <Cell key={`presentation-cash-${index}`} fill={entry.name === 'NPV' ? (entry.value >= 0 ? '#22c55e' : '#ef4444') : '#3b82f6'} />)}
                         </Bar>
-                        <Bar dataKey="pvValue" name="PV Cash Flow" legendType="none" barSize={12}>
+                        <Bar {...cashflowChartMotionProps} dataKey="pvValue" name="PV Cash Flow" legendType="none" barSize={12}>
                           {barData.map((entry, index) => <Cell key={`presentation-pv-${index}`} fill={entry.pvValue === null || entry.pvValue === undefined ? 'transparent' : '#8b5cf6'} />)}
                         </Bar>
-                        <Line type="monotone" dataKey="cumulative" name="Cash Cumulative" stroke="#60a5fa" dot={false} strokeWidth={2} strokeDasharray="5 3" />
-                        <Line type="monotone" dataKey="pvCumulative" name="PV Cumulative" stroke="#a78bfa" dot={false} strokeWidth={3} />
+                        <Line {...cashflowChartMotionProps} type="monotone" dataKey="cumulative" name="Cash Cumulative" stroke="#60a5fa" dot={false} strokeWidth={2} strokeDasharray="5 3" />
+                        <Line {...cashflowChartMotionProps} type="monotone" dataKey="pvCumulative" name="PV Cumulative" stroke="#a78bfa" dot={false} strokeWidth={3} />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>

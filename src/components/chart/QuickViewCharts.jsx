@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Area, Bar, BarChart, Cell, ComposedChart, Label, Legend, Line, LineChart, ReferenceArea, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { chartTooltipMotionProps, formatCompactCurrency, formatPaybackDisplay, getIrrDisplay, getIrrIssueDetail, getIrrIssueLabel, getPeriodLabel, getPeriodMeta, tooltipShellStyle } from '../../lib/calculation.js';
+import { cashflowChartMotionProps, chartTooltipMotionProps, formatCompactCurrency, formatPaybackDisplay, getIrrDisplay, getIrrIssueDetail, getIrrIssueLabel, getPeriodLabel, getPeriodMeta, tooltipShellStyle } from '../../lib/calculation.js';
 
 const formatTableCurrencyValue = (value) => Number(value || 0).toLocaleString(undefined, {
   minimumFractionDigits: 2,
@@ -269,14 +269,14 @@ export const QuickViewCharts = ({
                       )}
                     </>
                   )}
-                  <Bar dataKey="value" name="Cash Flow" legendType="none" fillOpacity={0.35} barSize={18}>
+                  <Bar {...cashflowChartMotionProps} dataKey="value" name="Cash Flow" legendType="none" fillOpacity={0.35} barSize={18}>
                     {barData.map((entry, index) => {
                       const isNpv = entry.name === 'NPV';
                       const fill = isNpv ? (entry.value >= 0 ? '#22c55e' : '#ef4444') : '#3b82f6';
                       return <Cell key={`quick-cash-cell-${index}`} fill={fill} />;
                     })}
                   </Bar>
-                  <Bar dataKey="pvValue" name="PV Cash Flow" legendType="none" barSize={10}>
+                  <Bar {...cashflowChartMotionProps} dataKey="pvValue" name="PV Cash Flow" legendType="none" barSize={10}>
                     {barData.map((entry, index) => {
                       if (entry.pvValue === null || entry.pvValue === undefined) return <Cell key={`quick-pv-cell-${index}`} fill="transparent" />;
                       const isNpv = entry.name === 'NPV';
@@ -292,8 +292,8 @@ export const QuickViewCharts = ({
                       <Area type="monotone" dataKey="pvCumulativeRange" stackId="pvBand" legendType="none" stroke="none" fill="#a78bfa" fillOpacity={0.16} isAnimationActive={false} />
                     </>
                   )}
-                  <Line type="monotone" dataKey="cumulative" name="Cash Cumulative" stroke="#60a5fa" dot={false} strokeWidth={2} strokeDasharray="5 3" />
-                  <Line type="monotone" dataKey="pvCumulative" name="PV Cumulative" stroke="#a78bfa" dot={false} strokeWidth={3} />
+                  <Line {...cashflowChartMotionProps} type="monotone" dataKey="cumulative" name="Cash Cumulative" stroke="#60a5fa" dot={false} strokeWidth={2} strokeDasharray="5 3" />
+                  <Line {...cashflowChartMotionProps} type="monotone" dataKey="pvCumulative" name="PV Cumulative" stroke="#a78bfa" dot={false} strokeWidth={3} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>

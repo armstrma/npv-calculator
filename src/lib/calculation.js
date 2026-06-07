@@ -224,6 +224,12 @@ export const chartTooltipMotionProps = {
   useTranslate3d: true,
 };
 
+export const cashflowChartMotionProps = {
+  animationBegin: 0,
+  animationDuration: 180,
+  animationEasing: 'ease-out',
+};
+
 export const upgradeFeatures = [
   'Presentation Mode for guided stakeholder walkthroughs',
   'Unlimited cash-flow horizons and dynamic periods',
