@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const operatorButtons = [
   { label: '+', value: '+', title: 'Add' },
@@ -26,32 +26,65 @@ export const CurrencyExpressionInput = ({
     if (typeof inputRef === 'function') inputRef(node);
   };
 
+  const handleInputBlur = useCallback((event) => {
+    setIsOpen(false);
+    onBlur?.(event);
+  }, [onBlur]);
+
+  const handleInputKeyDown = useCallback((event) => {
+    if (event.key === 'Enter') setIsOpen(false);
+    onKeyDown?.(event);
+  }, [onKeyDown]);
+
   useEffect(() => {
     const input = internalInputRef.current;
-    if (!input || !onBlur) return undefined;
+    if (!input) return undefined;
 
     const handleNativeBlur = (event) => {
-      onBlur(event);
+      handleInputBlur(event);
     };
 
     input.addEventListener('blur', handleNativeBlur);
     return () => input.removeEventListener('blur', handleNativeBlur);
-  }, [onBlur]);
+  }, [handleInputBlur]);
 
   useEffect(() => {
     const input = internalInputRef.current;
     const wrapper = wrapperRef.current;
-    if (!input || !wrapper || !onBlur) return undefined;
+    if (!input || !wrapper) return undefined;
 
     const handleDocumentPointerDown = (event) => {
-      if (document.activeElement === input && !wrapper.contains(event.target)) {
-        onBlur({ ...event, target: input, currentTarget: input });
+      if (wrapper.contains(event.target)) return;
+
+      setIsOpen(false);
+
+      if (document.activeElement === input) {
+        handleInputBlur({ ...event, target: input, currentTarget: input });
       }
     };
 
     document.addEventListener('pointerdown', handleDocumentPointerDown, true);
     return () => document.removeEventListener('pointerdown', handleDocumentPointerDown, true);
-  }, [onBlur]);
+  }, [handleInputBlur]);
+
+  useEffect(() => {
+    const input = internalInputRef.current;
+    const viewport = window.visualViewport;
+    if (!input || !viewport) return undefined;
+
+    let previousHeight = viewport.height;
+
+    const handleViewportResize = () => {
+      const nextHeight = viewport.height;
+      const keyboardLikelyClosed = document.activeElement === input && nextHeight - previousHeight > 80;
+      previousHeight = nextHeight;
+
+      if (keyboardLikelyClosed) setIsOpen(false);
+    };
+
+    viewport.addEventListener('resize', handleViewportResize);
+    return () => viewport.removeEventListener('resize', handleViewportResize);
+  }, []);
 
   const emitValueChange = (nextValue) => {
     onChange?.({ target: { value: nextValue } });
@@ -81,8 +114,8 @@ export const CurrencyExpressionInput = ({
         disabled={disabled}
         className={className}
         onChange={onChange}
-        onBlur={onBlur}
-        onKeyDown={onKeyDown}
+        onBlur={handleInputBlur}
+        onKeyDown={handleInputKeyDown}
       />
       <button
         type="button"
