@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState, useMemo, useEffect, useRef } from 'react';
 import './App.css';
-import { analyzeIRR, calculateNPV, calculatePayback, calculateROI, calculatePI } from './lib/finance.js';
+import { analyzeIRR, calculateNPV, calculatePayback } from './lib/finance.js';
 import { formatNumberWithCommas, hasArithmeticOperator, parseNumericInput } from './lib/input.js';
 import { clearStoredSession, consumeMagicLinkSession, fetchCurrentUser, getActiveSession, getStoredSession, isCloudAuthConfigured, requestMagicLink } from './lib/cloudAuth.js';
 import { fetchUserEntitlement } from './lib/cloudEntitlements.js';
@@ -44,6 +44,7 @@ import { ProductModal } from './components/modal/ProductModal.jsx';
 import { ExamplesPage } from './components/project/ExamplesPage.jsx';
 import { MobileLibraryPanel } from './components/project/MobileLibraryPanel.jsx';
 import { getExampleBySlug } from './components/project/projectData.js';
+import { exportNpvWorkbook } from './lib/excelExport.js';
 import {
   ResponsiveContainer,
   LineChart,
@@ -388,6 +389,7 @@ const App = () => {
   const [saveTarget, setSaveTarget] = useState('local');
   const [pendingDeleteProjectName, setPendingDeleteProjectName] = useState('');
   const [projectPreviews, setProjectPreviews] = useState({});
+  const [exportStatus, setExportStatus] = useState('idle');
   const [isDesktopViewport, setIsDesktopViewport] = useState(false);
   const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
   const [initialInput, setInitialInput] = useState(formatNumberWithCommas(1000));
@@ -1063,8 +1065,6 @@ const App = () => {
   const irrAnalysis = useMemo(() => convertIrrAnalysisRateBasis(rawIrrAnalysis, periodMode, rateBasis), [rawIrrAnalysis, periodMode, rateBasis]);
   const irr = irrAnalysis.value;
   const payback = useMemo(() => calculatePayback(initial, appliedRateForAnalysis, cashflows), [initial, appliedRateForAnalysis, cashflows]);
-  const roi = useMemo(() => calculateROI(initial, cashflows), [initial, cashflows]);
-  const pi = useMemo(() => calculatePI(npv, initial), [npv, initial]);
 
   const discountData = useMemo(() => {
     const data = [];
@@ -1298,15 +1298,27 @@ const App = () => {
     setCashflowInputs(cashflowInputs.filter((_, i) => i !== index));
   };
 
-  const exportToCSV = () => {
-    const csvContent = `Initial,${initial}\nRate Basis,${rateBasis}\nAnnual Discount Rate,${discount}\nApplied Discount Rate,${appliedDiscountRate}\nHurdle Rate Enabled,${showHurdleRate}\nAnnual Hurdle Rate,${showHurdleRate ? hurdleRate : ''}\nApplied Hurdle Rate,${showHurdleRate ? appliedHurdleRate : ''}\nCash Flows,${cashflows.join(',')}\nNPV,${npv}\nIRR,${getIrrDisplay(irrAnalysis)}\nIRR Status,${irrAnalysis.status}\nPayback,${payback}\nROI,${roi}\nPI,${pi}`;
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'npv_report.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+  const exportToExcel = async () => {
+    setExportStatus('exporting');
+    try {
+      await exportNpvWorkbook({
+        projectName: sanitizeProjectName(projectName || loadedProjectName) || 'npv-report',
+        initial,
+        discount: discountRateForAnalysis,
+        appliedDiscountRate: appliedRateForAnalysis,
+        rateBasis,
+        periodMode,
+        cashflows,
+        sensitivityPercent: effectiveShowSensitivity ? sensitivityPercent : 0,
+        npv,
+        payback,
+      });
+      setExportStatus('done');
+      window.setTimeout(() => setExportStatus('idle'), 2000);
+    } catch (error) {
+      setExportStatus('error');
+      window.alert(error.message || 'Unable to export the Excel workbook.');
+    }
   };
 
   const copyProjectLink = async () => {
@@ -1980,6 +1992,27 @@ const App = () => {
                 >
                   {copiedProjectLink ? '✓ Copied Project Link' : 'Copy Project Link'}
                 </button>
+                <button
+                  type="button"
+                  className="mobile-topbar-menu-item"
+                  disabled={exportStatus === 'exporting'}
+                  onClick={async () => {
+                    if (!access.features.exportReports) {
+                      openUpgradeModal('Exportable reports are locked on the free tier. Upgrade to download dynamic Excel workbooks.');
+                      setShowShareMenu(false);
+                      return;
+                    }
+                    await exportToExcel();
+                    setShowShareMenu(false);
+                  }}
+                >
+                  <span className="presentation-mode-menu-label">
+                    {exportStatus === 'exporting' ? 'Exporting XLSX' : exportStatus === 'done' ? 'Exported XLSX' : 'Export XLSX'}
+                    {' '}
+                    <span className="beta-pill">BETA</span>
+                  </span>
+                  {!access.features.exportReports && <span className="pro-texture-badge">PRO</span>}
+                </button>
                 {key === 'desktop' && (
                   <button
                     type="button"
@@ -2111,7 +2144,6 @@ const App = () => {
             removeYear={removeYear}
             addQuickViewYear={addQuickViewYear}
             access={access}
-            onRequestUpgrade={openUpgradeModal}
             isFreeExamplePreview={isFreeExamplePreview}
             resolveOperations={resolveOperations}
           />
@@ -2397,13 +2429,6 @@ const App = () => {
           </label>
 
           <div className="action-button-row">
-            <button onClick={() => {
-              if (!access.features.exportReports) {
-                openUpgradeModal('Exportable reports are locked on the free tier. Planned for Pro: exportable reports and expanded scenario workflows.');
-                return;
-              }
-              exportToCSV();
-            }} className="button-secondary">Export CSV</button>
             <button onClick={copyProjectLink} className="button-secondary">{copiedProjectLink ? 'Copied Project Link' : 'Copy Project Link'}</button>
           </div>
 
