@@ -27,29 +27,43 @@ const setupWindow = () => {
   return globalThis.window;
 };
 
-test('storeSession keeps Supabase tokens in sessionStorage only', async () => {
+test('storeSession keeps Supabase tokens in localStorage for browser-wide persistence', async () => {
   const window = setupWindow();
   const { storeSession } = await import(`./cloudAuth.js?test=${Date.now()}-store`);
 
   const session = storeSession({ accessToken: 'access', refreshToken: 'refresh' });
 
   assert.equal(session.accessToken, 'access');
-  assert.equal(window.localStorage.getItem('npvLabSupabaseSession'), null);
-  assert.match(window.sessionStorage.getItem('npvLabSupabaseSession'), /"accessToken":"access"/);
+  assert.match(window.localStorage.getItem('npvLabSupabaseSession'), /"accessToken":"access"/);
+  assert.equal(window.sessionStorage.getItem('npvLabSupabaseSession'), null);
 });
 
-test('getStoredSession migrates legacy localStorage tokens into sessionStorage', async () => {
+test('getStoredSession migrates tab-only sessionStorage tokens into localStorage', async () => {
   const window = setupWindow();
-  window.localStorage.setItem('npvLabSupabaseSession', JSON.stringify({
-    accessToken: 'legacy-access',
-    refreshToken: 'legacy-refresh',
+  window.sessionStorage.setItem('npvLabSupabaseSession', JSON.stringify({
+    accessToken: 'tab-access',
+    refreshToken: 'tab-refresh',
     createdAt: Date.now(),
   }));
 
   const { getStoredSession } = await import(`./cloudAuth.js?test=${Date.now()}-migrate`);
   const session = getStoredSession();
 
-  assert.equal(session.accessToken, 'legacy-access');
+  assert.equal(session.accessToken, 'tab-access');
+  assert.match(window.localStorage.getItem('npvLabSupabaseSession'), /"accessToken":"tab-access"/);
+  assert.equal(window.sessionStorage.getItem('npvLabSupabaseSession'), null);
+});
+
+test('getStoredSession clears sessions after seven days', async () => {
+  const window = setupWindow();
+  window.localStorage.setItem('npvLabSupabaseSession', JSON.stringify({
+    accessToken: 'expired-access',
+    refreshToken: 'expired-refresh',
+    createdAt: Date.now() - (7 * 24 * 60 * 60 * 1000) - 1,
+  }));
+
+  const { getStoredSession } = await import(`./cloudAuth.js?test=${Date.now()}-expiry`);
+
+  assert.equal(getStoredSession(), null);
   assert.equal(window.localStorage.getItem('npvLabSupabaseSession'), null);
-  assert.match(window.sessionStorage.getItem('npvLabSupabaseSession'), /"accessToken":"legacy-access"/);
 });

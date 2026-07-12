@@ -1,12 +1,10 @@
 # Security Notes
 
-## Browser Session Storage
+## Browser Session Persistence
 
-Supabase access and refresh tokens are stored in `sessionStorage`, not `localStorage`.
+Supabase access and refresh tokens are stored in browser `localStorage`, making the session available to tabs on the same origin and across browser restarts. The app clears the session seven days after the original sign-in. Older tab-only `sessionStorage` sessions are migrated into `localStorage` on the next load.
 
-This limits token persistence to the current browser session and reduces the blast radius compared with long-lived local storage. Older `localStorage` sessions are migrated into `sessionStorage` and removed on the next load.
-
-This is still a browser-managed token model. A successful XSS could read the active session token while the page is open, so XSS prevention remains the primary control.
+This is a browser-managed token model. A successful XSS could read the active session token, so XSS prevention and the app's restrictive Content Security Policy remain the primary controls. Signing out clears the shared browser session.
 
 ## CSP And Headers
 

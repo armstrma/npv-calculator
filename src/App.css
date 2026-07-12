@@ -3521,7 +3521,24 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   border: 1px solid #475569;
   background: rgba(2, 6, 23, 0.7);
   color: #f8fafc;
+  caret-color: #f8fafc;
+  color-scheme: dark;
   padding: 0 12px;
+}
+.auth-field input::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+.auth-field input[type="email"] {
+  font-size: 16px;
+}
+.auth-field input:-webkit-autofill,
+.auth-field input:-webkit-autofill:hover,
+.auth-field input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f8fafc;
+  caret-color: #f8fafc;
+  box-shadow: 0 0 0 1000px #020617 inset;
+  transition: background-color 9999s ease-out 0s;
 }
 .local-save-input {
   font-size: 16px;

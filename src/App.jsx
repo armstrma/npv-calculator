@@ -2,7 +2,7 @@ import React, { lazy, Suspense, useState, useMemo, useEffect, useRef } from 'rea
 import './App.css';
 import { analyzeIRR, calculateNPV, calculatePayback } from './lib/finance.js';
 import { formatNumberWithCommas, hasArithmeticOperator, parseNumericInput } from './lib/input.js';
-import { clearStoredSession, consumeMagicLinkSession, fetchCurrentUser, getActiveSession, getStoredSession, isCloudAuthConfigured, requestMagicLink } from './lib/cloudAuth.js';
+import { clearStoredSession, consumeMagicLinkSession, fetchCurrentUser, getActiveSession, getStoredSession, isCloudAuthConfigured, requestMagicLink, SESSION_STORAGE_KEY } from './lib/cloudAuth.js';
 import { fetchUserEntitlement } from './lib/cloudEntitlements.js';
 import { deleteCloudProject, listCloudProjects, upsertCloudProject } from './lib/cloudProjects.js';
 import { canSaveProject, FREE_TIER_LIMITS, resolveAccess } from './lib/entitlementAccess.js';
@@ -566,6 +566,57 @@ const App = () => {
     const handlePopState = () => setCurrentPath(window.location.pathname);
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resetAuthState = () => {
+      setAuthSession(null);
+      setAuthUser(null);
+      setEntitlement(applyLocalProEntitlement());
+      setEntitlementResolved(true);
+      setCloudProjects({});
+      setCloudStatus('');
+    };
+
+    const handleAuthStorage = (event) => {
+      if (event.key !== SESSION_STORAGE_KEY || event.storageArea !== window.localStorage) return;
+
+      const session = getStoredSession();
+      if (!session) {
+        resetAuthState();
+        return;
+      }
+
+      getActiveSession(session)
+        .then((activeSession) => {
+          if (!activeSession || cancelled) {
+            if (!cancelled) resetAuthState();
+            return null;
+          }
+          setAuthSession(activeSession);
+          return fetchCurrentUser(activeSession);
+        })
+        .then((user) => {
+          if (cancelled) return;
+          if (!user) {
+            resetAuthState();
+            return;
+          }
+          setAuthUser(user);
+          setAuthEmail(user.email || '');
+        })
+        .catch(() => {
+          if (!cancelled) resetAuthState();
+        });
+    };
+
+    window.addEventListener('storage', handleAuthStorage);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('storage', handleAuthStorage);
+    };
   }, []);
 
   useEffect(() => {
