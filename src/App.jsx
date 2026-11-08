@@ -37,6 +37,8 @@ import {
   sanitizeRateValue,
 } from './lib/calculation.js';
 import { AuthModal } from './components/auth/AuthModal.jsx';
+import { PasskeyManagerModal, PasskeyPromptModal } from './components/auth/PasskeyModals.jsx';
+import { deletePasskey, dismissPasskeyPrompt, isPasskeyAvailable, isPasskeyFeatureEnabled, listPasskeys, registerPasskey, shouldOfferPasskeyEnrollment, signInWithPasskey } from './lib/passkeyAuth.js';
 import { CashflowTooltip, MarginalSensitivityTooltip, NpvTooltip, QuickViewCharts } from './components/chart/QuickViewCharts.jsx';
 import { CurrencyExpressionInput } from './components/input/CurrencyExpressionInput.jsx';
 import { QuickViewVariablePanel } from './components/layout/QuickViewVariablePanel.jsx';
@@ -370,6 +372,13 @@ const App = () => {
   const [authNotice, setAuthNotice] = useState('');
   const [authSession, setAuthSession] = useState(null);
   const [authUser, setAuthUser] = useState(null);
+  const [freshLoginUserId, setFreshLoginUserId] = useState(null);
+  const [showPasskeyPrompt, setShowPasskeyPrompt] = useState(false);
+  const [showPasskeyManager, setShowPasskeyManager] = useState(false);
+  const [passkeys, setPasskeys] = useState([]);
+  const [passkeysLoading, setPasskeysLoading] = useState(false);
+  const [passkeyStatus, setPasskeyStatus] = useState('idle');
+  const [passkeyNotice, setPasskeyNotice] = useState('');
   const [entitlement, setEntitlement] = useState(applyLocalProEntitlement());
   const [entitlementResolved, setEntitlementResolved] = useState(false);
   const [checkoutStatus, setCheckoutStatus] = useState('idle');
@@ -466,6 +475,7 @@ const App = () => {
         setAuthUser(user);
         setAuthEmail(user.email || '');
         setAuthNotice(sessionFromUrl ? 'You are signed in. Cloud saves are available now.' : '');
+        if (sessionFromUrl) setFreshLoginUserId(user.id);
       }).catch(() => {
         clearStoredSession();
         setEntitlementResolved(true);
@@ -774,6 +784,124 @@ const App = () => {
     };
   }, []);
 
+  const currentAuthUserIdRef = useRef(null);
+  useEffect(() => {
+    currentAuthUserIdRef.current = authUser?.id || null;
+  }, [authUser]);
+
+  useEffect(() => {
+    if (!freshLoginUserId || !authSession || authUser?.id !== freshLoginUserId) return;
+    const userId = freshLoginUserId;
+    setFreshLoginUserId(null);
+    if (!isPasskeyAvailable()) return;
+    listPasskeys(authSession).then(({ data, error }) => {
+      // Ignore the result if the user signed out or switched accounts meanwhile.
+      if (error || currentAuthUserIdRef.current !== userId) return;
+      if (shouldOfferPasskeyEnrollment({ freshLogin: true, userId, passkeys: data })) {
+        setPasskeyStatus('idle');
+        setPasskeyNotice('');
+        setShowPasskeyPrompt(true);
+      }
+    });
+  }, [freshLoginUserId, authSession, authUser]);
+
+  const authUserId = authUser?.id || null;
+  useEffect(() => {
+    // Never carry one account's passkey UI or list over to another account.
+    setShowPasskeyPrompt(false);
+    setShowPasskeyManager(false);
+    setPasskeys([]);
+    setPasskeyNotice('');
+    setPasskeyStatus('idle');
+  }, [authUserId]);
+
+  const handleDismissPasskeyPrompt = () => {
+    if (authUser?.id) dismissPasskeyPrompt(authUser.id);
+    setShowPasskeyPrompt(false);
+    setPasskeyNotice('');
+    setPasskeyStatus('idle');
+  };
+
+  const refreshPasskeyList = async () => {
+    if (!authSession) return;
+    setPasskeysLoading(true);
+    const { data, error } = await listPasskeys(authSession);
+    setPasskeysLoading(false);
+    if (error) {
+      setPasskeyStatus('error');
+      setPasskeyNotice(error.message);
+      return;
+    }
+    setPasskeys(Array.isArray(data) ? data : []);
+  };
+
+  const handleEnrollPasskey = async ({ fromPrompt = false } = {}) => {
+    if (!authSession) return;
+    setPasskeyStatus('working');
+    setPasskeyNotice('');
+    const { error } = await registerPasskey(authSession);
+    if (error) {
+      setPasskeyStatus(error.kind === 'cancelled' ? 'idle' : 'error');
+      setPasskeyNotice(error.message);
+      return;
+    }
+    if (authUser?.id) dismissPasskeyPrompt(authUser.id);
+    setPasskeyStatus('success');
+    setPasskeyNotice('Passkey added. You can use it next time you sign in.');
+    if (fromPrompt) {
+      setShowPasskeyPrompt(false);
+    } else {
+      await refreshPasskeyList();
+    }
+  };
+
+  const handleDeletePasskey = async (passkeyId) => {
+    if (!authSession) return;
+    setPasskeyStatus('working');
+    const { error } = await deletePasskey(authSession, passkeyId);
+    if (error) {
+      setPasskeyStatus('error');
+      setPasskeyNotice(error.message);
+      return;
+    }
+    setPasskeyStatus('idle');
+    setPasskeyNotice('Passkey removed.');
+    await refreshPasskeyList();
+  };
+
+  const handleOpenPasskeyManager = () => {
+    setPasskeyStatus('idle');
+    setPasskeyNotice('');
+    setPasskeys([]);
+    setShowPasskeyManager(true);
+    refreshPasskeyList();
+  };
+
+  const handlePasskeySignIn = async () => {
+    setPasskeyStatus('working');
+    setAuthStatus('idle');
+    setAuthNotice('');
+    const { data, error } = await signInWithPasskey();
+    if (error) {
+      setPasskeyStatus('idle');
+      setAuthStatus(error.kind === 'cancelled' ? 'idle' : 'error');
+      setAuthNotice(error.message);
+      return;
+    }
+    const user = await fetchCurrentUser(data.session);
+    setPasskeyStatus('idle');
+    if (!user) {
+      setAuthStatus('error');
+      setAuthNotice('Passkey sign-in could not be completed. Use the email link instead.');
+      return;
+    }
+    setAuthSession(data.session);
+    setAuthUser(user);
+    setAuthEmail(user.email || '');
+    setAuthNotice('You are signed in. Cloud saves are available now.');
+    setShowAuthModal(false);
+  };
+
   const handleRequireAuth = (mode = 'signin') => {
     setAuthMode(mode);
     setAuthNotice(isCloudAuthConfigured() ? '' : 'Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable magic links.');
@@ -885,6 +1013,10 @@ const App = () => {
     clearStoredSession();
     setAuthSession(null);
     setAuthUser(null);
+    setFreshLoginUserId(null);
+    setShowPasskeyPrompt(false);
+    setShowPasskeyManager(false);
+    setPasskeys([]);
     setEntitlement(applyLocalProEntitlement());
     setEntitlementResolved(true);
     setCloudProjects({});
@@ -1913,6 +2045,18 @@ const App = () => {
                       <span>Signed in:</span>
                       <strong>{authUser.email}</strong>
                     </div>
+                    {isPasskeyFeatureEnabled() && (
+                      <button
+                        type="button"
+                        className="mobile-topbar-menu-item"
+                        onClick={() => {
+                          handleOpenPasskeyManager();
+                          setShowQuickViewMenu(false);
+                        }}
+                      >
+                        Passkeys
+                      </button>
+                    )}
                     <button type="button" className="mobile-topbar-menu-item" onClick={handleSignOut}>
                       Sign Out
                     </button>
@@ -2978,6 +3122,29 @@ const App = () => {
         onRequestMagicLink={handleRequestMagicLink}
         authStatus={authStatus}
         authNotice={authNotice}
+        showPasskey={isPasskeyAvailable()}
+        onPasskeySignIn={handlePasskeySignIn}
+        passkeyStatus={passkeyStatus}
+      />
+
+      <PasskeyPromptModal
+        open={showPasskeyPrompt && Boolean(authUser)}
+        onEnroll={() => handleEnrollPasskey({ fromPrompt: true })}
+        onDismiss={handleDismissPasskeyPrompt}
+        status={passkeyStatus}
+        notice={passkeyNotice}
+      />
+
+      <PasskeyManagerModal
+        open={showPasskeyManager && Boolean(authUser)}
+        onClose={() => setShowPasskeyManager(false)}
+        passkeys={passkeys}
+        loading={passkeysLoading}
+        status={passkeyStatus}
+        notice={passkeyNotice}
+        canAdd={isPasskeyAvailable()}
+        onAdd={() => handleEnrollPasskey()}
+        onDelete={handleDeletePasskey}
       />
 
       <ProductModal

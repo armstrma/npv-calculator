@@ -6,7 +6,7 @@ NPV Lab uses Supabase for the first user layer:
 - NPV Lab never collects or stores passwords.
 - NPV Lab does not collect or store credit card data.
 - Project ownership is enforced in Postgres with row-level security.
-- Google and Microsoft OpenID can be added later through Supabase Auth providers without changing project storage.
+- Optional passkey sign-in uses native Supabase Auth passkeys (see below).
 
 ## Environment
 
@@ -87,3 +87,29 @@ NPV Lab stores the Supabase access and refresh token pair in browser `localStora
 For server-side enforcement, set Supabase Auth's time-boxed session lifetime to 1 week in the project Auth session settings. Supabase enforces that limit when a session is refreshed, so the practical cutoff can be the configured lifetime plus the JWT expiration window.
 
 When adding Google or Microsoft later, enable those providers in Supabase Auth and keep project table policies unchanged.
+
+## Passkeys (alongside magic links)
+
+NPV Lab can offer Supabase Auth's native passkeys (WebAuthn) next to email magic links. Magic links remain the primary and recovery sign-in method.
+
+- Library: `@supabase/supabase-js` is pinned to an exact version (`2.119.0`) because Supabase marks the passkey API experimental and it may change without notice. Review the changelog before bumping.
+- `src/lib/passkeyAuth.js` uses a short-lived, in-memory supabase-js client (`persistSession: false`, `autoRefreshToken: false`) only for passkey calls. `src/lib/cloudAuth.js` remains the single owner of session storage and refresh; passkey sign-in sessions are written through `storeSession()`, so the 7-day cap and refresh logic are unchanged.
+- After a fresh magic-link sign-in, signed-in users with no passkey see a one-time, dismissible "Sign in faster next time" prompt. Dismissal is remembered per user id in `localStorage`. Passkeys can be added or removed later from the account menu ("Passkeys").
+
+### Activation (not enabled by default)
+
+Passkey UI is hidden unless the build sets `VITE_PASSKEYS_ENABLED=true`. Do this only after the Supabase project has passkeys enabled; if the server still reports `passkey_disabled`, the UI hides itself for the session and the email link keeps working.
+
+1. Supabase Dashboard → Authentication → Passkeys → Enable Passkey authentication:
+   - Relying Party Display Name: `NPV Lab`
+   - Relying Party ID: `npvlab.com` (bare domain; changing it later invalidates every registered passkey)
+   - Relying Party Origins: `https://npvlab.com` (add `https://www.npvlab.com` only if it serves the app; max 5 origins; HTTPS required except loopback)
+2. Add `VITE_PASSKEYS_ENABLED: 'true'` to the `env` block of `.github/workflows/netlify.yml` and deploy.
+3. Manually verify registration and sign-in on `https://npvlab.com` (Safari/iOS, Chrome/Android, Windows Hello).
+
+### Limitations
+
+- Netlify deploy previews (`pr-<N>--<site>.netlify.app`) cannot use passkeys bound to the `npvlab.com` RP ID, because each origin must be the RP ID or a subdomain of it. Previews should verify only that magic links still work.
+- CSP is unchanged: passkey requests go to `https://*.supabase.co`, already allowed by `connect-src`; the WebAuthn prompt is a browser API, not a network request.
+- Playwright tests in `tests/e2e/passkeys.spec.js` use Chromium's virtual authenticator with mocked Supabase endpoints. They do not exercise the live Supabase passkey backend.
+- Local passkey testing against a local Supabase stack needs `[auth.passkey]` and `[auth.webauthn]` in `supabase/config.toml` with `rp_id = "localhost"` and `rp_origins = ["http://localhost:5173"]`. WebAuthn rejects IP-address RP IDs, so use `localhost`, not `127.0.0.1`.

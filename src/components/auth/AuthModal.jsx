@@ -1,4 +1,4 @@
-export const AuthModal = ({ open, onClose, authMode, setAuthMode, authEmail, setAuthEmail, onRequestMagicLink, authStatus, authNotice }) => {
+export const AuthModal = ({ open, onClose, authMode, setAuthMode, authEmail, setAuthEmail, onRequestMagicLink, authStatus, authNotice, showPasskey = false, onPasskeySignIn, passkeyStatus = 'idle' }) => {
   if (!open) return null;
 
   return (
@@ -35,9 +35,11 @@ export const AuthModal = ({ open, onClose, authMode, setAuthMode, authEmail, set
             <button type="button" className="button-primary" onClick={onRequestMagicLink} disabled={authStatus === 'sending'}>
               {authStatus === 'sending' ? 'Sending...' : authMode === 'signin' ? 'Email me a sign-in link' : 'Create account'}
             </button>
-            <button type="button" className="button-secondary" disabled title="Google and Microsoft OpenID can be enabled after the passwordless email flow is deployed.">
-              Google / Microsoft later
-            </button>
+            {showPasskey && authMode === 'signin' && (
+              <button type="button" className="button-secondary" onClick={onPasskeySignIn} disabled={passkeyStatus === 'working'}>
+                {passkeyStatus === 'working' ? 'Waiting for your device...' : 'Sign in with a passkey'}
+              </button>
+            )}
           </div>
 
           {authNotice && <p className={`auth-footnote auth-notice ${authStatus === 'error' ? 'error' : ''}`}>{authNotice}</p>}
