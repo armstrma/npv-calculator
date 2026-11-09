@@ -2,7 +2,7 @@ import React, { lazy, Suspense, useState, useMemo, useEffect, useRef } from 'rea
 import './App.css';
 import { analyzeIRR, calculateNPV, calculatePayback } from './lib/finance.js';
 import { formatNumberWithCommas, hasArithmeticOperator, parseNumericInput } from './lib/input.js';
-import { clearStoredSession, consumeMagicLinkSession, fetchCurrentUser, getActiveSession, getStoredSession, isCloudAuthConfigured, requestMagicLink, SESSION_STORAGE_KEY } from './lib/cloudAuth.js';
+import { clearStoredSession, consumeFreshMagicLinkFlag, consumeMagicLinkSession, fetchCurrentUser, getActiveSession, getStoredSession, isCloudAuthConfigured, requestMagicLink, SESSION_STORAGE_KEY } from './lib/cloudAuth.js';
 import { fetchUserEntitlement } from './lib/cloudEntitlements.js';
 import { deleteCloudProject, listCloudProjects, upsertCloudProject } from './lib/cloudProjects.js';
 import { canSaveProject, FREE_TIER_LIMITS, resolveAccess } from './lib/entitlementAccess.js';
@@ -474,8 +474,10 @@ const App = () => {
         }
         setAuthUser(user);
         setAuthEmail(user.email || '');
-        setAuthNotice(sessionFromUrl ? 'You are signed in. Cloud saves are available now.' : '');
-        if (sessionFromUrl) setFreshLoginUserId(user.id);
+        const freshFromFlag = consumeFreshMagicLinkFlag();
+        const freshLogin = Boolean(sessionFromUrl || freshFromFlag);
+        setAuthNotice(freshLogin ? 'You are signed in. Cloud saves are available now.' : '');
+        if (freshLogin) setFreshLoginUserId(user.id);
       }).catch(() => {
         clearStoredSession();
         setEntitlementResolved(true);

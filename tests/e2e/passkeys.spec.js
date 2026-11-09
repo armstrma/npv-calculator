@@ -198,3 +198,38 @@ test('signed-in users can open passkey management from the account menu', async 
   await expect(manager.getByText('Laptop')).toBeVisible();
   await expect(manager.getByRole('button', { name: 'Add a passkey' })).toBeVisible();
 });
+
+test('magic-link callback in a new tab prompts for passkey; requesting tab does not', async ({ context }) => {
+  // Existing same-tab tests cover page.goto(hash). Email clients usually open the
+  // link in a separate tab; this regression uses two pages in one browser context
+  // so they share localStorage the way real same-origin tabs do.
+  const pageA = await context.newPage();
+  const pageB = await context.newPage();
+  await addVirtualAuthenticator(pageB);
+  await mockSupabase(pageA);
+  const state = await mockSupabase(pageB);
+
+  await pageA.goto(ORIGIN);
+  await pageA.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
+  await pageA.goto(ORIGIN);
+
+  const listed = pageB.waitForResponse((response) => response.url().endsWith('/auth/v1/passkeys'));
+  await pageB.goto(loginUrl());
+  await listed;
+
+  const promptB = pageB.getByRole('dialog', { name: 'Sign in faster next time' });
+  const promptA = pageA.getByRole('dialog', { name: 'Sign in faster next time' });
+  await expect(promptB).toBeVisible();
+  await expect(promptA).toBeHidden();
+
+  // Requesting tab shares localStorage but must not inherit the enrollment prompt.
+  await expect.poll(async () => pageA.evaluate(() => Boolean(localStorage.getItem('npvLabSupabaseSession')))).toBe(true);
+  await expect(promptA).toBeHidden();
+  // Flag is tab-scoped: only the callback tab should have consumed a fresh-login marker.
+  expect(await pageA.evaluate(() => sessionStorage.getItem('npvLabFreshMagicLink'))).toBeNull();
+  expect(await pageB.evaluate(() => sessionStorage.getItem('npvLabFreshMagicLink'))).toBeNull();
+
+  await promptB.getByRole('button', { name: 'Add a passkey' }).click();
+  await expect(promptB).toBeHidden();
+  expect(state.registerVerifyCalls).toBe(1);
+});
