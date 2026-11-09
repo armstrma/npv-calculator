@@ -7,6 +7,7 @@ const SUPABASE_ANON_KEY = ENV.VITE_SUPABASE_ANON_KEY;
 // Passkeys stay hidden until the Supabase project has passkeys enabled for this origin.
 const PASSKEYS_FLAG = ENV.VITE_PASSKEYS_ENABLED === 'true';
 const PROMPT_DISMISSED_PREFIX = 'npvLabPasskeyPromptDismissed:';
+export const PASSKEY_HINT_PREFIX = 'npvLabPasskeyHint:';
 
 let runtimeDisabled = false;
 
@@ -18,6 +19,45 @@ export const browserSupportsPasskeys = () => (
 
 export const isPasskeyFeatureEnabled = () => PASSKEYS_FLAG && isCloudAuthConfigured() && !runtimeDisabled;
 export const isPasskeyAvailable = () => isPasskeyFeatureEnabled() && browserSupportsPasskeys();
+
+export const normalizePasskeyHintEmail = (email) => String(email || '').trim().toLowerCase();
+
+export const hasPasskeyHint = (email) => {
+  const key = normalizePasskeyHintEmail(email);
+  if (!key) return false;
+  try {
+    return window.localStorage.getItem(`${PASSKEY_HINT_PREFIX}${key}`) === '1';
+  } catch {
+    return false;
+  }
+};
+
+// Local, per-device marker only — no secrets. Means "this browser likely has a passkey for this email".
+export const setPasskeyHint = (email) => {
+  const key = normalizePasskeyHintEmail(email);
+  if (!key) return;
+  try {
+    window.localStorage.setItem(`${PASSKEY_HINT_PREFIX}${key}`, '1');
+  } catch {
+    // ignore
+  }
+};
+
+export const clearPasskeyHint = (email) => {
+  const key = normalizePasskeyHintEmail(email);
+  if (!key) return;
+  try {
+    window.localStorage.removeItem(`${PASSKEY_HINT_PREFIX}${key}`);
+  } catch {
+    // ignore
+  }
+};
+
+export const syncPasskeyHintFromList = (email, passkeys) => {
+  if (!Array.isArray(passkeys)) return;
+  if (passkeys.length === 0) clearPasskeyHint(email);
+  else setPasskeyHint(email);
+};
 
 // Each call gets a short-lived, in-memory client. The app's own cloudAuth.js stays the single
 // owner of session storage and token refresh, so supabase-js never persists or auto-refreshes.
@@ -84,11 +124,14 @@ const run = async (fn) => {
 
 export const signInWithPasskey = async () => {
   if (!isPasskeyAvailable()) return unavailable();
+  // supabase-js signInWithPasskey has no email/hint parameter — discoverable credentials only.
   const result = await run(() => createPasskeyClient().auth.signInWithPasskey());
   if (result.error) return result;
   const session = storeSession(toAppSession(result.data?.session));
   if (!session) return { data: null, error: { kind: 'error', message: 'Passkey sign-in did not return a session.' } };
-  return { data: { session, user: result.data.user ? { id: result.data.user.id, email: result.data.user.email } : null }, error: null };
+  const user = result.data.user ? { id: result.data.user.id, email: result.data.user.email } : null;
+  if (user?.email) setPasskeyHint(user.email);
+  return { data: { session, user }, error: null };
 };
 
 // Hand the app's current (already refreshed) session to an ephemeral client for an authenticated call.
@@ -149,3 +192,6 @@ export const dismissPasskeyPrompt = (userId) => {
 export const shouldOfferPasskeyEnrollment = ({ freshLogin, userId, passkeys }) => (
   Boolean(freshLogin && userId && isPasskeyAvailable() && Array.isArray(passkeys) && passkeys.length === 0 && !isPasskeyPromptDismissed(userId))
 );
+
+// Primary Sign in should try a passkey only when this device has a local hint for the email.
+export const shouldAttemptPasskeySignIn = (email) => isPasskeyAvailable() && hasPasskeyHint(email);

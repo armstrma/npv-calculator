@@ -38,7 +38,7 @@ import {
 } from './lib/calculation.js';
 import { AuthModal } from './components/auth/AuthModal.jsx';
 import { PasskeyManagerModal, PasskeyPromptModal } from './components/auth/PasskeyModals.jsx';
-import { deletePasskey, dismissPasskeyPrompt, isPasskeyAvailable, isPasskeyFeatureEnabled, listPasskeys, registerPasskey, shouldOfferPasskeyEnrollment, signInWithPasskey } from './lib/passkeyAuth.js';
+import { deletePasskey, dismissPasskeyPrompt, isPasskeyAvailable, isPasskeyFeatureEnabled, listPasskeys, registerPasskey, setPasskeyHint, shouldAttemptPasskeySignIn, shouldOfferPasskeyEnrollment, signInWithPasskey, syncPasskeyHintFromList } from './lib/passkeyAuth.js';
 import { CashflowTooltip, MarginalSensitivityTooltip, NpvTooltip, QuickViewCharts } from './components/chart/QuickViewCharts.jsx';
 import { CurrencyExpressionInput } from './components/input/CurrencyExpressionInput.jsx';
 import { QuickViewVariablePanel } from './components/layout/QuickViewVariablePanel.jsx';
@@ -799,6 +799,7 @@ const App = () => {
     listPasskeys(authSession).then(({ data, error }) => {
       // Ignore the result if the user signed out or switched accounts meanwhile.
       if (error || currentAuthUserIdRef.current !== userId) return;
+      if (authUser?.email) syncPasskeyHintFromList(authUser.email, data);
       if (shouldOfferPasskeyEnrollment({ freshLogin: true, userId, passkeys: data })) {
         setPasskeyStatus('idle');
         setPasskeyNotice('');
@@ -834,7 +835,9 @@ const App = () => {
       setPasskeyNotice(error.message);
       return;
     }
-    setPasskeys(Array.isArray(data) ? data : []);
+    const next = Array.isArray(data) ? data : [];
+    setPasskeys(next);
+    if (authUser?.email) syncPasskeyHintFromList(authUser.email, next);
   };
 
   const handleEnrollPasskey = async ({ fromPrompt = false } = {}) => {
@@ -848,6 +851,7 @@ const App = () => {
       return;
     }
     if (authUser?.id) dismissPasskeyPrompt(authUser.id);
+    if (authUser?.email) setPasskeyHint(authUser.email);
     setPasskeyStatus('success');
     setPasskeyNotice('Passkey added. You can use it next time you sign in.');
     if (fromPrompt) {
@@ -879,33 +883,10 @@ const App = () => {
     refreshPasskeyList();
   };
 
-  const handlePasskeySignIn = async () => {
-    setPasskeyStatus('working');
-    setAuthStatus('idle');
-    setAuthNotice('');
-    const { data, error } = await signInWithPasskey();
-    if (error) {
-      setPasskeyStatus('idle');
-      setAuthStatus(error.kind === 'cancelled' ? 'idle' : 'error');
-      setAuthNotice(error.message);
-      return;
-    }
-    const user = await fetchCurrentUser(data.session);
-    setPasskeyStatus('idle');
-    if (!user) {
-      setAuthStatus('error');
-      setAuthNotice('Passkey sign-in could not be completed. Use the email link instead.');
-      return;
-    }
-    setAuthSession(data.session);
-    setAuthUser(user);
-    setAuthEmail(user.email || '');
-    setAuthNotice('You are signed in. Cloud saves are available now.');
-    setShowAuthModal(false);
-  };
-
   const handleRequireAuth = (mode = 'signin') => {
     setAuthMode(mode);
+    setAuthStatus('idle');
+    setPasskeyStatus('idle');
     setAuthNotice(isCloudAuthConfigured() ? '' : 'Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable magic links.');
     setReturnToUpgradeAfterAuth(showUpgradeModal);
     setShowUpgradeModal(false);
@@ -1009,6 +990,66 @@ const App = () => {
       setAuthStatus('error');
       setAuthNotice(error.message || 'Unable to send a magic link right now.');
     }
+  };
+
+  const completePasskeySignIn = async () => {
+    setPasskeyStatus('working');
+    setAuthStatus('idle');
+    setAuthNotice('');
+    const enteredEmail = authEmail.trim();
+    const { data, error } = await signInWithPasskey();
+    if (error) {
+      setPasskeyStatus('idle');
+      setAuthStatus('passkey_fallback');
+      setAuthNotice("Passkey sign-in didn't finish.");
+      return false;
+    }
+    const user = await fetchCurrentUser(data.session);
+    setPasskeyStatus('idle');
+    if (!user) {
+      setAuthStatus('passkey_fallback');
+      setAuthNotice("Passkey sign-in didn't finish.");
+      return false;
+    }
+    if (enteredEmail) setPasskeyHint(enteredEmail);
+    if (user.email) setPasskeyHint(user.email);
+    setAuthSession(data.session);
+    setAuthUser(user);
+    setAuthEmail(user.email || enteredEmail);
+    setAuthNotice('You are signed in. Cloud saves are available now.');
+    setShowAuthModal(false);
+    return true;
+  };
+
+  const handleUnifiedSignIn = async () => {
+    const normalizedEmail = authEmail.trim();
+    if (!normalizedEmail) {
+      setAuthStatus('error');
+      setAuthNotice('Enter an email address so we know where to send the sign-in link.');
+      return;
+    }
+
+    if (shouldAttemptPasskeySignIn(normalizedEmail)) {
+      await completePasskeySignIn();
+      return;
+    }
+
+    await handleRequestMagicLink();
+  };
+
+  const handleTryPasskey = async () => {
+    const normalizedEmail = authEmail.trim();
+    if (!normalizedEmail) {
+      setAuthStatus('error');
+      setAuthNotice('Enter an email address first.');
+      return;
+    }
+    if (!isPasskeyAvailable()) {
+      setAuthStatus('passkey_fallback');
+      setAuthNotice("Passkey sign-in didn't finish.");
+      return;
+    }
+    await completePasskeySignIn();
   };
 
   const handleSignOut = () => {
@@ -3121,11 +3162,12 @@ const App = () => {
         setAuthMode={setAuthMode}
         authEmail={authEmail}
         setAuthEmail={setAuthEmail}
+        onSignIn={handleUnifiedSignIn}
         onRequestMagicLink={handleRequestMagicLink}
+        onTryPasskey={handleTryPasskey}
         authStatus={authStatus}
         authNotice={authNotice}
-        showPasskey={isPasskeyAvailable()}
-        onPasskeySignIn={handlePasskeySignIn}
+        showPasskeyOption={isPasskeyAvailable()}
         passkeyStatus={passkeyStatus}
       />
 

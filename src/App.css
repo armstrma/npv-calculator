@@ -3704,3 +3704,20 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
 .passkey-list-item small {
   opacity: 0.75;
 }
+
+.button-link.auth-passkey-link {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: inherit;
+  text-decoration: underline;
+  opacity: 0.75;
+  font-size: 0.9rem;
+  padding: 0.25rem 0;
+  cursor: pointer;
+}
+
+.button-link.auth-passkey-link:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

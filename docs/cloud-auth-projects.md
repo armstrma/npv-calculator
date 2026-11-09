@@ -90,11 +90,9 @@ When adding Google or Microsoft later, enable those providers in Supabase Auth a
 
 ## Passkeys (alongside magic links)
 
-NPV Lab can offer Supabase Auth's native passkeys (WebAuthn) next to email magic links. Magic links remain the primary and recovery sign-in method.
+NPV Lab can offer Supabase Auth's native passkeys (WebAuthn) next to email magic links. Magic links remain the recovery sign-in method.
 
-- Library: `@supabase/supabase-js` is pinned to an exact version (`2.119.0`) because Supabase marks the passkey API experimental and it may change without notice. Review the changelog before bumping.
-- `src/lib/passkeyAuth.js` uses a short-lived, in-memory supabase-js client (`persistSession: false`, `autoRefreshToken: false`) only for passkey calls. `src/lib/cloudAuth.js` remains the single owner of session storage and refresh; passkey sign-in sessions are written through `storeSession()`, so the 7-day cap and refresh logic are unchanged.
-- After a fresh magic-link sign-in, signed-in users with no passkey see a one-time, dismissible "Sign in faster next time" prompt. Dismissal is remembered per user id in `localStorage`. Passkeys can be added or removed later from the account menu ("Passkeys").
+**Sign-in screen:** email field and a single **Sign in** button. If this device has a local `npvLabPasskeyHint:<email>` marker (set when a passkey is registered here or a passkey sign-in succeeds), Sign in tries a passkey first. Cancel or failure shows a calm fallback with **Email me a sign-in link** and **Try passkey again**. If there is no local hint, or passkeys are unavailable (flag off, no WebAuthn, or server `passkey_disabled`), Sign in sends the magic link directly — no browser prompt. A subtle **Use a passkey** link remains for passkeys synced from another device that have not been used on this browser yet. Hints are cleared when `passkey.list` returns none for the account (for example after removing the last passkey). No server lookup by email (avoids account enumeration). `signInWithPasskey` has no email parameter in supabase-js; sign-in uses discoverable credentials.
 
 ### Activation (not enabled by default)
 
