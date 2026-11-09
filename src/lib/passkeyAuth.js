@@ -193,5 +193,3 @@ export const shouldOfferPasskeyEnrollment = ({ freshLogin, userId, passkeys }) =
   Boolean(freshLogin && userId && isPasskeyAvailable() && Array.isArray(passkeys) && passkeys.length === 0 && !isPasskeyPromptDismissed(userId))
 );
 
-// Primary Sign in should try a passkey only when this device has a local hint for the email.
-export const shouldAttemptPasskeySignIn = (email) => isPasskeyAvailable() && hasPasskeyHint(email);

@@ -38,7 +38,8 @@ import {
 } from './lib/calculation.js';
 import { AuthModal } from './components/auth/AuthModal.jsx';
 import { PasskeyManagerModal, PasskeyPromptModal } from './components/auth/PasskeyModals.jsx';
-import { deletePasskey, dismissPasskeyPrompt, isPasskeyAvailable, isPasskeyFeatureEnabled, listPasskeys, registerPasskey, setPasskeyHint, shouldAttemptPasskeySignIn, shouldOfferPasskeyEnrollment, signInWithPasskey, syncPasskeyHintFromList } from './lib/passkeyAuth.js';
+import { deletePasskey, dismissPasskeyPrompt, hasPasskeyHint, isPasskeyAvailable, isPasskeyFeatureEnabled, listPasskeys, registerPasskey, setPasskeyHint, shouldOfferPasskeyEnrollment, signInWithPasskey, syncPasskeyHintFromList } from './lib/passkeyAuth.js';
+import { checkEmailHasPasskey } from './lib/passkeyCheckClient.js';
 import { CashflowTooltip, MarginalSensitivityTooltip, NpvTooltip, QuickViewCharts } from './components/chart/QuickViewCharts.jsx';
 import { CurrencyExpressionInput } from './components/input/CurrencyExpressionInput.jsx';
 import { QuickViewVariablePanel } from './components/layout/QuickViewVariablePanel.jsx';
@@ -1029,7 +1030,30 @@ const App = () => {
       return;
     }
 
-    if (shouldAttemptPasskeySignIn(normalizedEmail)) {
+    // Passkeys unavailable on this browser/build → magic link only.
+    if (!isPasskeyAvailable()) {
+      await handleRequestMagicLink();
+      return;
+    }
+
+    setPasskeyStatus('working');
+    setAuthStatus('idle');
+    setAuthNotice('');
+    let shouldTryPasskey = false;
+    try {
+      const check = await checkEmailHasPasskey(normalizedEmail);
+      if (check.error) {
+        // Offline/server failure fallback: only prompt if this device already used a passkey for this email.
+        shouldTryPasskey = hasPasskeyHint(normalizedEmail) && !check.limited;
+      } else {
+        shouldTryPasskey = check.hasPasskey;
+      }
+    } catch {
+      shouldTryPasskey = hasPasskeyHint(normalizedEmail);
+    }
+    setPasskeyStatus('idle');
+
+    if (shouldTryPasskey) {
       await completePasskeySignIn();
       return;
     }

@@ -163,11 +163,16 @@ test('feature-not-enabled response falls back without breaking magic-link sign i
   await expect(prompt.getByText('Passkey sign-in is not available right now', { exact: false })).toBeVisible();
 });
 
-test('without a local passkey hint, Sign in sends a magic link and does not call WebAuthn', async ({ page }) => {
+test('server check false: Sign in sends a magic link and does not call WebAuthn', async ({ page }) => {
   await addVirtualAuthenticator(page);
   const state = await mockSupabase(page);
   let otpCalls = 0;
   let authOptionsCalls = 0;
+  let checkCalls = 0;
+  await page.route('**/api/check-passkey', async (route) => {
+    checkCalls += 1;
+    await route.fulfill({ status: 200, json: { hasPasskey: false } });
+  });
   await page.route('**/auth/v1/otp', async (route) => {
     otpCalls += 1;
     await route.fulfill({ status: 200, json: {} });
@@ -182,16 +187,16 @@ test('without a local passkey hint, Sign in sends a magic link and does not call
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
   const authDialog = page.locator('.auth-modal');
   await authDialog.locator('input[type="email"]').fill('test@example.com');
-  await expect(authDialog.getByRole('button', { name: 'Sign in with a passkey' })).toHaveCount(0);
-  await expect(authDialog.getByRole('button', { name: 'Email me a sign-in link' })).toHaveCount(0);
+  await expect(authDialog.getByRole('button', { name: 'Use a passkey' })).toHaveCount(0);
   await authDialog.locator('.auth-actions .button-primary').click();
   await expect(authDialog.getByText('Check your email for a magic link', { exact: false })).toBeVisible();
+  expect(checkCalls).toBe(1);
   expect(otpCalls).toBe(1);
   expect(authOptionsCalls).toBe(0);
   expect(state.authVerifyCalls).toBe(0);
 });
 
-test('with a local passkey hint, Sign in tries a passkey and stores the session', async ({ page }) => {
+test('server check true: Sign in tries a passkey and stores the session', async ({ page }) => {
   const { cdp, authenticatorId } = await addVirtualAuthenticator(page);
   const state = await mockSupabase(page);
   await page.goto(loginUrl());
@@ -202,6 +207,9 @@ test('with a local passkey hint, Sign in tries a passkey and stores the session'
 
   await page.evaluate(() => localStorage.removeItem('npvLabSupabaseSession'));
   await page.goto(ORIGIN);
+  await page.route('**/api/check-passkey', async (route) => {
+    await route.fulfill({ status: 200, json: { hasPasskey: true } });
+  });
   await openAccountMenu(page);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
   const authDialog = page.locator('.auth-modal');
@@ -212,20 +220,20 @@ test('with a local passkey hint, Sign in tries a passkey and stores the session'
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('npvLabSupabaseSession')));
   expect(stored.accessToken).toBe('passkey-access');
   expect(stored.refreshToken).toBe('passkey-refresh');
-  expect(await page.evaluate(() => localStorage.getItem('npvLabPasskeyHint:test@example.com'))).toBe('1');
 });
 
 test('cancelled passkey sign-in shows fallback then can email a magic link', async ({ page }) => {
   await addVirtualAuthenticator(page);
   await mockSupabase(page);
   await page.goto(ORIGIN);
-  await page.evaluate(() => localStorage.setItem('npvLabPasskeyHint:test@example.com', '1'));
+  await page.route('**/api/check-passkey', async (route) => {
+    await route.fulfill({ status: 200, json: { hasPasskey: true } });
+  });
   let otpCalls = 0;
   await page.route('**/auth/v1/otp', async (route) => {
     otpCalls += 1;
     await route.fulfill({ status: 200, json: {} });
   });
-  // Force cancel by making authentication options fail after we have a hint.
   await page.route('**/auth/v1/passkeys/authentication/options', async (route) => {
     await route.fulfill({ status: 400, json: { code: 400, error_code: 'ERROR_CEREMONY_ABORTED', msg: 'aborted' } });
   });
@@ -243,20 +251,31 @@ test('cancelled passkey sign-in shows fallback then can email a magic link', asy
   expect(otpCalls).toBe(1);
 });
 
-test('Use a passkey link can retry without a hint, then fall back', async ({ page }) => {
+test('check-passkey 429 or error falls back to magic link without WebAuthn', async ({ page }) => {
   await addVirtualAuthenticator(page);
   await mockSupabase(page);
+  let otpCalls = 0;
+  let authOptionsCalls = 0;
   await page.goto(ORIGIN);
+  await page.route('**/api/check-passkey', async (route) => {
+    await route.fulfill({ status: 429, json: { error: 'Too many requests.' } });
+  });
+  await page.route('**/auth/v1/otp', async (route) => {
+    otpCalls += 1;
+    await route.fulfill({ status: 200, json: {} });
+  });
   await page.route('**/auth/v1/passkeys/authentication/options', async (route) => {
-    await route.fulfill({ status: 400, json: { code: 400, error_code: 'ERROR_CEREMONY_ABORTED', msg: 'aborted' } });
+    authOptionsCalls += 1;
+    await route.fulfill({ status: 500, json: { msg: 'should not be called' } });
   });
   await openAccountMenu(page);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
   const authDialog = page.locator('.auth-modal');
   await authDialog.locator('input[type="email"]').fill('test@example.com');
-  await authDialog.getByRole('button', { name: 'Use a passkey' }).click();
-  await expect(authDialog.getByText("Passkey sign-in didn't finish.")).toBeVisible();
-  await expect(authDialog.getByRole('button', { name: 'Try passkey again' })).toBeVisible();
+  await authDialog.locator('.auth-actions .button-primary').click();
+  await expect(authDialog.getByText('Check your email for a magic link', { exact: false })).toBeVisible();
+  expect(otpCalls).toBe(1);
+  expect(authOptionsCalls).toBe(0);
 });
 
 test('deleting the last passkey clears the local device hint', async ({ page }) => {

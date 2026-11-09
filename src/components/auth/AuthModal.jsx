@@ -77,11 +77,6 @@ export const AuthModal = ({
               >
                 {primaryLabel}
               </button>
-              {authMode === 'signin' && showPasskeyOption && (
-                <button type="button" className="button-link auth-passkey-link" onClick={onTryPasskey} disabled={busy}>
-                  Use a passkey
-                </button>
-              )}
             </div>
           )}
 

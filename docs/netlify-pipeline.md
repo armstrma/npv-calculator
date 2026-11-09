@@ -33,7 +33,7 @@ The Netlify site id and Supabase publishable values are already in the workflow.
 
 ## Functions
 
-The workflow deploys both `dist` and `netlify/functions` so API endpoints such as Shopify checkout and webhooks are published with the static app.
+The workflow deploys both `dist` and `netlify/functions` so API endpoints such as Shopify checkout, passkey checks, and webhooks are published with the static app.
 
 Function runtime secrets must be set in Netlify project environment variables, not committed to GitHub:
 

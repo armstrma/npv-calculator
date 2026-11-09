@@ -50,8 +50,7 @@ test('passkeys stay hidden when the build flag is not set', async () => {
   assert.equal(result.error.kind, 'unsupported');
   assert.deepEqual(await passkey.listPasskeys({ accessToken: 'a' }), { data: [], error: null });
   assert.equal(passkey.shouldOfferPasskeyEnrollment({ freshLogin: true, userId: 'u1', passkeys: [] }), false);
-  assert.equal(passkey.shouldAttemptPasskeySignIn('user@example.com'), false);
-});
+  });
 
 test('prompt dismissal is stored per account and does not leak between users', () => {
   assert.equal(passkey.isPasskeyPromptDismissed('user-a'), false);
