@@ -50,7 +50,7 @@ test('passkeys stay hidden when the build flag is not set', async () => {
   assert.equal(result.error.kind, 'unsupported');
   assert.deepEqual(await passkey.listPasskeys({ accessToken: 'a' }), { data: [], error: null });
   assert.equal(passkey.shouldOfferPasskeyEnrollment({ freshLogin: true, userId: 'u1', passkeys: [] }), false);
-});
+  });
 
 test('prompt dismissal is stored per account and does not leak between users', () => {
   assert.equal(passkey.isPasskeyPromptDismissed('user-a'), false);
@@ -64,4 +64,17 @@ test('passkey-disabled server errors switch passkey UI off for the session', () 
   const described = passkey.describePasskeyError({ code: 'passkey_disabled', message: 'Passkeys are disabled' });
   assert.equal(described.kind, 'disabled');
   assert.equal(passkey.isPasskeyFeatureEnabled(), false);
+});
+
+test('passkey hints are local, email-normalized, and cleared when the list is empty', () => {
+  assert.equal(passkey.hasPasskeyHint('User@Example.com'), false);
+  passkey.setPasskeyHint('User@Example.com');
+  assert.equal(passkey.hasPasskeyHint('user@example.com'), true);
+  assert.equal(passkey.hasPasskeyHint('other@example.com'), false);
+  passkey.syncPasskeyHintFromList('user@example.com', [{ id: 'pk-1' }]);
+  assert.equal(passkey.hasPasskeyHint('user@example.com'), true);
+  passkey.syncPasskeyHintFromList('user@example.com', []);
+  assert.equal(passkey.hasPasskeyHint('user@example.com'), false);
+  passkey.clearPasskeyHint('user@example.com');
+  assert.equal(passkey.hasPasskeyHint('user@example.com'), false);
 });

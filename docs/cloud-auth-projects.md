@@ -90,11 +90,9 @@ When adding Google or Microsoft later, enable those providers in Supabase Auth a
 
 ## Passkeys (alongside magic links)
 
-NPV Lab can offer Supabase Auth's native passkeys (WebAuthn) next to email magic links. Magic links remain the primary and recovery sign-in method.
+NPV Lab can offer Supabase Auth's native passkeys (WebAuthn) next to email magic links. Magic links remain the recovery sign-in method.
 
-- Library: `@supabase/supabase-js` is pinned to an exact version (`2.119.0`) because Supabase marks the passkey API experimental and it may change without notice. Review the changelog before bumping.
-- `src/lib/passkeyAuth.js` uses a short-lived, in-memory supabase-js client (`persistSession: false`, `autoRefreshToken: false`) only for passkey calls. `src/lib/cloudAuth.js` remains the single owner of session storage and refresh; passkey sign-in sessions are written through `storeSession()`, so the 7-day cap and refresh logic are unchanged.
-- After a fresh magic-link sign-in, signed-in users with no passkey see a one-time, dismissible "Sign in faster next time" prompt. Dismissal is remembered per user id in `localStorage`. Passkeys can be added or removed later from the account menu ("Passkeys").
+**Sign-in screen:** email field and a single **Sign in** button. Sign in calls same-origin `POST /api/check-passkey` with `{ email }`, which returns only `{ hasPasskey: boolean }`. If `hasPasskey` is true, the app tries a passkey; cancel/failure shows **Email me a sign-in link** and **Try passkey again**. If false, unavailable, rate-limited (429), or the check errors, Sign in sends the magic link directly (no browser prompt). A local `npvLabPasskeyHint:<email>` marker is kept only as an offline/failure fallback when the check request fails (not on 429); it is set on register/successful passkey sign-in and cleared when `passkey.list` is empty. The check is rate-limited (~10/min per IP, ~5/min per email) via Netlify Blobs and uses `SUPABASE_SERVICE_ROLE_KEY` with the `public.user_has_passkey(text)` RPC (see migrations). That RPC is **service_role only** and must be applied before the check can return true in production.
 
 ### Activation (not enabled by default)
 
