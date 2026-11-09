@@ -67,3 +67,24 @@ test('getStoredSession clears sessions after seven days', async () => {
   assert.equal(getStoredSession(), null);
   assert.equal(window.localStorage.getItem('npvLabSupabaseSession'), null);
 });
+
+test('consumeMagicLinkSession marks the current tab as a fresh login', async () => {
+  const window = setupWindow();
+  window.location.hash = '#access_token=access&refresh_token=refresh&expires_in=3600&token_type=bearer';
+  const { consumeMagicLinkSession, consumeFreshMagicLinkFlag, FRESH_MAGIC_LINK_KEY } = await import(`./cloudAuth.js?test=${Date.now()}-fresh`);
+
+  const session = consumeMagicLinkSession();
+  assert.equal(session.accessToken, 'access');
+  assert.equal(window.sessionStorage.getItem(FRESH_MAGIC_LINK_KEY), '1');
+  assert.equal(consumeFreshMagicLinkFlag(), true);
+  assert.equal(window.sessionStorage.getItem(FRESH_MAGIC_LINK_KEY), null);
+  assert.equal(consumeFreshMagicLinkFlag(), false);
+});
+
+test('clearStoredSession removes the fresh magic-link flag', async () => {
+  const window = setupWindow();
+  const { clearStoredSession, FRESH_MAGIC_LINK_KEY } = await import(`./cloudAuth.js?test=${Date.now()}-clear-fresh`);
+  window.sessionStorage.setItem(FRESH_MAGIC_LINK_KEY, '1');
+  clearStoredSession();
+  assert.equal(window.sessionStorage.getItem(FRESH_MAGIC_LINK_KEY), null);
+});

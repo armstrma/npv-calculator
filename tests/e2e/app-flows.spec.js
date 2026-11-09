@@ -63,6 +63,7 @@ test.describe('public legal and pricing routes', () => {
     expect(urls).toEqual([
       'https://npvlab.com/',
       'https://npvlab.com/pricing',
+      'https://npvlab.com/examples',
       'https://npvlab.com/terms',
       'https://npvlab.com/privacy',
       'https://npvlab.com/disclaimer',

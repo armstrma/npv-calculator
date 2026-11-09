@@ -2,6 +2,7 @@ const ENV = import.meta.env || {};
 const SUPABASE_URL = ENV.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = ENV.VITE_SUPABASE_ANON_KEY;
 export const SESSION_STORAGE_KEY = 'npvLabSupabaseSession';
+export const FRESH_MAGIC_LINK_KEY = 'npvLabFreshMagicLink';
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const REFRESH_WINDOW_MS = 5 * 60 * 1000;
 
@@ -67,6 +68,7 @@ export const storeSession = (session) => {
 export const clearStoredSession = () => {
   window.localStorage.removeItem(SESSION_STORAGE_KEY);
   window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  try { window.sessionStorage.removeItem(FRESH_MAGIC_LINK_KEY); } catch { /* ignore */ }
 };
 
 export const consumeMagicLinkSession = () => {
@@ -87,8 +89,23 @@ export const consumeMagicLinkSession = () => {
   };
 
   const storedSession = storeSession(session);
+  if (storedSession) {
+    // Per-tab marker so the callback tab can offer passkey enrollment after remounts.
+    // sessionStorage is tab-scoped, so the requesting tab never inherits this.
+    try { window.sessionStorage.setItem(FRESH_MAGIC_LINK_KEY, '1'); } catch { /* ignore */ }
+  }
   window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}`);
   return storedSession;
+};
+
+export const consumeFreshMagicLinkFlag = () => {
+  try {
+    const fresh = window.sessionStorage.getItem(FRESH_MAGIC_LINK_KEY) === '1';
+    if (fresh) window.sessionStorage.removeItem(FRESH_MAGIC_LINK_KEY);
+    return fresh;
+  } catch {
+    return false;
+  }
 };
 
 export const refreshSession = async (session = getStoredSession()) => {
