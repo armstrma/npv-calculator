@@ -28,17 +28,17 @@ A stronger model would move auth session handling behind server-mediated, HttpOn
 
 ## Support Request Backend Guardrails
 
-Future support request endpoints should treat the client as untrusted and return generic success messaging.
+`POST /api/contact-support` treats the client as untrusted, verifies the Supabase session server-side, and persists the message in `public.support_requests` with the service role. Clients have no RLS policies on that table and cannot read submissions back.
 
 Required validation:
 - `subject`: required, 3-120 characters
 - `message`: required, 10-5000 characters
 
 Required abuse controls:
-- rate-limit by authenticated user ID when present
+- rate-limit by authenticated user ID
 - rate-limit by request IP as an additional context signal
 - derive request IP from the first value in `x-forwarded-for`, but do not treat it as trusted identity
-- return the same generic success response for accepted and safely ignored support submissions so callers cannot enumerate account, entitlement, or delivery details
+- return an honest success only after the row is saved (`Thanks. Your message was received.`), or an honest error if it is not. Do not claim a message will be reviewed if it was not stored. Do not vary the success message by entitlement or email-delivery status, so callers cannot enumerate those details.
 
 Required auth and entitlement controls:
 - verify the Supabase session server-side
@@ -46,7 +46,8 @@ Required auth and entitlement controls:
 - client-provided entitlement may be included as context, but must not be trusted for authorization or support priority
 
 Required email controls:
-- if user input touches the email subject, strip control characters and block or normalize header-like content before sending
+- if user input touches the email subject, strip control characters and normalize whitespace before sending
 - avoid placing raw user input into email headers beyond a sanitized subject
-- set `replyTo` to the authenticated user's email when the mail provider allows it safely
-- do not expose provider-specific email delivery failures to the client
+- set `replyTo` / `reply_to` to the authenticated user's email when notifying the site owner
+- if `RESEND_API_KEY` or `SUPPORT_NOTIFY_TO` is unset, skip sending and still return success after a successful save
+- do not expose provider-specific email delivery failures to the client; a failed notification must not undo a saved request
