@@ -49,6 +49,16 @@ import { MobileLibraryPanel } from './components/project/MobileLibraryPanel.jsx'
 import { getExampleBySlug } from './components/project/projectData.js';
 import { exportNpvWorkbook } from './lib/excelExport.js';
 import {
+  createDebouncedWriter,
+  hasSharedLinkParams,
+  hasUrlDrivenModel,
+  readStoredProjects,
+  readWorkingDraft,
+  rememberLaunchLocation,
+  writeStoredProjects,
+  writeWorkingDraft,
+} from './lib/workingDraft.js';
+import {
   ResponsiveContainer,
   LineChart,
   Line,
@@ -405,6 +415,12 @@ const App = () => {
   const [initialInput, setInitialInput] = useState(formatNumberWithCommas(1000));
   const [rateInput, setRateInput] = useState('10.0');
   const [cashflowInputs, setCashflowInputs] = useState([200, 300, 400, 500, 600].map(formatNumberWithCommas));
+  const [draftSessionReady, setDraftSessionReady] = useState(false);
+  const latestWorkingDraftRef = useRef(null);
+  const debouncedDraftSaverRef = useRef(null);
+  if (!debouncedDraftSaverRef.current) {
+    debouncedDraftSaverRef.current = createDebouncedWriter(writeWorkingDraft);
+  }
   const quickViewInputRefs = useRef([]);
   const pendingQuickViewFocusIndex = useRef(null);
   const discountRateForAnalysis = showHurdleRate ? hurdleRate : discount;
@@ -455,8 +471,8 @@ const App = () => {
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem('npvProjects');
-    if (saved) setProjects(JSON.parse(saved));
+    setProjects(readStoredProjects());
+    const launch = rememberLaunchLocation();
 
     const sessionFromUrl = consumeMagicLinkSession();
     const session = sessionFromUrl || getStoredSession();
@@ -487,7 +503,7 @@ const App = () => {
       setEntitlementResolved(true);
     }
 
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(launch.search);
     const initialValue = params.get('initial');
     const discountValue = params.get('discount');
     const cashflowsParam = params.get('cashflows');
@@ -498,7 +514,7 @@ const App = () => {
     const exampleParam = params.get('example');
     const hurdleEnabledParam = params.get('hurdleEnabled');
     const hurdleRateParam = params.get('hurdleRate');
-    const examplePathMatch = window.location.pathname.match(/^\/examples\/([^/?#]+)/);
+    const examplePathMatch = launch.pathname.match(/^\/examples\/([^/?#]+)/);
     const exampleSlug = exampleParam || (examplePathMatch ? decodeURIComponent(examplePathMatch[1]) : '');
     const exampleProject = exampleSlug ? getExampleBySlug(exampleSlug) : null;
 
@@ -570,15 +586,73 @@ const App = () => {
       setLoadedProjectName(sanitizedName);
     }
 
-    if ([initialValue, discountValue, cashflowsParam, currencyParam, periodParam, rateBasisParam, projectParam, hurdleEnabledParam, hurdleRateParam].some((value) => value !== null)) {
+    if (hasSharedLinkParams(params)) {
       window.history.replaceState({}, '', window.location.pathname);
     }
+
+    if (!hasUrlDrivenModel(launch)) {
+      const draft = readWorkingDraft();
+      if (draft) {
+        setInitial(draft.initial);
+        setDiscount(draft.discount);
+        setCashflows(draft.cashflows);
+        setShowHurdleRate(draft.showHurdleRate);
+        setHurdleRate(draft.hurdleRate);
+        setPeriodMode(draft.periodMode);
+        setRateBasis(draft.rateBasis);
+        setCurrency(draft.currency);
+        setInitialInput(formatNumberWithCommas(draft.initial));
+        setCashflowInputs(draft.cashflows.map(formatNumberWithCommas));
+        setRateInput((draft.showHurdleRate ? draft.hurdleRate : draft.discount).toFixed(1));
+        setProjectName(draft.projectName);
+        setLoadedProjectName(draft.loadedProjectName);
+        setLoadedProjectSource(draft.loadedProjectSource);
+      }
+    }
+
+    setDraftSessionReady(true);
   }, []);
 
   useEffect(() => {
     const handlePopState = () => setCurrentPath(window.location.pathname);
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (!draftSessionReady) return;
+    const snapshot = {
+      initial,
+      discount,
+      cashflows,
+      periodMode,
+      rateBasis,
+      showHurdleRate,
+      hurdleRate,
+      currency,
+      projectName,
+      loadedProjectName,
+      loadedProjectSource,
+    };
+    latestWorkingDraftRef.current = snapshot;
+    debouncedDraftSaverRef.current(snapshot);
+  }, [draftSessionReady, initial, discount, cashflows, periodMode, rateBasis, showHurdleRate, hurdleRate, currency, projectName, loadedProjectName, loadedProjectSource]);
+
+  useEffect(() => {
+    const flushDraft = () => {
+      if (!latestWorkingDraftRef.current) return;
+      writeWorkingDraft(latestWorkingDraftRef.current);
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') flushDraft();
+    };
+    window.addEventListener('pagehide', flushDraft);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      debouncedDraftSaverRef.current?.cancel();
+      window.removeEventListener('pagehide', flushDraft);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   useEffect(() => {
@@ -1142,7 +1216,7 @@ const App = () => {
       [trimmedName]: project,
     };
     setProjects(newProjects);
-    localStorage.setItem('npvProjects', JSON.stringify(newProjects));
+    writeStoredProjects(newProjects);
     setProjectName(trimmedName);
     setLoadedProjectName(trimmedName);
     setLoadedProjectSource('local');
@@ -1300,11 +1374,10 @@ const App = () => {
         .catch((error) => setCloudStatus(error.message || 'Unable to delete cloud project.'));
       return;
     }
-    const saved = localStorage.getItem('npvProjects');
-    const parsed = JSON.parse(saved || '{}');
+    const parsed = { ...readStoredProjects() };
     delete parsed[name];
     setProjects(parsed);
-    localStorage.setItem('npvProjects', JSON.stringify(parsed));
+    writeStoredProjects(parsed);
     if (loadedProjectName === name) {
       setLoadedProjectName('');
     }
