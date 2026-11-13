@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+const desktopToolbar = (page) => page.locator('.mobile-topbar-shell-desktop');
+
 const quickInputs = (page) => page.locator('.quick-view-controls input[type="text"]');
 const yearOneCashflow = (page) => page.locator('.quick-view-row', { hasText: 'Year 1' }).locator('input[type="text"]');
 
@@ -188,4 +190,41 @@ test('a fresh example or shared link takes priority over an existing working dra
 
   await expect(quickInputs(page).first()).toHaveValue('7,777');
   await expect(page).toHaveTitle('NPV Lab | Shared Link');
+});
+
+test('Reset to Defaults restores the ad-hoc model, keeps saved projects, and survives a reload', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    localStorage.setItem('npvProjects', JSON.stringify({ 'Saved Case': { initial: 1, cashflows: [1] } }));
+  });
+
+  await page.goto('/?example=equipment-purchase');
+  await expect(quickInputs(page).first()).toHaveValue('68,000');
+  await expect(quickInputs(page).first()).toBeDisabled();
+
+  await yearOneCashflow(page).fill('5555');
+  await yearOneCashflow(page).blur();
+  await expect.poll(async () => (await readDraft(page))?.model?.cashflows?.[0] ?? null).toBe(5555);
+
+  await desktopToolbar(page).getByLabel('More options').click();
+  await desktopToolbar(page).getByRole('button', { name: 'Reset to Defaults' }).click();
+
+  await expect(quickInputs(page).first()).toHaveValue('1,000');
+  await expect(quickInputs(page).first()).toBeEnabled();
+  await expect(yearOneCashflow(page)).toHaveValue('200');
+  await expect(page).toHaveTitle('NPV Lab | NPV Calculator for Cash Flow Analysis');
+  await expect(desktopToolbar(page).getByRole('button', { name: 'Reset to Defaults' })).toBeHidden();
+  await expect.poll(async () => (await readDraft(page))?.model?.initial ?? null).toBe(1000);
+  await expect.poll(async () => (await readDraft(page))?.model?.loadedProjectSource ?? null).toBe('scratch');
+
+  const projectsBeforeReload = await page.evaluate(() => localStorage.getItem('npvProjects'));
+  expect(JSON.parse(projectsBeforeReload)['Saved Case'].initial).toBe(1);
+
+  await page.reload();
+
+  await expect(quickInputs(page).first()).toHaveValue('1,000');
+  await expect(yearOneCashflow(page)).toHaveValue('200');
+  await expect(page).toHaveTitle('NPV Lab | NPV Calculator for Cash Flow Analysis');
+  const projectsAfterReload = await page.evaluate(() => localStorage.getItem('npvProjects'));
+  expect(JSON.parse(projectsAfterReload)['Saved Case'].initial).toBe(1);
 });

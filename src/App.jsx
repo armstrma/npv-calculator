@@ -50,6 +50,7 @@ import { getExampleBySlug } from './components/project/projectData.js';
 import { exportNpvWorkbook } from './lib/excelExport.js';
 import {
   createDebouncedWriter,
+  createDefaultWorkingModel,
   getPathAfterUrlDrivenLaunch,
   hasUrlDrivenModel,
   readStoredProjects,
@@ -340,17 +341,19 @@ const DisclaimerPage = ({ onBackToApp, onNavigateExamples, onNavigatePricing, on
   </LegalPageShell>
 );
 
+const defaultWorkingModel = createDefaultWorkingModel();
+
 const App = () => {
-  const [initial, setInitial] = useState(1000);
-  const [discount, setDiscount] = useState(10);
-  const [cashflows, setCashflows] = useState([200, 300, 400, 500, 600]);
-  const [currency, setCurrency] = useState('$');
-  const [periodMode, setPeriodMode] = useState('years');
-  const [rateBasis, setRateBasis] = useState('annual');
+  const [initial, setInitial] = useState(defaultWorkingModel.initial);
+  const [discount, setDiscount] = useState(defaultWorkingModel.discount);
+  const [cashflows, setCashflows] = useState(() => [...defaultWorkingModel.cashflows]);
+  const [currency, setCurrency] = useState(defaultWorkingModel.currency);
+  const [periodMode, setPeriodMode] = useState(defaultWorkingModel.periodMode);
+  const [rateBasis, setRateBasis] = useState(defaultWorkingModel.rateBasis);
   const [showSensitivity, setShowSensitivity] = useState(true);
   const [sensitivityPercent, setSensitivityPercent] = useState(10);
-  const [showHurdleRate, setShowHurdleRate] = useState(false);
-  const [hurdleRate, setHurdleRate] = useState(12);
+  const [showHurdleRate, setShowHurdleRate] = useState(defaultWorkingModel.showHurdleRate);
+  const [hurdleRate, setHurdleRate] = useState(defaultWorkingModel.hurdleRate);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [sliderGradientsEnabled, setSliderGradientsEnabled] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -398,9 +401,9 @@ const App = () => {
   const [cloudStatus, setCloudStatus] = useState('');
   const [showHurdleWarning, setShowHurdleWarning] = useState(false);
   const [projects, setProjects] = useState({});
-  const [projectName, setProjectName] = useState('');
-  const [loadedProjectName, setLoadedProjectName] = useState('');
-  const [loadedProjectSource, setLoadedProjectSource] = useState('scratch');
+  const [projectName, setProjectName] = useState(defaultWorkingModel.projectName);
+  const [loadedProjectName, setLoadedProjectName] = useState(defaultWorkingModel.loadedProjectName);
+  const [loadedProjectSource, setLoadedProjectSource] = useState(defaultWorkingModel.loadedProjectSource);
   const [showMetricsDetails, setShowMetricsDetails] = useState(false);
   const [sliderBounds, setSliderBounds] = useState({ initial: { min: 0, max: 10000 }, cashflow: { min: -5000, max: 10000 } });
   const [copiedProjectLink, setCopiedProjectLink] = useState(false);
@@ -412,9 +415,9 @@ const App = () => {
   const [exportStatus, setExportStatus] = useState('idle');
   const [isDesktopViewport, setIsDesktopViewport] = useState(false);
   const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
-  const [initialInput, setInitialInput] = useState(formatNumberWithCommas(1000));
-  const [rateInput, setRateInput] = useState('10.0');
-  const [cashflowInputs, setCashflowInputs] = useState([200, 300, 400, 500, 600].map(formatNumberWithCommas));
+  const [initialInput, setInitialInput] = useState(formatNumberWithCommas(defaultWorkingModel.initial));
+  const [rateInput, setRateInput] = useState(defaultWorkingModel.discount.toFixed(1));
+  const [cashflowInputs, setCashflowInputs] = useState(defaultWorkingModel.cashflows.map(formatNumberWithCommas));
   const [draftSessionReady, setDraftSessionReady] = useState(false);
   const latestWorkingDraftRef = useRef(null);
   const hasFlushedLaunchDraftRef = useRef(false);
@@ -1328,6 +1331,32 @@ const App = () => {
     } catch (error) {
       setCloudStatus(error.message || 'Unable to save project.');
     }
+  };
+
+  const applyDefaultWorkingModel = () => {
+    const defaults = createDefaultWorkingModel();
+    setInitial(defaults.initial);
+    setDiscount(defaults.discount);
+    setCashflows(defaults.cashflows);
+    setShowHurdleRate(defaults.showHurdleRate);
+    setHurdleRate(defaults.hurdleRate);
+    setPeriodMode(defaults.periodMode);
+    setRateBasis(defaults.rateBasis);
+    setCurrency(defaults.currency);
+    setInitialInput(formatNumberWithCommas(defaults.initial));
+    setCashflowInputs(defaults.cashflows.map(formatNumberWithCommas));
+    setRateInput(defaults.discount.toFixed(1));
+    setProjectName(defaults.projectName);
+    setLoadedProjectName(defaults.loadedProjectName);
+    setLoadedProjectSource(defaults.loadedProjectSource);
+    setShowHurdleWarning(false);
+    latestWorkingDraftRef.current = defaults;
+    debouncedDraftSaverRef.current.flush(defaults);
+  };
+
+  const handleResetToDefaults = () => {
+    applyDefaultWorkingModel();
+    setShowQuickViewMenu(false);
   };
 
   const applyProject = (name, project, source = 'project') => {
@@ -2277,6 +2306,9 @@ const App = () => {
                     setShowQuickViewMenu(false);
                   }} />
                 </label>
+                <button type="button" className="mobile-topbar-menu-item" onClick={handleResetToDefaults}>
+                  Reset to Defaults
+                </button>
                 <div className="mobile-topbar-menu-divider" />
                 <button type="button" className="mobile-topbar-menu-item" onClick={(event) => {
                   handleNavigatePricing(event);

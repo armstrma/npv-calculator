@@ -7,6 +7,7 @@ import {
   WORKING_DRAFT_BACKUP_KEY,
   WORKING_DRAFT_STORAGE_KEY,
   createDebouncedWriter,
+  createDefaultWorkingModel,
   getPathAfterUrlDrivenLaunch,
   hasSharedLinkParams,
   hasUrlDrivenModel,
@@ -181,4 +182,36 @@ test('getPathAfterUrlDrivenLaunch drops example and share params so a reload can
   assert.equal(getPathAfterUrlDrivenLaunch({ pathname: '/', search: '?initial=7777&project=Shared%20Link' }), '/');
   assert.equal(getPathAfterUrlDrivenLaunch({ pathname: '/examples', search: '' }), '/examples');
   assert.equal(getPathAfterUrlDrivenLaunch({ pathname: '/pricing', search: '' }), '/pricing');
+});
+
+test('createDefaultWorkingModel returns a fresh ad-hoc scratch model', () => {
+  const first = createDefaultWorkingModel();
+  const second = createDefaultWorkingModel();
+
+  assert.deepEqual(first, {
+    initial: 1000,
+    discount: 10,
+    cashflows: [200, 300, 400, 500, 600],
+    periodMode: 'years',
+    rateBasis: 'annual',
+    showHurdleRate: false,
+    hurdleRate: 12,
+    currency: '$',
+    projectName: '',
+    loadedProjectName: '',
+    loadedProjectSource: 'scratch',
+  });
+  first.cashflows.push(999);
+  assert.deepEqual(second.cashflows, [200, 300, 400, 500, 600]);
+});
+
+test('writing the default working model can be read back as a scratch draft', () => {
+  setupStorage();
+  writeWorkingDraft(createDefaultWorkingModel());
+
+  const restored = readWorkingDraft();
+  assert.equal(restored.initial, 1000);
+  assert.deepEqual(restored.cashflows, [200, 300, 400, 500, 600]);
+  assert.equal(restored.loadedProjectSource, 'scratch');
+  assert.equal(restored.projectName, '');
 });

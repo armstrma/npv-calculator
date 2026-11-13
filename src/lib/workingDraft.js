@@ -7,6 +7,25 @@ export const WORKING_DRAFT_BACKUP_KEY = 'npvWorkingDraft.corrupt';
 export const WORKING_DRAFT_VERSION = 1;
 export const WORKING_DRAFT_DEBOUNCE_MS = 400;
 
+export const DEFAULT_WORKING_MODEL = {
+  initial: 1000,
+  discount: 10,
+  cashflows: [200, 300, 400, 500, 600],
+  periodMode: 'years',
+  rateBasis: 'annual',
+  showHurdleRate: false,
+  hurdleRate: 12,
+  currency: '$',
+  projectName: '',
+  loadedProjectName: '',
+  loadedProjectSource: 'scratch',
+};
+
+export const createDefaultWorkingModel = () => ({
+  ...DEFAULT_WORKING_MODEL,
+  cashflows: [...DEFAULT_WORKING_MODEL.cashflows],
+});
+
 export const SHARED_LINK_PARAM_KEYS = [
   'initial',
   'discount',
