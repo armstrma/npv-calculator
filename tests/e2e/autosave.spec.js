@@ -1,6 +1,15 @@
 import { expect, test } from '@playwright/test';
 
 const quickInputs = (page) => page.locator('.quick-view-controls input[type="text"]');
+const yearOneCashflow = (page) => page.locator('.quick-view-row', { hasText: 'Year 1' }).locator('input[type="text"]');
+
+const readDraft = (page) => page.evaluate(() => {
+  try {
+    return JSON.parse(localStorage.getItem('npvWorkingDraft') || 'null');
+  } catch {
+    return null;
+  }
+});
 
 const clearBrowserState = async (page) => {
   await page.goto('/');
@@ -102,4 +111,81 @@ test('error boundary shows reload and reset actions, and reset clears saved data
   expect(stored.projects).toBeNull();
   expect(stored.draft).toBeNull();
   expect(stored.session).toBe(JSON.stringify({ accessToken: 'keep-me' }));
+});
+
+test('example link edits survive a reload after the example param is cleared', async ({ page }) => {
+  await page.goto('/?example=equipment-purchase');
+
+  await expect(quickInputs(page).first()).toHaveValue('68,000');
+  await expect(page).toHaveTitle('NPV Lab | Equipment Purchase');
+  await expect(page).not.toHaveURL(/example=/);
+  await expect(page).not.toHaveURL(/\/examples\//);
+
+  await yearOneCashflow(page).fill('5555');
+  await yearOneCashflow(page).blur();
+
+  await expect.poll(async () => (await readDraft(page))?.model?.cashflows?.[0] ?? null).toBe(5555);
+
+  await page.reload();
+
+  await expect(quickInputs(page).first()).toHaveValue('68,000');
+  await expect(yearOneCashflow(page)).toHaveValue('5,555');
+  await expect(page).toHaveTitle('NPV Lab | Equipment Purchase');
+  await expect(page).not.toHaveURL(/example=/);
+});
+
+test('shared link edits survive a reload after the share params are cleared', async ({ page }) => {
+  await page.goto('/?initial=7777&discount=8&cashflows=100,200,300&project=Shared%20Link');
+
+  await expect(quickInputs(page).first()).toHaveValue('7,777');
+  await expect(page).toHaveTitle('NPV Lab | Shared Link');
+  await expect(page).not.toHaveURL(/initial=/);
+
+  await quickInputs(page).first().fill('5555');
+  await quickInputs(page).first().blur();
+
+  await expect.poll(async () => (await readDraft(page))?.model?.initial ?? null).toBe(5555);
+
+  await page.reload();
+
+  await expect(quickInputs(page).first()).toHaveValue('5,555');
+  await expect(page).toHaveTitle('NPV Lab | Shared Link');
+  await expect(page).not.toHaveURL(/initial=/);
+});
+
+test('shared link values survive a reload even before later edits are typed', async ({ page }) => {
+  await page.goto('/?initial=7777&discount=8&cashflows=100,200,300&project=Shared%20Link');
+  await expect(quickInputs(page).first()).toHaveValue('7,777');
+  await expect(page).not.toHaveURL(/initial=/);
+
+  await page.reload();
+
+  await expect(quickInputs(page).first()).toHaveValue('7,777');
+  await expect(page).toHaveTitle('NPV Lab | Shared Link');
+});
+
+test('a fresh example or shared link takes priority over an existing working draft', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate((draft) => {
+    localStorage.setItem('npvWorkingDraft', JSON.stringify(draft));
+  }, sampleDraft);
+
+  await page.goto('/?example=equipment-purchase');
+
+  await expect(quickInputs(page).first()).toHaveValue('68,000');
+  await expect(quickInputs(page).first()).not.toHaveValue('5,555');
+  await expect(page).toHaveTitle('NPV Lab | Equipment Purchase');
+  await expect(page).not.toHaveURL(/example=/);
+
+  await page.goto('/examples/small-business-project');
+
+  await expect(quickInputs(page).first()).toHaveValue('92,000');
+  await expect(page).toHaveTitle('NPV Lab | Small Business Project');
+  await expect(page).not.toHaveURL(/example=/);
+  await expect(page).not.toHaveURL(/\/examples\//);
+
+  await page.goto('/?initial=7777&discount=8&cashflows=100,200,300&project=Shared%20Link');
+
+  await expect(quickInputs(page).first()).toHaveValue('7,777');
+  await expect(page).toHaveTitle('NPV Lab | Shared Link');
 });

@@ -7,8 +7,10 @@ import {
   WORKING_DRAFT_BACKUP_KEY,
   WORKING_DRAFT_STORAGE_KEY,
   createDebouncedWriter,
+  getPathAfterUrlDrivenLaunch,
   hasSharedLinkParams,
   hasUrlDrivenModel,
+  isExamplePath,
   readStoredProjects,
   readWorkingDraft,
   resetLaunchLocationCache,
@@ -164,4 +166,19 @@ test('hasUrlDrivenModel treats share links, example query params, and example pa
   assert.equal(hasUrlDrivenModel({ pathname: '/examples/widget-line', search: '' }), true);
   assert.equal(hasUrlDrivenModel({ pathname: '/examples', search: '' }), false);
   assert.equal(hasUrlDrivenModel({ pathname: '/', search: '?signedIn=e2e' }), false);
+});
+
+test('isExamplePath only matches a concrete example slug path', () => {
+  assert.equal(isExamplePath('/examples/equipment-purchase'), true);
+  assert.equal(isExamplePath('/examples'), false);
+  assert.equal(isExamplePath('/examples/'), false);
+  assert.equal(isExamplePath('/'), false);
+});
+
+test('getPathAfterUrlDrivenLaunch drops example and share params so a reload can restore the draft', () => {
+  assert.equal(getPathAfterUrlDrivenLaunch({ pathname: '/', search: '?example=equipment-purchase' }), '/');
+  assert.equal(getPathAfterUrlDrivenLaunch({ pathname: '/examples/equipment-purchase', search: '' }), '/');
+  assert.equal(getPathAfterUrlDrivenLaunch({ pathname: '/', search: '?initial=7777&project=Shared%20Link' }), '/');
+  assert.equal(getPathAfterUrlDrivenLaunch({ pathname: '/examples', search: '' }), '/examples');
+  assert.equal(getPathAfterUrlDrivenLaunch({ pathname: '/pricing', search: '' }), '/pricing');
 });

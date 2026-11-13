@@ -50,7 +50,7 @@ import { getExampleBySlug } from './components/project/projectData.js';
 import { exportNpvWorkbook } from './lib/excelExport.js';
 import {
   createDebouncedWriter,
-  hasSharedLinkParams,
+  getPathAfterUrlDrivenLaunch,
   hasUrlDrivenModel,
   readStoredProjects,
   readWorkingDraft,
@@ -417,6 +417,7 @@ const App = () => {
   const [cashflowInputs, setCashflowInputs] = useState([200, 300, 400, 500, 600].map(formatNumberWithCommas));
   const [draftSessionReady, setDraftSessionReady] = useState(false);
   const latestWorkingDraftRef = useRef(null);
+  const hasFlushedLaunchDraftRef = useRef(false);
   const debouncedDraftSaverRef = useRef(null);
   if (!debouncedDraftSaverRef.current) {
     debouncedDraftSaverRef.current = createDebouncedWriter(writeWorkingDraft);
@@ -534,10 +535,6 @@ const App = () => {
       setLoadedProjectName(sanitizedName);
       setLoadedProjectSource('example');
       setShowSensitivity(true);
-      if (examplePathMatch) {
-        window.history.replaceState({}, '', `/?example=${encodeURIComponent(exampleSlug)}`);
-        setCurrentPath('/');
-      }
     }
 
     if (initialValue !== null) {
@@ -586,8 +583,12 @@ const App = () => {
       setLoadedProjectName(sanitizedName);
     }
 
-    if (hasSharedLinkParams(params)) {
-      window.history.replaceState({}, '', window.location.pathname);
+    if (hasUrlDrivenModel(launch)) {
+      const nextPath = getPathAfterUrlDrivenLaunch(launch);
+      if (window.location.pathname !== nextPath || window.location.search) {
+        window.history.replaceState({}, '', nextPath);
+      }
+      setCurrentPath(nextPath);
     }
 
     if (!hasUrlDrivenModel(launch)) {
@@ -635,6 +636,13 @@ const App = () => {
       loadedProjectSource,
     };
     latestWorkingDraftRef.current = snapshot;
+    // Flush the launch snapshot immediately so a reload after a share/example
+    // link is cleared still restores that model, even before the debounce.
+    if (!hasFlushedLaunchDraftRef.current) {
+      hasFlushedLaunchDraftRef.current = true;
+      debouncedDraftSaverRef.current.flush(snapshot);
+      return;
+    }
     debouncedDraftSaverRef.current(snapshot);
   }, [draftSessionReady, initial, discount, cashflows, periodMode, rateBasis, showHurdleRate, hurdleRate, currency, projectName, loadedProjectName, loadedProjectSource]);
 
@@ -1961,7 +1969,7 @@ const App = () => {
     const exampleProject = getExampleBySlug(slug);
     if (!exampleProject) return;
     loadExampleProject(exampleProject);
-    window.history.pushState({}, '', `/?example=${encodeURIComponent(slug)}`);
+    window.history.pushState({}, '', '/');
     setCurrentPath('/');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
