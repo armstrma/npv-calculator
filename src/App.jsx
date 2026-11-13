@@ -1030,7 +1030,7 @@ const App = () => {
         throw new Error(result.error || 'Unable to send support request.');
       }
       setSupportStatus('sent');
-      setSupportNotice(result.message || 'Thanks. If support is available for your account, we will review your message.');
+      setSupportNotice(result.message || 'Thanks. Your message was received.');
       setSupportSubject('');
       setSupportMessage('');
       setSupportErrors({});
