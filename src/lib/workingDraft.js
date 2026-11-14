@@ -7,6 +7,25 @@ export const WORKING_DRAFT_BACKUP_KEY = 'npvWorkingDraft.corrupt';
 export const WORKING_DRAFT_VERSION = 1;
 export const WORKING_DRAFT_DEBOUNCE_MS = 400;
 
+export const DEFAULT_WORKING_MODEL = {
+  initial: 1000,
+  discount: 10,
+  cashflows: [200, 300, 400, 500, 600],
+  periodMode: 'years',
+  rateBasis: 'annual',
+  showHurdleRate: false,
+  hurdleRate: 12,
+  currency: '$',
+  projectName: '',
+  loadedProjectName: '',
+  loadedProjectSource: 'scratch',
+};
+
+export const createDefaultWorkingModel = () => ({
+  ...DEFAULT_WORKING_MODEL,
+  cashflows: [...DEFAULT_WORKING_MODEL.cashflows],
+});
+
 export const SHARED_LINK_PARAM_KEYS = [
   'initial',
   'discount',
@@ -156,7 +175,7 @@ export const createDebouncedWriter = (write, delayMs = WORKING_DRAFT_DEBOUNCE_MS
 };
 
 // Cache the first URL we see in this page load so share-link / example precedence
-// still works after React Strict Mode remounts (the app clears share params on load).
+// still works after React Strict Mode remounts (the app clears those params on load).
 let cachedLaunchLocation = null;
 
 export const rememberLaunchLocation = (location = typeof window === 'undefined' ? null : window.location) => {
@@ -180,10 +199,20 @@ export const hasSharedLinkParams = (search) => {
   return SHARED_LINK_PARAM_KEYS.some((key) => params.get(key) !== null);
 };
 
+export const isExamplePath = (pathname = '') => /^\/examples\/[^/?#]+/.test(pathname);
+
 export const hasUrlDrivenModel = (location = {}) => {
   const pathname = location.pathname || '';
   const params = new URLSearchParams(location.search || '');
   if (params.get('example')) return true;
   if (hasSharedLinkParams(params)) return true;
-  return /^\/examples\/[^/?#]+/.test(pathname);
+  return isExamplePath(pathname);
+};
+
+// After a share or example link is applied, drop those params so a reload
+// restores the working draft instead of re-applying the original link.
+export const getPathAfterUrlDrivenLaunch = (location = {}) => {
+  const pathname = location.pathname || '/';
+  if (isExamplePath(pathname)) return '/';
+  return pathname || '/';
 };
