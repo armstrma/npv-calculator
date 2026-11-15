@@ -3552,6 +3552,20 @@ th, td { border: 1px solid #334155; padding: 8px; text-align: left; }
   font-size: 12px;
   line-height: 1.4;
 }
+.save-dialog-current-name {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.local-save-input[aria-invalid="true"] {
+  border-color: #f87171;
+}
+.save-name-suggestion {
+  width: fit-content;
+  min-height: 32px;
+  font-size: 12px;
+}
 .delete-warning {
   border-color: rgba(239, 68, 68, 0.4);
   background: rgba(127, 29, 29, 0.22);

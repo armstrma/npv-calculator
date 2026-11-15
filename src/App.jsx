@@ -6,6 +6,7 @@ import { clearStoredSession, consumeFreshMagicLinkFlag, consumeMagicLinkSession,
 import { fetchUserEntitlement } from './lib/cloudEntitlements.js';
 import { deleteCloudProject, listCloudProjects, upsertCloudProject } from './lib/cloudProjects.js';
 import { canSaveProject, FREE_TIER_LIMITS, resolveAccess } from './lib/entitlementAccess.js';
+import { canDirectSave, getProjectNameConflict, suggestAvailableProjectName } from './lib/projectSave.js';
 import { startShopifyCheckout } from './lib/shopifyCheckout.js';
 import {
   MAX_CASHFLOW_PERIODS,
@@ -410,6 +411,9 @@ const App = () => {
   const [showSaveLocalModal, setShowSaveLocalModal] = useState(false);
   const [saveLocalName, setSaveLocalName] = useState('');
   const [saveTarget, setSaveTarget] = useState('local');
+  const [saveDialogMode, setSaveDialogMode] = useState('choose');
+  const [saveNameError, setSaveNameError] = useState('');
+  const [saveNameSuggestion, setSaveNameSuggestion] = useState('');
   const [pendingDeleteProjectName, setPendingDeleteProjectName] = useState('');
   const [projectPreviews, setProjectPreviews] = useState({});
   const [exportStatus, setExportStatus] = useState('idle');
@@ -1277,21 +1281,43 @@ const App = () => {
     return project;
   };
 
+  const getSaveCatalog = (target = saveTarget) => (target === 'cloud' ? cloudProjects : projects);
+
+  const applySaveNameState = (name, target = saveTarget) => {
+    const nextName = name.slice(0, PROJECT_NAME_MAX_LENGTH);
+    const conflict = getProjectNameConflict(nextName, getSaveCatalog(target));
+    setSaveLocalName(nextName);
+    setSaveNameError(conflict.message);
+    setSaveNameSuggestion(conflict.suggestion);
+    return conflict;
+  };
+
+  const openSaveDialog = (target) => {
+    const canSaveDirectly = canDirectSave(loadedProjectSource, loadedProjectName);
+    setSaveTarget(target);
+    setShowSaveMenu(false);
+    if (canSaveDirectly) {
+      applySaveNameState(suggestAvailableProjectName(loadedProjectName, getSaveCatalog(target)), target);
+      setSaveDialogMode('choose');
+    } else {
+      applySaveNameState(sanitizeProjectName(projectName || loadedProjectName), target);
+      setSaveDialogMode('save-as');
+    }
+    setShowSaveLocalModal(true);
+  };
+
   const handleSaveLocally = () => {
     if (isFreeExamplePreview) {
       openUpgradeModal('Free example previews cannot be saved. Upgrade to save editable copies and compare your own projects.');
       setShowSaveMenu(false);
       return;
     }
-    if (localSaveLimitReached) {
+    if (localSaveLimitReached && !canDirectSave(loadedProjectSource, loadedProjectName)) {
       openUpgradeModal("You've run out of projects you can save. Upgrade to unlock more local and cloud projects.");
       setShowSaveMenu(false);
       return;
     }
-    setSaveTarget('local');
-    setSaveLocalName(projectName?.trim() || loadedProjectName?.trim() || '');
-    setShowSaveLocalModal(true);
-    setShowSaveMenu(false);
+    openSaveDialog('local');
   };
 
   const handleSaveToCloud = () => {
@@ -1300,7 +1326,7 @@ const App = () => {
       setShowSaveMenu(false);
       return;
     }
-    if (authUser && cloudSaveLimitReached) {
+    if (authUser && cloudSaveLimitReached && !canDirectSave(loadedProjectSource, loadedProjectName)) {
       openUpgradeModal("You've run out of cloud projects you can save. Upgrade to unlock more local and cloud projects.");
       setShowSaveMenu(false);
       return;
@@ -1311,22 +1337,53 @@ const App = () => {
       return;
     }
 
-    setSaveTarget('cloud');
-    setSaveLocalName(projectName?.trim() || loadedProjectName?.trim() || '');
-    setShowSaveLocalModal(true);
-    setShowSaveMenu(false);
+    openSaveDialog('cloud');
   };
 
-  const handleConfirmSave = async () => {
-    if (!saveLocalName?.trim()) return;
+  const persistNamedProject = async (name) => {
+    if (saveTarget === 'cloud') {
+      return saveProjectToCloud(name);
+    }
+    return saveProject(name);
+  };
+
+  const handleDirectSave = async () => {
+    const name = sanitizeProjectName(loadedProjectName);
+    if (!canDirectSave(loadedProjectSource, name)) {
+      setSaveDialogMode('save-as');
+      applySaveNameState(sanitizeProjectName(projectName || loadedProjectName));
+      return;
+    }
     try {
-      if (saveTarget === 'cloud') {
-        const savedProject = await saveProjectToCloud(saveLocalName);
-        if (!savedProject) return;
-      } else {
-        const savedProject = saveProject(saveLocalName);
-        if (!savedProject) return;
-      }
+      const savedProject = await persistNamedProject(name);
+      if (!savedProject) return;
+      setShowSaveLocalModal(false);
+    } catch (error) {
+      setCloudStatus(error.message || 'Unable to save project.');
+    }
+  };
+
+  const handleStartSaveAs = () => {
+    const catalog = getSaveCatalog();
+    const preferredName = canDirectSave(loadedProjectSource, loadedProjectName)
+      ? suggestAvailableProjectName(loadedProjectName, catalog)
+      : sanitizeProjectName(projectName || loadedProjectName);
+    applySaveNameState(preferredName);
+    setSaveDialogMode('save-as');
+  };
+
+  const handleConfirmSaveAs = async () => {
+    const name = sanitizeProjectName(saveLocalName);
+    if (!name) return;
+    const conflict = getProjectNameConflict(name, getSaveCatalog());
+    if (conflict.taken) {
+      setSaveNameError(conflict.message);
+      setSaveNameSuggestion(conflict.suggestion);
+      return;
+    }
+    try {
+      const savedProject = await persistNamedProject(name);
+      if (!savedProject) return;
       setShowSaveLocalModal(false);
     } catch (error) {
       setCloudStatus(error.message || 'Unable to save project.');
@@ -3217,10 +3274,10 @@ const App = () => {
 
       {showSaveLocalModal && (
         <div className="modal" onClick={() => setShowSaveLocalModal(false)}>
-          <div className="modal-content auth-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content auth-modal" role="dialog" aria-modal="true" aria-labelledby="save-dialog-title" onClick={(e) => e.stopPropagation()}>
             <div className="upgrade-modal-header">
               <div>
-                <h2>{saveTarget === 'cloud' ? 'Cloud Save' : 'Local Save'}</h2>
+                <h2 id="save-dialog-title">{saveTarget === 'cloud' ? 'Cloud Save' : 'Local Save'}</h2>
               </div>
             </div>
             <div className="auth-card">
@@ -3229,22 +3286,75 @@ const App = () => {
                   ? 'Saved to your passwordless cloud library. Project ownership is enforced by database row-level security.'
                   : 'Saved in this browser only. Project may be lost if browser storage is cleared, the app data is reset, or you switch devices.'}
               </div>
-              <label className="auth-field">
-                <span>Project name</span>
-                <input
-                  type="text"
-                  value={saveLocalName}
-                  onChange={(e) => setSaveLocalName(e.target.value.slice(0, PROJECT_NAME_MAX_LENGTH))}
-                  maxLength={PROJECT_NAME_MAX_LENGTH}
-                  placeholder="My NPV Project"
-                  className="local-save-input"
-                />
-              </label>
-              {saveTarget === 'cloud' && cloudStatus && <p className="auth-footnote">{cloudStatus}</p>}
-              <div className="auth-actions">
-                <button type="button" className="button-primary" onClick={handleConfirmSave}>{saveTarget === 'cloud' ? 'Save to Cloud' : 'Save Locally'}</button>
-                <button type="button" className="button-secondary" onClick={() => setShowSaveLocalModal(false)}>Cancel</button>
-              </div>
+              {saveDialogMode === 'choose' ? (
+                <>
+                  <p className="save-dialog-current-name">
+                    Save updates “{sanitizeProjectName(loadedProjectName)}” with no further confirmation.
+                  </p>
+                  {saveTarget === 'cloud' && cloudStatus && <p className="auth-footnote">{cloudStatus}</p>}
+                  <div className="auth-actions">
+                    <button type="button" className="button-primary" onClick={handleDirectSave}>Save</button>
+                    <button type="button" className="button-secondary" onClick={handleStartSaveAs}>Save as</button>
+                    <button type="button" className="button-secondary" onClick={() => setShowSaveLocalModal(false)}>Cancel</button>
+                  </div>
+                </>
+              ) : (
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    handleConfirmSaveAs();
+                  }}
+                >
+                  {!canDirectSave(loadedProjectSource, loadedProjectName) && (
+                    <p className="save-dialog-current-name">
+                      Choose a name to save this project.
+                    </p>
+                  )}
+                  <label className="auth-field">
+                    <span>Project name</span>
+                    <input
+                      type="text"
+                      value={saveLocalName}
+                      onChange={(e) => applySaveNameState(e.target.value)}
+                      maxLength={PROJECT_NAME_MAX_LENGTH}
+                      placeholder="My NPV Project"
+                      className="local-save-input"
+                      aria-invalid={Boolean(saveNameError)}
+                      aria-describedby={saveNameError ? 'save-name-error' : undefined}
+                      autoFocus
+                    />
+                    {saveNameError && (
+                      <span id="save-name-error" className="support-field-error" role="alert">
+                        {saveNameError}
+                        {saveNameSuggestion ? ` Try “${saveNameSuggestion}”.` : ''}
+                      </span>
+                    )}
+                  </label>
+                  {saveNameError && saveNameSuggestion && (
+                    <button
+                      type="button"
+                      className="button-secondary save-name-suggestion"
+                      onClick={() => applySaveNameState(saveNameSuggestion)}
+                    >
+                      Use “{saveNameSuggestion}”
+                    </button>
+                  )}
+                  {saveTarget === 'cloud' && cloudStatus && <p className="auth-footnote">{cloudStatus}</p>}
+                  <div className="auth-actions">
+                    <button
+                      type="submit"
+                      className="button-primary"
+                      disabled={!sanitizeProjectName(saveLocalName) || Boolean(saveNameError)}
+                    >
+                      {canDirectSave(loadedProjectSource, loadedProjectName) ? 'Save as' : 'Save'}
+                    </button>
+                    {canDirectSave(loadedProjectSource, loadedProjectName) && (
+                      <button type="button" className="button-secondary" onClick={() => setSaveDialogMode('choose')}>Back</button>
+                    )}
+                    <button type="button" className="button-secondary" onClick={() => setShowSaveLocalModal(false)}>Cancel</button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
         </div>
