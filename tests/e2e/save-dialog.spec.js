@@ -13,13 +13,28 @@ const clearBrowserState = async (page) => {
   });
 };
 
-const openLocalSave = async (page, toolbar = desktopToolbar(page)) => {
+const openDestinationSubmenu = async (page, { toolbar = desktopToolbar(page), destination = 'local' } = {}) => {
   await toolbar.getByLabel('Save options').click();
-  await page.getByRole('button', { name: 'Save Locally' }).click();
+  const parentName = destination === 'cloud' ? 'Save to Cloud' : 'Save Locally';
+  await toolbar.getByRole('button', { name: parentName }).click();
+  await expect(toolbar.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
+  await expect(toolbar.getByRole('button', { name: 'Save as…' })).toBeVisible();
+};
+
+const chooseSubmenuSave = async (page, options = {}) => {
+  const toolbar = options.toolbar || desktopToolbar(page);
+  await openDestinationSubmenu(page, options);
+  await toolbar.getByRole('button', { name: 'Save', exact: true }).click();
+};
+
+const chooseSubmenuSaveAs = async (page, options = {}) => {
+  const toolbar = options.toolbar || desktopToolbar(page);
+  await openDestinationSubmenu(page, options);
+  await toolbar.getByRole('button', { name: 'Save as…' }).click();
 };
 
 const saveNewLocalProject = async (page, name, toolbar = desktopToolbar(page)) => {
-  await openLocalSave(page, toolbar);
+  await chooseSubmenuSave(page, { toolbar, destination: 'local' });
   const dialog = saveDialog(page);
   await expect(dialog).toBeVisible();
   await dialog.getByLabel('Project name').fill(name);
@@ -47,7 +62,7 @@ test.beforeEach(async ({ page }) => {
   await clearBrowserState(page);
 });
 
-test('Save on a loaded project overwrites with no prompt', async ({ page }) => {
+test('submenu Save on a loaded project overwrites with no modal', async ({ page }) => {
   await page.goto('/');
   await quickInputs(page).first().fill('1234');
   await quickInputs(page).first().blur();
@@ -56,16 +71,9 @@ test('Save on a loaded project overwrites with no prompt', async ({ page }) => {
   await quickInputs(page).first().fill('9999');
   await quickInputs(page).first().blur();
 
-  await openLocalSave(page);
-  const dialog = saveDialog(page);
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
-  await expect(dialog.getByRole('button', { name: 'Save as' })).toBeVisible();
-  await expect(dialog.getByLabel('Project name')).toHaveCount(0);
-  await expect(dialog.getByRole('button', { name: 'Overwrite' })).toHaveCount(0);
-  await expect(dialog.getByText('already exists')).toHaveCount(0);
-  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(dialog).toBeHidden();
+  await chooseSubmenuSave(page);
+  await expect(saveDialog(page)).toHaveCount(0);
+  await expect(page.getByRole('status')).toHaveText('Saved “Loaded Case” on this device.');
 
   await expect.poll(async () => (await readStoredProjects(page))['Loaded Case']?.initial ?? null).toBe(9999);
 
@@ -79,11 +87,12 @@ test('Save on a loaded project overwrites with no prompt', async ({ page }) => {
 
 test('Save on scratch asks for a name', async ({ page }) => {
   await page.goto('/');
-  await openLocalSave(page);
+  await chooseSubmenuSave(page);
 
   const dialog = saveDialog(page);
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText('Choose a name to save this project.')).toBeVisible();
+  await expect(dialog.getByText('Saved in this browser only')).toBeVisible();
   await expect(dialog.getByLabel('Project name')).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
   await expect(dialog.getByRole('button', { name: 'Save as' })).toHaveCount(0);
@@ -106,9 +115,9 @@ test('Save as with a taken name shows an inline message and does not overwrite',
   await quickInputs(page).first().fill('9999');
   await quickInputs(page).first().blur();
 
-  await openLocalSave(page);
+  await chooseSubmenuSaveAs(page);
   const dialog = saveDialog(page);
-  await dialog.getByRole('button', { name: 'Save as' }).click();
+  await expect(dialog).toBeVisible();
   await dialog.getByLabel('Project name').fill('Taken Name');
 
   await expect(dialog.getByText('A project with this name already exists')).toBeVisible();
@@ -133,9 +142,8 @@ test('Save as with a new name creates a project and makes it current', async ({ 
   await quickInputs(page).first().fill('8888');
   await quickInputs(page).first().blur();
 
-  await openLocalSave(page);
+  await chooseSubmenuSaveAs(page);
   const dialog = saveDialog(page);
-  await dialog.getByRole('button', { name: 'Save as' }).click();
   await expect(dialog.getByLabel('Project name')).toHaveValue('Original Project (2)');
   await dialog.getByLabel('Project name').fill('Copied Project');
   await dialog.getByRole('button', { name: 'Save as' }).click();
@@ -159,13 +167,23 @@ test('Save as with a new name creates a project and makes it current', async ({ 
 
   await quickInputs(page).first().fill('7777');
   await quickInputs(page).first().blur();
-  await openLocalSave(page);
-  await expect(saveDialog(page).getByLabel('Project name')).toHaveCount(0);
-  await saveDialog(page).getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(saveDialog(page)).toBeHidden();
+  await chooseSubmenuSave(page);
+  await expect(saveDialog(page)).toHaveCount(0);
+  await expect(page.getByRole('status')).toHaveText('Saved “Copied Project” on this device.');
 
   await expect.poll(async () => (await readStoredProjects(page))['Copied Project']?.initial ?? null).toBe(7777);
   await expect.poll(async () => (await readStoredProjects(page))['Original Project']?.initial ?? null).toBe(1234);
+});
+
+test('Escape closes the Save submenu', async ({ page }) => {
+  await page.goto('/');
+  const toolbar = desktopToolbar(page);
+  await openDestinationSubmenu(page, { toolbar, destination: 'local' });
+
+  await page.keyboard.press('Escape');
+  await expect(toolbar.getByRole('button', { name: 'Save as…' })).toBeHidden();
+  await expect(toolbar.getByRole('button', { name: 'Save', exact: true })).toBeHidden();
+  await expect(toolbar.getByRole('button', { name: 'Save Locally' })).toBeHidden();
 });
 
 test('mobile Save as flow works on the compact toolbar', async ({ page }) => {
@@ -178,9 +196,9 @@ test('mobile Save as flow works on the compact toolbar', async ({ page }) => {
   await quickInputs(page).first().fill('1357');
   await quickInputs(page).first().blur();
 
-  await openLocalSave(page, mobileToolbar(page));
+  await chooseSubmenuSaveAs(page, { toolbar: mobileToolbar(page), destination: 'local' });
   const dialog = saveDialog(page);
-  await dialog.getByRole('button', { name: 'Save as' }).click();
+  await expect(dialog.getByText('Saved in this browser only')).toBeVisible();
   await dialog.getByLabel('Project name').fill('Mobile Copy');
   await dialog.getByRole('button', { name: 'Save as' }).click();
   await expect(dialog).toBeHidden();

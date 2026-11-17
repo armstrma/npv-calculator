@@ -12,9 +12,20 @@ const readPreviewCloud = (page) => page.evaluate(() => {
   }
 });
 
-const openCloudSave = async (page) => {
+const openCloudSaveSubmenu = async (page) => {
   await desktopToolbar(page).getByLabel('Save options').click();
-  await page.getByRole('button', { name: 'Save to Cloud' }).click();
+  await desktopToolbar(page).getByRole('button', { name: 'Save to Cloud' }).click();
+  await expect(desktopToolbar(page).getByRole('button', { name: 'Save as…' })).toBeVisible();
+};
+
+const chooseCloudSave = async (page) => {
+  await openCloudSaveSubmenu(page);
+  await desktopToolbar(page).getByRole('button', { name: 'Save', exact: true }).click();
+};
+
+const chooseCloudSaveAs = async (page) => {
+  await openCloudSaveSubmenu(page);
+  await desktopToolbar(page).getByRole('button', { name: 'Save as…' }).click();
 };
 
 test.beforeEach(async ({ page }) => {
@@ -44,7 +55,7 @@ test('Pro off hits the cloud save limit and Pro on allows cloud Save, Save as, a
 
   await quickInputs(page).first().fill('1234');
   await quickInputs(page).first().blur();
-  await openCloudSave(page);
+  await chooseCloudSave(page);
 
   const dialog = saveDialog(page);
   await expect(dialog).toBeVisible();
@@ -55,8 +66,7 @@ test('Pro off hits the cloud save limit and Pro on allows cloud Save, Save as, a
 
   await quickInputs(page).first().fill('8888');
   await quickInputs(page).first().blur();
-  await openCloudSave(page);
-  await saveDialog(page).getByRole('button', { name: 'Save as' }).click();
+  await chooseCloudSaveAs(page);
   await saveDialog(page).getByLabel('Project name').fill('Cloud Two');
   await saveDialog(page).getByRole('button', { name: 'Save as' }).click();
 
@@ -73,8 +83,7 @@ test('Pro off hits the cloud save limit and Pro on allows cloud Save, Save as, a
   await expect(proSwitch).toBeChecked();
   await expect(desktopToolbar(page).getByLabel('Upgraded account')).toBeVisible();
 
-  await openCloudSave(page);
-  await saveDialog(page).getByRole('button', { name: 'Save as' }).click();
+  await chooseCloudSaveAs(page);
   await saveDialog(page).getByLabel('Project name').fill('Cloud Two');
   await saveDialog(page).getByRole('button', { name: 'Save as' }).click();
   await expect(saveDialog(page)).toBeHidden();

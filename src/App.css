@@ -326,6 +326,89 @@ body:has(.ptm-banner) .mobile-topbar-shell {
   background: rgba(34, 197, 94, 0.12);
 }
 
+.mobile-topbar-submenu-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-topbar-submenu-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.mobile-topbar-submenu-caret {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid #cbd5e1;
+}
+
+.mobile-topbar-shell:not(.mobile-topbar-shell-desktop) .mobile-topbar-submenu {
+  display: none;
+  padding: 0 0 2px 8px;
+}
+
+.mobile-topbar-shell:not(.mobile-topbar-shell-desktop) .mobile-topbar-submenu-wrap.is-open .mobile-topbar-submenu {
+  display: block;
+}
+
+.mobile-topbar-shell:not(.mobile-topbar-shell-desktop) .mobile-topbar-submenu-wrap.is-open .mobile-topbar-submenu-caret {
+  transform: rotate(90deg);
+}
+
+.mobile-topbar-shell-desktop .mobile-topbar-submenu-wrap {
+  position: relative;
+}
+
+.mobile-topbar-shell-desktop .mobile-topbar-submenu {
+  display: none;
+  position: absolute;
+  left: calc(100% + 6px);
+  top: 0;
+  min-width: 132px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(71, 85, 105, 0.55);
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
+  z-index: 4;
+}
+
+.mobile-topbar-shell-desktop .mobile-topbar-submenu-wrap:hover .mobile-topbar-submenu,
+.mobile-topbar-shell-desktop .mobile-topbar-submenu-wrap:focus-within .mobile-topbar-submenu,
+.mobile-topbar-shell-desktop .mobile-topbar-submenu-wrap.is-open .mobile-topbar-submenu {
+  display: block;
+}
+
+.save-confirmation {
+  position: fixed;
+  left: 50%;
+  top: 72px;
+  transform: translateX(-50%);
+  z-index: 60;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: rgba(15, 23, 42, 0.96);
+  color: #86efac;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+}
+
+.save-confirmation.is-error {
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fecaca;
+}
+
+body:has(.ptm-banner) .save-confirmation {
+  top: 108px;
+}
+
 .mobile-topbar-menu-item-select,
 .mobile-topbar-menu-item-toggle {
   display: grid;

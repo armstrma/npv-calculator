@@ -98,7 +98,8 @@ test('saves and reloads a local project through the UI', async ({ page }) => {
   await quickInputs(page).first().blur();
 
   await desktopToolbar(page).getByLabel('Save options').click();
-  await page.getByRole('button', { name: 'Save Locally' }).click();
+  await desktopToolbar(page).getByRole('button', { name: 'Save Locally' }).click();
+  await desktopToolbar(page).getByRole('button', { name: 'Save', exact: true }).click();
   const saveDialog = page.getByRole('dialog', { name: 'Local Save' });
   await saveDialog.getByLabel('Project name').fill('E2E Local Project');
   await saveDialog.getByRole('button', { name: 'Save', exact: true }).click();

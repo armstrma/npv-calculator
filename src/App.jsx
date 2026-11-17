@@ -373,6 +373,9 @@ const App = () => {
   const [mobileMetricsPinned, setMobileMetricsPinned] = useState(false);
   const [showQuickViewMenu, setShowQuickViewMenu] = useState(false);
   const [showSaveMenu, setShowSaveMenu] = useState(false);
+  const [saveSubmenu, setSaveSubmenu] = useState(null);
+  const [saveConfirmation, setSaveConfirmation] = useState('');
+  const saveConfirmationTimerRef = useRef(null);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showPresentationMode, setShowPresentationMode] = useState(false);
   const [presentationSlideIndex, setPresentationSlideIndex] = useState(0);
@@ -412,7 +415,7 @@ const App = () => {
   const [showSaveLocalModal, setShowSaveLocalModal] = useState(false);
   const [saveLocalName, setSaveLocalName] = useState('');
   const [saveTarget, setSaveTarget] = useState('local');
-  const [saveDialogMode, setSaveDialogMode] = useState('choose');
+  const [saveDialogMode, setSaveDialogMode] = useState('save-as');
   const [saveNameError, setSaveNameError] = useState('');
   const [saveNameSuggestion, setSaveNameSuggestion] = useState('');
   const [pendingDeleteProjectName, setPendingDeleteProjectName] = useState('');
@@ -885,6 +888,7 @@ const App = () => {
       if (!insideMobileTopbar && !insideProjectToolbar) {
         setShowQuickViewMenu(false);
         setShowSaveMenu(false);
+        setSaveSubmenu(null);
         setShowShareMenu(false);
       }
     };
@@ -893,6 +897,26 @@ const App = () => {
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown);
     };
+  }, []);
+
+  useEffect(() => {
+    if (!showSaveMenu) setSaveSubmenu(null);
+  }, [showSaveMenu]);
+
+  useEffect(() => {
+    if (!showSaveMenu) return undefined;
+    const handleSaveMenuKeys = (event) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setShowSaveMenu(false);
+      setSaveSubmenu(null);
+    };
+    document.addEventListener('keydown', handleSaveMenuKeys);
+    return () => document.removeEventListener('keydown', handleSaveMenuKeys);
+  }, [showSaveMenu, saveSubmenu]);
+
+  useEffect(() => () => {
+    if (saveConfirmationTimerRef.current) window.clearTimeout(saveConfirmationTimerRef.current);
   }, []);
 
   const currentAuthUserIdRef = useRef(null);
@@ -1340,84 +1364,111 @@ const App = () => {
     return conflict;
   };
 
-  const openSaveDialog = (target) => {
-    const canSaveDirectly = canDirectSave(loadedProjectSource, loadedProjectName);
-    setSaveTarget(target);
-    setShowSaveMenu(false);
-    if (canSaveDirectly) {
-      applySaveNameState(suggestAvailableProjectName(loadedProjectName, getSaveCatalog(target)), target);
-      setSaveDialogMode('choose');
-    } else {
-      applySaveNameState(sanitizeProjectName(projectName || loadedProjectName), target);
-      setSaveDialogMode('save-as');
-    }
-    setShowSaveLocalModal(true);
+  const announceSaveConfirmation = (message, { error = false } = {}) => {
+    if (saveConfirmationTimerRef.current) window.clearTimeout(saveConfirmationTimerRef.current);
+    setSaveConfirmation(error ? `error:${message}` : message);
+    saveConfirmationTimerRef.current = window.setTimeout(() => {
+      setSaveConfirmation('');
+      saveConfirmationTimerRef.current = null;
+    }, 2200);
   };
 
-  const handleSaveLocally = () => {
-    if (isFreeExamplePreview) {
-      openUpgradeModal('Free example previews cannot be saved. Upgrade to save editable copies and compare your own projects.');
-      setShowSaveMenu(false);
-      return;
-    }
-    if (localSaveLimitReached && !canDirectSave(loadedProjectSource, loadedProjectName)) {
-      openUpgradeModal("You've run out of projects you can save. Upgrade to unlock more local and cloud projects.");
-      setShowSaveMenu(false);
-      return;
-    }
-    openSaveDialog('local');
-  };
-
-  const handleSaveToCloud = () => {
-    if (isFreeExamplePreview) {
-      openUpgradeModal('Free example previews cannot be saved. Upgrade to save editable copies and sync them across devices.');
-      setShowSaveMenu(false);
-      return;
-    }
-    if (authUser && cloudSaveLimitReached && !canDirectSave(loadedProjectSource, loadedProjectName)) {
-      openUpgradeModal("You've run out of cloud projects you can save. Upgrade to unlock more local and cloud projects.");
-      setShowSaveMenu(false);
-      return;
-    }
-    if (!authUser) {
-      handleRequireAuth('signin');
-      setShowSaveMenu(false);
-      return;
-    }
-
-    openSaveDialog('cloud');
-  };
-
-  const persistNamedProject = async (name) => {
-    if (saveTarget === 'cloud') {
+  const persistNamedProject = async (name, target = saveTarget) => {
+    if (target === 'cloud') {
       return saveProjectToCloud(name);
     }
     return saveProject(name);
   };
 
-  const handleDirectSave = async () => {
-    const name = sanitizeProjectName(loadedProjectName);
-    if (!canDirectSave(loadedProjectSource, name)) {
-      setSaveDialogMode('save-as');
-      applySaveNameState(sanitizeProjectName(projectName || loadedProjectName));
-      return;
-    }
-    try {
-      const savedProject = await persistNamedProject(name);
-      if (!savedProject) return;
-      setShowSaveLocalModal(false);
-    } catch (error) {
-      setCloudStatus(error.message || 'Unable to save project.');
-    }
-  };
-
-  const handleStartSaveAs = () => {
-    const catalog = getSaveCatalog();
+  const openSaveAsDialog = (target, mode = 'save-as') => {
+    setSaveTarget(target);
+    setShowSaveMenu(false);
+    setSaveSubmenu(null);
+    const catalog = getSaveCatalog(target);
     const preferredName = canDirectSave(loadedProjectSource, loadedProjectName)
       ? suggestAvailableProjectName(loadedProjectName, catalog)
       : sanitizeProjectName(projectName || loadedProjectName);
-    applySaveNameState(preferredName);
-    setSaveDialogMode('save-as');
+    applySaveNameState(preferredName, target);
+    setSaveDialogMode(mode);
+    setShowSaveLocalModal(true);
+  };
+
+  const handleSignInToSaveToCloud = () => {
+    handleRequireAuth('signin');
+    setShowSaveMenu(false);
+    setSaveSubmenu(null);
+  };
+
+  const handleMenuSave = async (target) => {
+    if (isFreeExamplePreview) {
+      openUpgradeModal(
+        target === 'cloud'
+          ? 'Free example previews cannot be saved. Upgrade to save editable copies and sync them across devices.'
+          : 'Free example previews cannot be saved. Upgrade to save editable copies and compare your own projects.',
+      );
+      setShowSaveMenu(false);
+      return;
+    }
+    if (target === 'cloud' && !authUser) {
+      handleSignInToSaveToCloud();
+      return;
+    }
+    const atLimit = target === 'cloud' ? cloudSaveLimitReached : localSaveLimitReached;
+    if (canDirectSave(loadedProjectSource, loadedProjectName)) {
+      const name = sanitizeProjectName(loadedProjectName);
+      setSaveTarget(target);
+      setShowSaveMenu(false);
+      setSaveSubmenu(null);
+      try {
+        const savedProject = await persistNamedProject(name, target);
+        if (!savedProject) return;
+        announceSaveConfirmation(
+          target === 'cloud' ? `Saved “${name}” to the cloud.` : `Saved “${name}” on this device.`,
+        );
+      } catch (error) {
+        const message = error.message || 'Unable to save project.';
+        setCloudStatus(message);
+        announceSaveConfirmation(message, { error: true });
+      }
+      return;
+    }
+    if (atLimit) {
+      openUpgradeModal(
+        target === 'cloud'
+          ? "You've run out of cloud projects you can save. Upgrade to unlock more local and cloud projects."
+          : "You've run out of projects you can save. Upgrade to unlock more local and cloud projects.",
+      );
+      setShowSaveMenu(false);
+      return;
+    }
+    openSaveAsDialog(target, 'save');
+  };
+
+  const handleMenuSaveAs = (target) => {
+    if (isFreeExamplePreview) {
+      openUpgradeModal(
+        target === 'cloud'
+          ? 'Free example previews cannot be saved. Upgrade to save editable copies and sync them across devices.'
+          : 'Free example previews cannot be saved. Upgrade to save editable copies and compare your own projects.',
+      );
+      setShowSaveMenu(false);
+      return;
+    }
+    if (target === 'cloud' && !authUser) {
+      handleSignInToSaveToCloud();
+      return;
+    }
+    const atLimit = target === 'cloud' ? cloudSaveLimitReached : localSaveLimitReached;
+    if (atLimit && !canDirectSave(loadedProjectSource, loadedProjectName)) {
+      openUpgradeModal(
+        target === 'cloud'
+          ? "You've run out of cloud projects you can save. Upgrade to unlock more local and cloud projects."
+          : "You've run out of projects you can save. Upgrade to unlock more local and cloud projects.",
+      );
+      setShowSaveMenu(false);
+      return;
+    }
+    openSaveAsDialog(target, 'save-as');
   };
 
   const handleConfirmSaveAs = async () => {
@@ -2327,6 +2378,7 @@ const App = () => {
                 return;
               }
               setShowSaveMenu((value) => !value);
+              setSaveSubmenu(null);
               setShowQuickViewMenu(false);
               setShowShareMenu(false);
             }} aria-label="Save options" aria-disabled={isFreeExamplePreview} title={isFreeExamplePreview ? 'Saving is locked for free example previews.' : 'Save options'}>
@@ -2337,26 +2389,63 @@ const App = () => {
               </svg>
             </button>
             {showSaveMenu && (
-              <div className="mobile-topbar-menu mobile-topbar-menu-left">
-                <button
-                  type="button"
-                  className="mobile-topbar-menu-item"
-                  onClick={handleSaveToCloud}
-                >
-                  {authUser ? 'Save to Cloud' : 'Sign In to Save to Cloud'}
-                  {cloudSaveLimitReached && <span className="pro-texture-badge">PRO</span>}
-                </button>
-                <button
-                  type="button"
-                  className="mobile-topbar-menu-item"
-                  onClick={() => {
-                    handleSaveLocally();
-                    setShowSaveMenu(false);
-                  }}
-                >
-                  Save Locally
-                  {localSaveLimitReached && <span className="pro-texture-badge">PRO</span>}
-                </button>
+              <div className="mobile-topbar-menu mobile-topbar-menu-left" aria-label="Save options">
+                {authUser ? (
+                  <div className={`mobile-topbar-submenu-wrap ${saveSubmenu === 'cloud' ? 'is-open' : ''}`}>
+                    <button
+                      type="button"
+                      className="mobile-topbar-menu-item"
+                      aria-haspopup="true"
+                      aria-expanded={saveSubmenu === 'cloud'}
+                      onClick={() => setSaveSubmenu((current) => (current === 'cloud' ? null : 'cloud'))}
+                    >
+                      <span>Save to Cloud</span>
+                      <span className="mobile-topbar-submenu-meta">
+                        {cloudSaveLimitReached && <span className="pro-texture-badge">PRO</span>}
+                        <span className="mobile-topbar-submenu-caret" aria-hidden="true" />
+                      </span>
+                    </button>
+                    <div className="mobile-topbar-submenu" role="group" aria-label="Save to Cloud">
+                      <button type="button" className="mobile-topbar-menu-item" onClick={() => handleMenuSave('cloud')}>
+                        Save
+                      </button>
+                      <button type="button" className="mobile-topbar-menu-item" onClick={() => handleMenuSaveAs('cloud')}>
+                        Save as…
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="mobile-topbar-menu-item"
+                    onClick={handleSignInToSaveToCloud}
+                  >
+                    Sign In to Save to Cloud
+                  </button>
+                )}
+                <div className={`mobile-topbar-submenu-wrap ${saveSubmenu === 'local' ? 'is-open' : ''}`}>
+                  <button
+                    type="button"
+                    className="mobile-topbar-menu-item"
+                    aria-haspopup="true"
+                    aria-expanded={saveSubmenu === 'local'}
+                    onClick={() => setSaveSubmenu((current) => (current === 'local' ? null : 'local'))}
+                  >
+                    <span>Save Locally</span>
+                    <span className="mobile-topbar-submenu-meta">
+                      {localSaveLimitReached && <span className="pro-texture-badge">PRO</span>}
+                      <span className="mobile-topbar-submenu-caret" aria-hidden="true" />
+                    </span>
+                  </button>
+                  <div className="mobile-topbar-submenu" role="group" aria-label="Save Locally">
+                    <button type="button" className="mobile-topbar-menu-item" onClick={() => handleMenuSave('local')}>
+                      Save
+                    </button>
+                    <button type="button" className="mobile-topbar-menu-item" onClick={() => handleMenuSaveAs('local')}>
+                      Save as…
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -3379,6 +3468,16 @@ const App = () => {
         access={access}
       />
 
+      {saveConfirmation && (
+        <div
+          className={`save-confirmation${saveConfirmation.startsWith('error:') ? ' is-error' : ''}`}
+          role="status"
+          aria-live="polite"
+        >
+          {saveConfirmation.startsWith('error:') ? saveConfirmation.slice(6) : saveConfirmation}
+        </div>
+      )}
+
       {showSaveLocalModal && (
         <div className="modal" onClick={() => setShowSaveLocalModal(false)}>
           <div className="modal-content auth-modal" role="dialog" aria-modal="true" aria-labelledby="save-dialog-title" onClick={(e) => e.stopPropagation()}>
@@ -3393,75 +3492,58 @@ const App = () => {
                   Saved in this browser only. Project may be lost if browser storage is cleared, the app data is reset, or you switch devices.
                 </div>
               )}
-              {saveDialogMode === 'choose' ? (
-                <>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  handleConfirmSaveAs();
+                }}
+              >
+                {saveDialogMode === 'save' && (
                   <p className="save-dialog-current-name">
-                    Save updates “{sanitizeProjectName(loadedProjectName)}” with no further confirmation.
+                    Choose a name to save this project.
                   </p>
-                  {saveTarget === 'cloud' && cloudStatus && <p className="auth-footnote">{cloudStatus}</p>}
-                  <div className="auth-actions">
-                    <button type="button" className="button-primary" onClick={handleDirectSave}>Save</button>
-                    <button type="button" className="button-secondary" onClick={handleStartSaveAs}>Save as</button>
-                    <button type="button" className="button-secondary" onClick={() => setShowSaveLocalModal(false)}>Cancel</button>
-                  </div>
-                </>
-              ) : (
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    handleConfirmSaveAs();
-                  }}
-                >
-                  {!canDirectSave(loadedProjectSource, loadedProjectName) && (
-                    <p className="save-dialog-current-name">
-                      Choose a name to save this project.
-                    </p>
+                )}
+                <label className="auth-field">
+                  <span>Project name</span>
+                  <input
+                    type="text"
+                    value={saveLocalName}
+                    onChange={(e) => applySaveNameState(e.target.value)}
+                    maxLength={PROJECT_NAME_MAX_LENGTH}
+                    placeholder="My NPV Project"
+                    className="local-save-input"
+                    aria-invalid={Boolean(saveNameError)}
+                    aria-describedby={saveNameError ? 'save-name-error' : undefined}
+                    autoFocus
+                  />
+                  {saveNameError && (
+                    <span id="save-name-error" className="support-field-error" role="alert">
+                      {saveNameError}
+                      {saveNameSuggestion ? ` Try “${saveNameSuggestion}”.` : ''}
+                    </span>
                   )}
-                  <label className="auth-field">
-                    <span>Project name</span>
-                    <input
-                      type="text"
-                      value={saveLocalName}
-                      onChange={(e) => applySaveNameState(e.target.value)}
-                      maxLength={PROJECT_NAME_MAX_LENGTH}
-                      placeholder="My NPV Project"
-                      className="local-save-input"
-                      aria-invalid={Boolean(saveNameError)}
-                      aria-describedby={saveNameError ? 'save-name-error' : undefined}
-                      autoFocus
-                    />
-                    {saveNameError && (
-                      <span id="save-name-error" className="support-field-error" role="alert">
-                        {saveNameError}
-                        {saveNameSuggestion ? ` Try “${saveNameSuggestion}”.` : ''}
-                      </span>
-                    )}
-                  </label>
-                  {saveNameError && saveNameSuggestion && (
-                    <button
-                      type="button"
-                      className="button-secondary save-name-suggestion"
-                      onClick={() => applySaveNameState(saveNameSuggestion)}
-                    >
-                      Use “{saveNameSuggestion}”
-                    </button>
-                  )}
-                  {saveTarget === 'cloud' && cloudStatus && <p className="auth-footnote">{cloudStatus}</p>}
-                  <div className="auth-actions">
-                    <button
-                      type="submit"
-                      className="button-primary"
-                      disabled={!sanitizeProjectName(saveLocalName) || Boolean(saveNameError)}
-                    >
-                      {canDirectSave(loadedProjectSource, loadedProjectName) ? 'Save as' : 'Save'}
-                    </button>
-                    {canDirectSave(loadedProjectSource, loadedProjectName) && (
-                      <button type="button" className="button-secondary" onClick={() => setSaveDialogMode('choose')}>Back</button>
-                    )}
-                    <button type="button" className="button-secondary" onClick={() => setShowSaveLocalModal(false)}>Cancel</button>
-                  </div>
-                </form>
-              )}
+                </label>
+                {saveNameError && saveNameSuggestion && (
+                  <button
+                    type="button"
+                    className="button-secondary save-name-suggestion"
+                    onClick={() => applySaveNameState(saveNameSuggestion)}
+                  >
+                    Use “{saveNameSuggestion}”
+                  </button>
+                )}
+                {saveTarget === 'cloud' && cloudStatus && <p className="auth-footnote">{cloudStatus}</p>}
+                <div className="auth-actions">
+                  <button
+                    type="submit"
+                    className="button-primary"
+                    disabled={!sanitizeProjectName(saveLocalName) || Boolean(saveNameError)}
+                  >
+                    {saveDialogMode === 'save-as' ? 'Save as' : 'Save'}
+                  </button>
+                  <button type="button" className="button-secondary" onClick={() => setShowSaveLocalModal(false)}>Cancel</button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
