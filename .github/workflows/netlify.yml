@@ -69,13 +69,30 @@ jobs:
         env:
           VITE_PREVIEW_TEST_MODE: 'true'
 
+      - name: Verify preview build includes test mode
+        if: github.event_name == 'pull_request'
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          dist = Path('dist')
+          blobs = [p.read_text(errors='replace') for p in list(dist.rglob('*.js')) + list(dist.rglob('*.css')) + list(dist.rglob('*.html'))]
+          text = '\n'.join(blobs)
+          required = ('Preview test mode', 'Preview tester', 'npvPreviewCloud', 'npvPreviewPro')
+          missing = [marker for marker in required if marker not in text]
+          if missing:
+              raise SystemExit(f'Preview build is missing test-mode markers: {missing}')
+          print('Preview build includes test mode.')
+          PY
+
       - name: Build production
         if: github.event_name != 'pull_request'
         run: npm run build
 
       - name: Deploy preview
         if: github.event_name == 'pull_request'
-        run: npx --yes netlify-cli deploy --dir=dist --functions=netlify/functions --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN" --alias "$NETLIFY_DEPLOY_ALIAS" --message "$NETLIFY_DEPLOY_MESSAGE"
+        # Current netlify-cli re-runs build.command (in production context) unless
+        # --no-build is set, which would overwrite the preview-flagged dist.
+        run: npx --yes netlify-cli deploy --no-build --dir=dist --functions=netlify/functions --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN" --alias "$NETLIFY_DEPLOY_ALIAS" --message "$NETLIFY_DEPLOY_MESSAGE"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_DEPLOY_ALIAS: pr-${{ github.event.pull_request.number }}
@@ -83,6 +100,6 @@ jobs:
 
       - name: Deploy production
         if: github.event_name == 'push'
-        run: npx --yes netlify-cli deploy --prod --dir=dist --functions=netlify/functions --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN" --message "main@${{ github.sha }}"
+        run: npx --yes netlify-cli deploy --prod --no-build --dir=dist --functions=netlify/functions --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN" --message "main@${{ github.sha }}"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
