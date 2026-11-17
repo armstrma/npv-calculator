@@ -5,7 +5,9 @@ export const isProtectedDeploy = (deploy, publishedDeployId) => {
   if (publishedDeployId && deploy.id === publishedDeployId) return true;
   if (deploy.locked) return true;
   if (deploy.context === 'production') return true;
-  if (deploy.context === 'branch-deploy') return true;
+  // Real git branch deploys stay protected. CLI --alias pr-N previews are
+  // recorded as branch-deploy with branch=pr-N and are not in this bucket.
+  if (deploy.context === 'branch-deploy' && !isCliPullRequestAliasDeploy(deploy)) return true;
   return false;
 };
 
@@ -18,11 +20,20 @@ const textBlob = (deploy) => [
   deploy.deploy_ssl_url,
 ].filter(Boolean).join(' ');
 
+export const isCliPullRequestAliasDeploy = (deploy) => {
+  if (typeof deploy.branch === 'string' && /^pr-\d+$/u.test(deploy.branch)) return true;
+  if (typeof deploy.alias === 'string' && /^pr-\d+$/u.test(deploy.alias)) return true;
+  if (typeof deploy.title === 'string' && /PR #\d+/u.test(deploy.title)) return true;
+  if (/pr-\d+--/u.test(textBlob(deploy))) return true;
+  return false;
+};
+
 export const isPreviewDeploy = (deploy, publishedDeployId) => {
   if (isProtectedDeploy(deploy, publishedDeployId)) return false;
   if (deploy.context === 'deploy-preview') return true;
   // CLI `netlify deploy --alias pr-N` drafts may omit context=deploy-preview.
   if (deploy.draft === true) return true;
+  if (isCliPullRequestAliasDeploy(deploy)) return true;
   if (typeof deploy.alias === 'string' && /^pr-\d+$/u.test(deploy.alias)) return true;
   if (deploy.review_id != null && String(deploy.review_id) !== '') return true;
   if (typeof deploy.title === 'string' && /PR #\d+/u.test(deploy.title)) return true;
@@ -35,6 +46,7 @@ export const matchesPullRequest = (deploy, { prNumber, branch } = {}) => {
   const number = String(prNumber);
   if (deploy.review_id != null && String(deploy.review_id) === number) return true;
   if (deploy.alias === `pr-${number}`) return true;
+  if (deploy.branch === `pr-${number}`) return true;
   if (typeof deploy.title === 'string' && deploy.title.includes(`PR #${number}`)) return true;
   if (new RegExp(`pr-${number}--`, 'u').test(textBlob(deploy))) return true;
   if (branch && deploy.branch === branch) return true;

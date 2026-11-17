@@ -122,3 +122,64 @@ test('all-except mode keeps only the latest preview for the chosen PR', () => {
   assert.equal(selected.delete.some((deploy) => deploy.id === 'branch-1'), false);
   assert.equal(selected.delete.some((deploy) => deploy.id === 'locked-1'), false);
 });
+
+const cliPr8old = {
+  id: 'cli-pr8-old',
+  context: 'branch-deploy',
+  alias: null,
+  review_id: null,
+  branch: 'pr-8',
+  title: 'PR #8',
+  state: 'ready',
+  created_at: '2026-11-15T21:27:22.415Z',
+  draft: false,
+  locked: false,
+  published_at: null,
+};
+
+const cliPr8latest = {
+  id: 'cli-pr8-latest',
+  context: 'branch-deploy',
+  alias: null,
+  review_id: null,
+  branch: 'pr-8',
+  title: 'PR #8',
+  state: 'ready',
+  created_at: '2026-11-17T05:36:09.529Z',
+  draft: false,
+  locked: false,
+  published_at: null,
+};
+
+const cliPr7 = {
+  id: 'cli-pr7',
+  context: 'branch-deploy',
+  alias: null,
+  review_id: null,
+  branch: 'pr-7',
+  title: 'PR #7',
+  state: 'ready',
+  created_at: '2026-11-13T22:54:19.556Z',
+  draft: false,
+  locked: false,
+  published_at: null,
+};
+
+test('CLI --alias pr-N deploys recorded as branch-deploy still count as previews', () => {
+  assert.equal(isProtectedDeploy(cliPr8latest, publishedId), false);
+  assert.equal(isPreviewDeploy(cliPr8latest, publishedId), true);
+  assert.equal(isPreviewDeploy(cliPr7, publishedId), true);
+  assert.equal(isProtectedDeploy(branchDeploy, publishedId), true);
+  assert.equal(isPreviewDeploy(branchDeploy, publishedId), false);
+  assert.equal(matchesPullRequest(cliPr8latest, { prNumber: 8 }), true);
+  assert.equal(matchesPullRequest(cliPr7, { prNumber: 8 }), false);
+
+  const selected = selectDeploysToDelete(
+    [production, branchDeploy, cliPr7, cliPr8old, cliPr8latest],
+    { mode: 'all-except', keepPr: 8, publishedDeployId: publishedId },
+  );
+  assert.deepEqual(selected.keep.map((deploy) => deploy.id), ['cli-pr8-latest']);
+  assert.deepEqual(selected.delete.map((deploy) => deploy.id).sort(), ['cli-pr7', 'cli-pr8-old']);
+  assert.equal(selected.delete.some((deploy) => deploy.id === publishedId), false);
+  assert.equal(selected.delete.some((deploy) => deploy.id === 'branch-1'), false);
+});
