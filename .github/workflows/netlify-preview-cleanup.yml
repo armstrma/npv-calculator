@@ -1,0 +1,96 @@
+name: Netlify preview cleanup
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'pr = delete one PR preview; all-except = delete all previews except a PR'
+        type: choice
+        options:
+          - pr
+          - all-except
+        default: pr
+      pr_number:
+        description: 'PR number to delete (mode=pr) or keep (mode=all-except)'
+        required: true
+        type: string
+      branch:
+        description: 'Optional PR branch name to match deploy-preview deploys'
+        required: false
+        type: string
+      dry_run:
+        description: 'List matching deploys without deleting them'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: netlify-preview-cleanup
+  cancel-in-progress: false
+
+env:
+  NETLIFY_SITE_ID: 6d18d069-c021-49f7-ab08-36ec5636bf5b
+
+jobs:
+  cleanup-closed-pr:
+    name: Delete closed PR previews
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Delete this PR's deploy-preview deploys
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: node scripts/netlify-preview-cleanup.js --mode pr --pr "${{ github.event.pull_request.number }}" --branch "${{ github.event.pull_request.head.ref }}"
+
+  cleanup-old-previews-once:
+    name: One-time cleanup of old previews
+    if: github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.number == 8
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Delete all deploy-preview deploys except the latest PR 8 preview
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: node scripts/netlify-preview-cleanup.js --mode all-except --keep-pr 8
+
+  cleanup-dispatch:
+    name: Manual preview cleanup
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run requested preview cleanup
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: |
+          if [ "${{ inputs.mode }}" = "all-except" ]; then
+            node scripts/netlify-preview-cleanup.js --mode all-except --keep-pr "${{ inputs.pr_number }}" ${{ inputs.dry_run && '--dry-run' || '' }}
+          else
+            node scripts/netlify-preview-cleanup.js --mode pr --pr "${{ inputs.pr_number }}" ${{ inputs.branch && format('--branch {0}', inputs.branch) || '' }} ${{ inputs.dry_run && '--dry-run' || '' }}
+          fi

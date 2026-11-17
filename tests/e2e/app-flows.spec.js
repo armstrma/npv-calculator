@@ -98,9 +98,11 @@ test('saves and reloads a local project through the UI', async ({ page }) => {
   await quickInputs(page).first().blur();
 
   await desktopToolbar(page).getByLabel('Save options').click();
-  await page.getByRole('button', { name: 'Save Locally' }).click();
-  await page.getByLabel('Project name').fill('E2E Local Project');
-  await page.getByRole('button', { name: 'Save Locally' }).click();
+  await desktopToolbar(page).getByRole('button', { name: 'Save Locally' }).click();
+  await desktopToolbar(page).getByRole('button', { name: 'Save', exact: true }).click();
+  const saveDialog = page.getByRole('dialog', { name: 'Local Save' });
+  await saveDialog.getByLabel('Project name').fill('E2E Local Project');
+  await saveDialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('E2E Local Project')).toBeHidden();
 
   await quickInputs(page).first().fill('9999');

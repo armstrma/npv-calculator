@@ -6,6 +6,7 @@ import { clearStoredSession, consumeFreshMagicLinkFlag, consumeMagicLinkSession,
 import { fetchUserEntitlement } from './lib/cloudEntitlements.js';
 import { deleteCloudProject, listCloudProjects, upsertCloudProject } from './lib/cloudProjects.js';
 import { canSaveProject, FREE_TIER_LIMITS, resolveAccess } from './lib/entitlementAccess.js';
+import { canDirectSave, getProjectNameConflict, suggestAvailableProjectName } from './lib/projectSave.js';
 import { startShopifyCheckout } from './lib/shopifyCheckout.js';
 import {
   MAX_CASHFLOW_PERIODS,
@@ -78,6 +79,7 @@ import {
 } from 'recharts';
 const GuideModal = lazy(() => import('./GuideModal.jsx'));
 const localProEntitlementEnabled = import.meta.env.DEV && import.meta.env.VITE_LOCAL_PRO_ENTITLEMENT === 'true';
+const PREVIEW_TEST_MODE = import.meta.env.VITE_PREVIEW_TEST_MODE === 'true';
 const applyLocalProEntitlement = (loadedEntitlement = { hasPro: false, source: null }) => (
   localProEntitlementEnabled
     ? { ...loadedEntitlement, hasPro: true, source: loadedEntitlement.source || 'local-dev' }
@@ -371,6 +373,9 @@ const App = () => {
   const [mobileMetricsPinned, setMobileMetricsPinned] = useState(false);
   const [showQuickViewMenu, setShowQuickViewMenu] = useState(false);
   const [showSaveMenu, setShowSaveMenu] = useState(false);
+  const [saveSubmenu, setSaveSubmenu] = useState(null);
+  const [saveConfirmation, setSaveConfirmation] = useState('');
+  const saveConfirmationTimerRef = useRef(null);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showPresentationMode, setShowPresentationMode] = useState(false);
   const [presentationSlideIndex, setPresentationSlideIndex] = useState(0);
@@ -410,6 +415,9 @@ const App = () => {
   const [showSaveLocalModal, setShowSaveLocalModal] = useState(false);
   const [saveLocalName, setSaveLocalName] = useState('');
   const [saveTarget, setSaveTarget] = useState('local');
+  const [saveDialogMode, setSaveDialogMode] = useState('save-as');
+  const [saveNameError, setSaveNameError] = useState('');
+  const [saveNameSuggestion, setSaveNameSuggestion] = useState('');
   const [pendingDeleteProjectName, setPendingDeleteProjectName] = useState('');
   const [projectPreviews, setProjectPreviews] = useState({});
   const [exportStatus, setExportStatus] = useState('idle');
@@ -478,8 +486,25 @@ const App = () => {
     setProjects(readStoredProjects());
     const launch = rememberLaunchLocation();
 
-    const sessionFromUrl = consumeMagicLinkSession();
-    const session = sessionFromUrl || getStoredSession();
+    if (PREVIEW_TEST_MODE) {
+      let previewPro = false;
+      try { previewPro = window.localStorage.getItem('npvPreviewPro') === 'true'; } catch { previewPro = false; }
+      setAuthSession({
+        accessToken: 'preview-test-mode',
+        refreshToken: '',
+        tokenType: 'bearer',
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000,
+        previewTestMode: true,
+      });
+      setAuthUser({ id: 'preview-tester', email: 'Preview tester' });
+      setAuthEmail('Preview tester');
+      setEntitlement({ hasPro: previewPro, source: 'preview-test' });
+      setEntitlementResolved(true);
+    }
+
+    const sessionFromUrl = PREVIEW_TEST_MODE ? null : consumeMagicLinkSession();
+    const session = PREVIEW_TEST_MODE ? null : (sessionFromUrl || getStoredSession());
     if (session) {
       getActiveSession(session).then((activeSession) => {
         if (!activeSession) {
@@ -679,6 +704,7 @@ const App = () => {
     };
 
     const handleAuthStorage = (event) => {
+      if (PREVIEW_TEST_MODE) return;
       if (event.key !== SESSION_STORAGE_KEY || event.storageArea !== window.localStorage) return;
 
       const session = getStoredSession();
@@ -862,6 +888,7 @@ const App = () => {
       if (!insideMobileTopbar && !insideProjectToolbar) {
         setShowQuickViewMenu(false);
         setShowSaveMenu(false);
+        setSaveSubmenu(null);
         setShowShareMenu(false);
       }
     };
@@ -872,12 +899,33 @@ const App = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!showSaveMenu) setSaveSubmenu(null);
+  }, [showSaveMenu]);
+
+  useEffect(() => {
+    if (!showSaveMenu) return undefined;
+    const handleSaveMenuKeys = (event) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setShowSaveMenu(false);
+      setSaveSubmenu(null);
+    };
+    document.addEventListener('keydown', handleSaveMenuKeys);
+    return () => document.removeEventListener('keydown', handleSaveMenuKeys);
+  }, [showSaveMenu, saveSubmenu]);
+
+  useEffect(() => () => {
+    if (saveConfirmationTimerRef.current) window.clearTimeout(saveConfirmationTimerRef.current);
+  }, []);
+
   const currentAuthUserIdRef = useRef(null);
   useEffect(() => {
     currentAuthUserIdRef.current = authUser?.id || null;
   }, [authUser]);
 
   useEffect(() => {
+    if (PREVIEW_TEST_MODE) return;
     if (!freshLoginUserId || !authSession || authUser?.id !== freshLoginUserId) return;
     const userId = freshLoginUserId;
     setFreshLoginUserId(null);
@@ -970,6 +1018,7 @@ const App = () => {
   };
 
   const handleRequireAuth = (mode = 'signin') => {
+    if (PREVIEW_TEST_MODE) return;
     setAuthMode(mode);
     setAuthStatus('idle');
     setPasskeyStatus('idle');
@@ -1004,6 +1053,11 @@ const App = () => {
     setSupportNotice('');
     if (!validateSupportFields()) {
       setSupportStatus('error');
+      return;
+    }
+    if (PREVIEW_TEST_MODE) {
+      setSupportStatus('error');
+      setSupportNotice('Support requests are disabled in preview test mode.');
       return;
     }
     if (!authSession) {
@@ -1162,6 +1216,23 @@ const App = () => {
   };
 
   const handleSignOut = () => {
+    if (PREVIEW_TEST_MODE) {
+      let previewPro = false;
+      try { previewPro = window.localStorage.getItem('npvPreviewPro') === 'true'; } catch { previewPro = false; }
+      setAuthSession({
+        accessToken: 'preview-test-mode',
+        refreshToken: '',
+        tokenType: 'bearer',
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000,
+        previewTestMode: true,
+      });
+      setAuthUser({ id: 'preview-tester', email: 'Preview tester' });
+      setAuthEmail('Preview tester');
+      setEntitlement({ hasPro: previewPro, source: 'preview-test' });
+      setEntitlementResolved(true);
+      return;
+    }
     clearStoredSession();
     setAuthSession(null);
     setAuthUser(null);
@@ -1176,6 +1247,11 @@ const App = () => {
   };
 
   const handleStartCheckout = async (plan) => {
+    if (PREVIEW_TEST_MODE) {
+      setCheckoutStatus('error');
+      setCheckoutNotice('Checkout is disabled in preview test mode. Use the Pro switch in the preview banner instead.');
+      return;
+    }
     if (!authSession) {
       handleRequireAuth('register');
       return;
@@ -1277,56 +1353,136 @@ const App = () => {
     return project;
   };
 
-  const handleSaveLocally = () => {
-    if (isFreeExamplePreview) {
-      openUpgradeModal('Free example previews cannot be saved. Upgrade to save editable copies and compare your own projects.');
-      setShowSaveMenu(false);
-      return;
-    }
-    if (localSaveLimitReached) {
-      openUpgradeModal("You've run out of projects you can save. Upgrade to unlock more local and cloud projects.");
-      setShowSaveMenu(false);
-      return;
-    }
-    setSaveTarget('local');
-    setSaveLocalName(projectName?.trim() || loadedProjectName?.trim() || '');
-    setShowSaveLocalModal(true);
-    setShowSaveMenu(false);
+  const getSaveCatalog = (target = saveTarget) => (target === 'cloud' ? cloudProjects : projects);
+
+  const applySaveNameState = (name, target = saveTarget) => {
+    const nextName = name.slice(0, PROJECT_NAME_MAX_LENGTH);
+    const conflict = getProjectNameConflict(nextName, getSaveCatalog(target));
+    setSaveLocalName(nextName);
+    setSaveNameError(conflict.message);
+    setSaveNameSuggestion(conflict.suggestion);
+    return conflict;
   };
 
-  const handleSaveToCloud = () => {
-    if (isFreeExamplePreview) {
-      openUpgradeModal('Free example previews cannot be saved. Upgrade to save editable copies and sync them across devices.');
-      setShowSaveMenu(false);
-      return;
-    }
-    if (authUser && cloudSaveLimitReached) {
-      openUpgradeModal("You've run out of cloud projects you can save. Upgrade to unlock more local and cloud projects.");
-      setShowSaveMenu(false);
-      return;
-    }
-    if (!authUser) {
-      handleRequireAuth('signin');
-      setShowSaveMenu(false);
-      return;
-    }
-
-    setSaveTarget('cloud');
-    setSaveLocalName(projectName?.trim() || loadedProjectName?.trim() || '');
-    setShowSaveLocalModal(true);
-    setShowSaveMenu(false);
+  const announceSaveConfirmation = (message, { error = false } = {}) => {
+    if (saveConfirmationTimerRef.current) window.clearTimeout(saveConfirmationTimerRef.current);
+    setSaveConfirmation(error ? `error:${message}` : message);
+    saveConfirmationTimerRef.current = window.setTimeout(() => {
+      setSaveConfirmation('');
+      saveConfirmationTimerRef.current = null;
+    }, 2200);
   };
 
-  const handleConfirmSave = async () => {
-    if (!saveLocalName?.trim()) return;
-    try {
-      if (saveTarget === 'cloud') {
-        const savedProject = await saveProjectToCloud(saveLocalName);
+  const persistNamedProject = async (name, target = saveTarget) => {
+    if (target === 'cloud') {
+      return saveProjectToCloud(name);
+    }
+    return saveProject(name);
+  };
+
+  const openSaveAsDialog = (target, mode = 'save-as') => {
+    setSaveTarget(target);
+    setShowSaveMenu(false);
+    setSaveSubmenu(null);
+    const catalog = getSaveCatalog(target);
+    const preferredName = canDirectSave(loadedProjectSource, loadedProjectName)
+      ? suggestAvailableProjectName(loadedProjectName, catalog)
+      : sanitizeProjectName(projectName || loadedProjectName);
+    applySaveNameState(preferredName, target);
+    setSaveDialogMode(mode);
+    setShowSaveLocalModal(true);
+  };
+
+  const handleSignInToSaveToCloud = () => {
+    handleRequireAuth('signin');
+    setShowSaveMenu(false);
+    setSaveSubmenu(null);
+  };
+
+  const handleMenuSave = async (target) => {
+    if (isFreeExamplePreview) {
+      openUpgradeModal(
+        target === 'cloud'
+          ? 'Free example previews cannot be saved. Upgrade to save editable copies and sync them across devices.'
+          : 'Free example previews cannot be saved. Upgrade to save editable copies and compare your own projects.',
+      );
+      setShowSaveMenu(false);
+      return;
+    }
+    if (target === 'cloud' && !authUser) {
+      handleSignInToSaveToCloud();
+      return;
+    }
+    const atLimit = target === 'cloud' ? cloudSaveLimitReached : localSaveLimitReached;
+    if (canDirectSave(loadedProjectSource, loadedProjectName)) {
+      const name = sanitizeProjectName(loadedProjectName);
+      setSaveTarget(target);
+      setShowSaveMenu(false);
+      setSaveSubmenu(null);
+      try {
+        const savedProject = await persistNamedProject(name, target);
         if (!savedProject) return;
-      } else {
-        const savedProject = saveProject(saveLocalName);
-        if (!savedProject) return;
+        announceSaveConfirmation(
+          target === 'cloud' ? `Saved “${name}” to the cloud.` : `Saved “${name}” on this device.`,
+        );
+      } catch (error) {
+        const message = error.message || 'Unable to save project.';
+        setCloudStatus(message);
+        announceSaveConfirmation(message, { error: true });
       }
+      return;
+    }
+    if (atLimit) {
+      openUpgradeModal(
+        target === 'cloud'
+          ? "You've run out of cloud projects you can save. Upgrade to unlock more local and cloud projects."
+          : "You've run out of projects you can save. Upgrade to unlock more local and cloud projects.",
+      );
+      setShowSaveMenu(false);
+      return;
+    }
+    openSaveAsDialog(target, 'save');
+  };
+
+  const handleMenuSaveAs = (target) => {
+    if (isFreeExamplePreview) {
+      openUpgradeModal(
+        target === 'cloud'
+          ? 'Free example previews cannot be saved. Upgrade to save editable copies and sync them across devices.'
+          : 'Free example previews cannot be saved. Upgrade to save editable copies and compare your own projects.',
+      );
+      setShowSaveMenu(false);
+      return;
+    }
+    if (target === 'cloud' && !authUser) {
+      handleSignInToSaveToCloud();
+      return;
+    }
+    const atLimit = target === 'cloud' ? cloudSaveLimitReached : localSaveLimitReached;
+    if (atLimit && !canDirectSave(loadedProjectSource, loadedProjectName)) {
+      openUpgradeModal(
+        target === 'cloud'
+          ? "You've run out of cloud projects you can save. Upgrade to unlock more local and cloud projects."
+          : "You've run out of projects you can save. Upgrade to unlock more local and cloud projects.",
+      );
+      setShowSaveMenu(false);
+      return;
+    }
+    openSaveAsDialog(target, 'save-as');
+  };
+
+  const handleConfirmSaveAs = async () => {
+    const name = sanitizeProjectName(saveLocalName);
+    if (!name) return;
+    const conflict = getProjectNameConflict(name, getSaveCatalog());
+    if (conflict.taken) {
+      setSaveNameError(conflict.message);
+      setSaveNameSuggestion(conflict.suggestion);
+      return;
+    }
+    try {
+      const savedProject = await persistNamedProject(name);
+      if (!savedProject) return;
       setShowSaveLocalModal(false);
     } catch (error) {
       setCloudStatus(error.message || 'Unable to save project.');
@@ -2007,6 +2163,25 @@ const App = () => {
     return (
       <>
         <style>{`${sliderCss}`}</style>
+      {PREVIEW_TEST_MODE && (
+        <div className="ptm-banner" role="region" aria-label="Preview test mode">
+          <span>Preview test mode</span>
+          <span>Preview tester</span>
+          <label>
+            <input
+              type="checkbox"
+              role="switch"
+              aria-label="Pro"
+              checked={entitlement.hasPro}
+              onChange={(event) => {
+                try { window.localStorage.setItem('npvPreviewPro', event.target.checked ? 'true' : 'false'); } catch { /* ignore */ }
+                setEntitlement({ hasPro: event.target.checked, source: 'preview-test' });
+              }}
+            />
+            Pro
+          </label>
+        </div>
+      )}
         <ExamplesPage
           onBackToApp={handleBackToApp}
           onOpenExample={handleOpenExampleDeeplink}
@@ -2032,6 +2207,25 @@ const App = () => {
     return (
       <>
         <style>{`${sliderCss}`}</style>
+      {PREVIEW_TEST_MODE && (
+        <div className="ptm-banner" role="region" aria-label="Preview test mode">
+          <span>Preview test mode</span>
+          <span>Preview tester</span>
+          <label>
+            <input
+              type="checkbox"
+              role="switch"
+              aria-label="Pro"
+              checked={entitlement.hasPro}
+              onChange={(event) => {
+                try { window.localStorage.setItem('npvPreviewPro', event.target.checked ? 'true' : 'false'); } catch { /* ignore */ }
+                setEntitlement({ hasPro: event.target.checked, source: 'preview-test' });
+              }}
+            />
+            Pro
+          </label>
+        </div>
+      )}
         {activeLegalPage}
         {showSupportModal && (
           <div className="modal" onClick={() => setShowSupportModal(false)}>
@@ -2093,6 +2287,25 @@ const App = () => {
   return (
     <>
       <style>{`${sliderCss}`}</style>
+      {PREVIEW_TEST_MODE && (
+        <div className="ptm-banner" role="region" aria-label="Preview test mode">
+          <span>Preview test mode</span>
+          <span>Preview tester</span>
+          <label>
+            <input
+              type="checkbox"
+              role="switch"
+              aria-label="Pro"
+              checked={entitlement.hasPro}
+              onChange={(event) => {
+                try { window.localStorage.setItem('npvPreviewPro', event.target.checked ? 'true' : 'false'); } catch { /* ignore */ }
+                setEntitlement({ hasPro: event.target.checked, source: 'preview-test' });
+              }}
+            />
+            Pro
+          </label>
+        </div>
+      )}
 
       {showProductHero && !quickViewEnabled && (
       <section className="product-page-hero">
@@ -2165,6 +2378,7 @@ const App = () => {
                 return;
               }
               setShowSaveMenu((value) => !value);
+              setSaveSubmenu(null);
               setShowQuickViewMenu(false);
               setShowShareMenu(false);
             }} aria-label="Save options" aria-disabled={isFreeExamplePreview} title={isFreeExamplePreview ? 'Saving is locked for free example previews.' : 'Save options'}>
@@ -2175,26 +2389,63 @@ const App = () => {
               </svg>
             </button>
             {showSaveMenu && (
-              <div className="mobile-topbar-menu mobile-topbar-menu-left">
-                <button
-                  type="button"
-                  className="mobile-topbar-menu-item"
-                  onClick={handleSaveToCloud}
-                >
-                  {authUser ? 'Save to Cloud' : 'Sign In to Save to Cloud'}
-                  {cloudSaveLimitReached && <span className="pro-texture-badge">PRO</span>}
-                </button>
-                <button
-                  type="button"
-                  className="mobile-topbar-menu-item"
-                  onClick={() => {
-                    handleSaveLocally();
-                    setShowSaveMenu(false);
-                  }}
-                >
-                  Save Locally
-                  {localSaveLimitReached && <span className="pro-texture-badge">PRO</span>}
-                </button>
+              <div className="mobile-topbar-menu mobile-topbar-menu-left" aria-label="Save options">
+                {authUser ? (
+                  <div className={`mobile-topbar-submenu-wrap ${saveSubmenu === 'cloud' ? 'is-open' : ''}`}>
+                    <button
+                      type="button"
+                      className="mobile-topbar-menu-item"
+                      aria-haspopup="true"
+                      aria-expanded={saveSubmenu === 'cloud'}
+                      onClick={() => setSaveSubmenu((current) => (current === 'cloud' ? null : 'cloud'))}
+                    >
+                      <span>Save to Cloud</span>
+                      <span className="mobile-topbar-submenu-meta">
+                        {cloudSaveLimitReached && <span className="pro-texture-badge">PRO</span>}
+                        <span className="mobile-topbar-submenu-caret" aria-hidden="true" />
+                      </span>
+                    </button>
+                    <div className="mobile-topbar-submenu" role="group" aria-label="Save to Cloud">
+                      <button type="button" className="mobile-topbar-menu-item" onClick={() => handleMenuSave('cloud')}>
+                        Save
+                      </button>
+                      <button type="button" className="mobile-topbar-menu-item" onClick={() => handleMenuSaveAs('cloud')}>
+                        Save as…
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="mobile-topbar-menu-item"
+                    onClick={handleSignInToSaveToCloud}
+                  >
+                    Sign In to Save to Cloud
+                  </button>
+                )}
+                <div className={`mobile-topbar-submenu-wrap ${saveSubmenu === 'local' ? 'is-open' : ''}`}>
+                  <button
+                    type="button"
+                    className="mobile-topbar-menu-item"
+                    aria-haspopup="true"
+                    aria-expanded={saveSubmenu === 'local'}
+                    onClick={() => setSaveSubmenu((current) => (current === 'local' ? null : 'local'))}
+                  >
+                    <span>Save Locally</span>
+                    <span className="mobile-topbar-submenu-meta">
+                      {localSaveLimitReached && <span className="pro-texture-badge">PRO</span>}
+                      <span className="mobile-topbar-submenu-caret" aria-hidden="true" />
+                    </span>
+                  </button>
+                  <div className="mobile-topbar-submenu" role="group" aria-label="Save Locally">
+                    <button type="button" className="mobile-topbar-menu-item" onClick={() => handleMenuSave('local')}>
+                      Save
+                    </button>
+                    <button type="button" className="mobile-topbar-menu-item" onClick={() => handleMenuSaveAs('local')}>
+                      Save as…
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -2222,7 +2473,7 @@ const App = () => {
                       <span>Signed in:</span>
                       <strong>{authUser.email}</strong>
                     </div>
-                    {isPasskeyFeatureEnabled() && (
+                    {isPasskeyFeatureEnabled() && !PREVIEW_TEST_MODE && (
                       <button
                         type="button"
                         className="mobile-topbar-menu-item"
@@ -2234,9 +2485,11 @@ const App = () => {
                         Passkeys
                       </button>
                     )}
+                    {!PREVIEW_TEST_MODE && (
                     <button type="button" className="mobile-topbar-menu-item" onClick={handleSignOut}>
                       Sign Out
                     </button>
+                    )}
                   </div>
                 ) : (
                   <button
@@ -3215,36 +3468,82 @@ const App = () => {
         access={access}
       />
 
+      {saveConfirmation && (
+        <div
+          className={`save-confirmation${saveConfirmation.startsWith('error:') ? ' is-error' : ''}`}
+          role="status"
+          aria-live="polite"
+        >
+          {saveConfirmation.startsWith('error:') ? saveConfirmation.slice(6) : saveConfirmation}
+        </div>
+      )}
+
       {showSaveLocalModal && (
         <div className="modal" onClick={() => setShowSaveLocalModal(false)}>
-          <div className="modal-content auth-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content auth-modal" role="dialog" aria-modal="true" aria-labelledby="save-dialog-title" onClick={(e) => e.stopPropagation()}>
             <div className="upgrade-modal-header">
               <div>
-                <h2>{saveTarget === 'cloud' ? 'Cloud Save' : 'Local Save'}</h2>
+                <h2 id="save-dialog-title">{saveTarget === 'cloud' ? 'Cloud Save' : 'Local Save'}</h2>
               </div>
             </div>
             <div className="auth-card">
-              <div className="local-save-warning" role="alert">
-                {saveTarget === 'cloud'
-                  ? 'Saved to your passwordless cloud library. Project ownership is enforced by database row-level security.'
-                  : 'Saved in this browser only. Project may be lost if browser storage is cleared, the app data is reset, or you switch devices.'}
-              </div>
-              <label className="auth-field">
-                <span>Project name</span>
-                <input
-                  type="text"
-                  value={saveLocalName}
-                  onChange={(e) => setSaveLocalName(e.target.value.slice(0, PROJECT_NAME_MAX_LENGTH))}
-                  maxLength={PROJECT_NAME_MAX_LENGTH}
-                  placeholder="My NPV Project"
-                  className="local-save-input"
-                />
-              </label>
-              {saveTarget === 'cloud' && cloudStatus && <p className="auth-footnote">{cloudStatus}</p>}
-              <div className="auth-actions">
-                <button type="button" className="button-primary" onClick={handleConfirmSave}>{saveTarget === 'cloud' ? 'Save to Cloud' : 'Save Locally'}</button>
-                <button type="button" className="button-secondary" onClick={() => setShowSaveLocalModal(false)}>Cancel</button>
-              </div>
+              {saveTarget !== 'cloud' && (
+                <div className="local-save-warning" role="alert">
+                  Saved in this browser only. Project may be lost if browser storage is cleared, the app data is reset, or you switch devices.
+                </div>
+              )}
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  handleConfirmSaveAs();
+                }}
+              >
+                {saveDialogMode === 'save' && (
+                  <p className="save-dialog-current-name">
+                    Choose a name to save this project.
+                  </p>
+                )}
+                <label className="auth-field">
+                  <span>Project name</span>
+                  <input
+                    type="text"
+                    value={saveLocalName}
+                    onChange={(e) => applySaveNameState(e.target.value)}
+                    maxLength={PROJECT_NAME_MAX_LENGTH}
+                    placeholder="My NPV Project"
+                    className="local-save-input"
+                    aria-invalid={Boolean(saveNameError)}
+                    aria-describedby={saveNameError ? 'save-name-error' : undefined}
+                    autoFocus
+                  />
+                  {saveNameError && (
+                    <span id="save-name-error" className="support-field-error" role="alert">
+                      {saveNameError}
+                      {saveNameSuggestion ? ` Try “${saveNameSuggestion}”.` : ''}
+                    </span>
+                  )}
+                </label>
+                {saveNameError && saveNameSuggestion && (
+                  <button
+                    type="button"
+                    className="button-secondary save-name-suggestion"
+                    onClick={() => applySaveNameState(saveNameSuggestion)}
+                  >
+                    Use “{saveNameSuggestion}”
+                  </button>
+                )}
+                {saveTarget === 'cloud' && cloudStatus && <p className="auth-footnote">{cloudStatus}</p>}
+                <div className="auth-actions">
+                  <button
+                    type="submit"
+                    className="button-primary"
+                    disabled={!sanitizeProjectName(saveLocalName) || Boolean(saveNameError)}
+                  >
+                    {saveDialogMode === 'save-as' ? 'Save as' : 'Save'}
+                  </button>
+                  <button type="button" className="button-secondary" onClick={() => setShowSaveLocalModal(false)}>Cancel</button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

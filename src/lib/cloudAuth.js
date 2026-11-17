@@ -1,3 +1,4 @@
+const PREVIEW_TEST_MODE = import.meta.env ? import.meta.env.VITE_PREVIEW_TEST_MODE === 'true' : false;
 const ENV = import.meta.env || {};
 const SUPABASE_URL = ENV.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = ENV.VITE_SUPABASE_ANON_KEY;
@@ -72,6 +73,7 @@ export const clearStoredSession = () => {
 };
 
 export const consumeMagicLinkSession = () => {
+  if (PREVIEW_TEST_MODE) return null;
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   const accessToken = hash.get('access_token');
   const refreshToken = hash.get('refresh_token');
@@ -109,6 +111,10 @@ export const consumeFreshMagicLinkFlag = () => {
 };
 
 export const refreshSession = async (session = getStoredSession()) => {
+  if (PREVIEW_TEST_MODE) {
+    const { getPreviewSession } = await import('./previewTestMode.js');
+    return getPreviewSession();
+  }
   const currentSession = normalizeSession(session);
   if (!isCloudAuthConfigured() || !currentSession?.refreshToken) {
     clearStoredSession();
@@ -139,6 +145,10 @@ export const refreshSession = async (session = getStoredSession()) => {
 };
 
 export const getActiveSession = async (session = getStoredSession()) => {
+  if (PREVIEW_TEST_MODE) {
+    const { getPreviewSession } = await import('./previewTestMode.js');
+    return getPreviewSession();
+  }
   const currentSession = normalizeSession(session);
   if (!isCloudAuthConfigured() || !currentSession?.accessToken) return null;
 
@@ -150,6 +160,9 @@ export const getActiveSession = async (session = getStoredSession()) => {
 };
 
 export const requestMagicLink = async ({ email, redirectTo }) => {
+  if (PREVIEW_TEST_MODE) {
+    throw new Error('Magic links are disabled in preview test mode.');
+  }
   if (!isCloudAuthConfigured()) {
     throw new Error('Cloud auth is not configured yet.');
   }
@@ -173,6 +186,10 @@ export const requestMagicLink = async ({ email, redirectTo }) => {
 };
 
 export const fetchCurrentUser = async (session = getStoredSession()) => {
+  if (PREVIEW_TEST_MODE) {
+    const { PREVIEW_TESTER } = await import('./previewTestMode.js');
+    return { id: PREVIEW_TESTER.id, email: PREVIEW_TESTER.name };
+  }
   const activeSession = await getActiveSession(session);
   if (!activeSession?.accessToken) return null;
 

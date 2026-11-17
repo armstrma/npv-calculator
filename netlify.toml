@@ -19,3 +19,8 @@
     X-Frame-Options = "DENY"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+# Used only if Netlify itself builds a Deploy Preview. GitHub Actions preview
+# builds set the same flag during `npm run build` on pull requests.
+[context.deploy-preview.environment]
+  VITE_PREVIEW_TEST_MODE = "true"

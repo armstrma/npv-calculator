@@ -8,4 +8,5 @@ const isGithubPages = process.env.GITHUB_PAGES === 'true'
 export default defineConfig({
   plugins: [react()],
   base: isGithubPages ? `/${repoName}/` : '/',
+  cacheDir: process.env.VITE_CACHE_DIR || 'node_modules/.vite',
 })
