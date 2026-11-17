@@ -1,5 +1,7 @@
 export const FREE_TIER_LIMITS = {
   maxCashflowPeriods: 5,
+  // Keep in sync with max_free_cloud_projects in
+  // supabase/migrations/20261117000000_enforce_cloud_project_entitlement.sql
   maxCloudProjects: 1,
   maxLocalProjects: 3,
 };

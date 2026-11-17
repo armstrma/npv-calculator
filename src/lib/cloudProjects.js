@@ -1,9 +1,41 @@
 const PREVIEW_TEST_MODE = import.meta.env ? import.meta.env.VITE_PREVIEW_TEST_MODE === 'true' : false;
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const ENV = import.meta.env || {};
+const SUPABASE_URL = ENV.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = ENV.VITE_SUPABASE_ANON_KEY;
 
 export const isCloudProjectsConfigured = () => Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+export const CLOUD_PROJECT_LIMIT_ERROR = 'cloud_project_limit_reached';
+export const CLOUD_PROJECT_LIMIT_MESSAGE = "You've run out of cloud projects you can save. Upgrade to unlock more local and cloud projects.";
+
+export const isCloudProjectLimitError = (error) => {
+  if (!error) return false;
+  if (typeof error === 'object' && error.code === CLOUD_PROJECT_LIMIT_ERROR) return true;
+
+  const detail = typeof error === 'string' ? error : String(error.message || '');
+  if (detail.includes(CLOUD_PROJECT_LIMIT_ERROR)) return true;
+
+  try {
+    const parsed = JSON.parse(detail);
+    const message = String(parsed?.message || parsed?.hint || '');
+    return parsed?.code === 'P0001' && message.includes(CLOUD_PROJECT_LIMIT_ERROR);
+  } catch {
+    return false;
+  }
+};
+
+export const createCloudWriteError = (detail, fallback) => {
+  const error = new Error(detail || fallback);
+  if (isCloudProjectLimitError(error)) {
+    error.code = CLOUD_PROJECT_LIMIT_ERROR;
+  }
+  return error;
+};
+
+const throwCloudWriteError = (detail, fallback) => {
+  throw createCloudWriteError(detail, fallback);
+};
 
 const getHeaders = (accessToken) => ({
   apikey: SUPABASE_ANON_KEY,
@@ -70,7 +102,7 @@ export const upsertCloudProject = async ({ session, userId, name, project }) => 
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(detail || 'Unable to save cloud project.');
+    throwCloudWriteError(detail, 'Unable to save cloud project.');
   }
 
   return toProjectMap(await response.json());
