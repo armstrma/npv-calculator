@@ -4,7 +4,7 @@ import { analyzeIRR, calculateNPV, calculatePayback } from './lib/finance.js';
 import { formatNumberWithCommas, hasArithmeticOperator, parseNumericInput } from './lib/input.js';
 import { clearStoredSession, consumeFreshMagicLinkFlag, consumeMagicLinkSession, fetchCurrentUser, getActiveSession, getStoredSession, isCloudAuthConfigured, requestMagicLink, SESSION_STORAGE_KEY } from './lib/cloudAuth.js';
 import { fetchUserEntitlement } from './lib/cloudEntitlements.js';
-import { deleteCloudProject, listCloudProjects, upsertCloudProject } from './lib/cloudProjects.js';
+import { CLOUD_PROJECT_LIMIT_MESSAGE, deleteCloudProject, isCloudProjectLimitError, listCloudProjects, upsertCloudProject } from './lib/cloudProjects.js';
 import { canSaveProject, FREE_TIER_LIMITS, resolveAccess } from './lib/entitlementAccess.js';
 import { canDirectSave, getProjectNameConflict, suggestAvailableProjectName } from './lib/projectSave.js';
 import { startShopifyCheckout } from './lib/shopifyCheckout.js';
@@ -1321,7 +1321,7 @@ const App = () => {
     }
     const saveAccess = canSaveProject({ access, target: 'cloud', projectName: trimmedName, projects: cloudProjects });
     if (!saveAccess.allowed) {
-      openUpgradeModal("You've run out of cloud projects you can save. Upgrade to unlock more local and cloud projects.");
+      openUpgradeModal(CLOUD_PROJECT_LIMIT_MESSAGE);
       return;
     }
     const project = getCurrentProjectSnapshot();
@@ -1333,24 +1333,34 @@ const App = () => {
       throw new Error('Sign in before using cloud project storage.');
     }
     setAuthSession(activeSession);
-    const savedProjects = await upsertCloudProject({
-      session: activeSession,
-      userId: authUser.id,
-      name: trimmedName,
-      project,
-    });
-    setCloudProjects((current) => ({
-      ...current,
-      ...savedProjects,
-      [trimmedName]: project,
-    }));
-    setProjectName(trimmedName);
-    setLoadedProjectName(trimmedName);
-    setLoadedProjectSource('cloud');
-    setInitialInput(formatNumberWithCommas(initial));
-    setCashflowInputs(cashflows.map(formatNumberWithCommas));
-    setCloudStatus('Cloud project saved.');
-    return project;
+    try {
+      const savedProjects = await upsertCloudProject({
+        session: activeSession,
+        userId: authUser.id,
+        name: trimmedName,
+        project,
+      });
+      setCloudProjects((current) => ({
+        ...current,
+        ...savedProjects,
+        [trimmedName]: project,
+      }));
+      setProjectName(trimmedName);
+      setLoadedProjectName(trimmedName);
+      setLoadedProjectSource('cloud');
+      setInitialInput(formatNumberWithCommas(initial));
+      setCashflowInputs(cashflows.map(formatNumberWithCommas));
+      setCloudStatus('Cloud project saved.');
+      return project;
+    } catch (error) {
+      if (isCloudProjectLimitError(error)) {
+        setShowSaveLocalModal(false);
+        setCloudStatus('');
+        openUpgradeModal(CLOUD_PROJECT_LIMIT_MESSAGE);
+        return null;
+      }
+      throw error;
+    }
   };
 
   const getSaveCatalog = (target = saveTarget) => (target === 'cloud' ? cloudProjects : projects);
@@ -1435,7 +1445,7 @@ const App = () => {
     if (atLimit) {
       openUpgradeModal(
         target === 'cloud'
-          ? "You've run out of cloud projects you can save. Upgrade to unlock more local and cloud projects."
+          ? CLOUD_PROJECT_LIMIT_MESSAGE
           : "You've run out of projects you can save. Upgrade to unlock more local and cloud projects.",
       );
       setShowSaveMenu(false);
@@ -1462,7 +1472,7 @@ const App = () => {
     if (atLimit && !canDirectSave(loadedProjectSource, loadedProjectName)) {
       openUpgradeModal(
         target === 'cloud'
-          ? "You've run out of cloud projects you can save. Upgrade to unlock more local and cloud projects."
+          ? CLOUD_PROJECT_LIMIT_MESSAGE
           : "You've run out of projects you can save. Upgrade to unlock more local and cloud projects.",
       );
       setShowSaveMenu(false);
