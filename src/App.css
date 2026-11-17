@@ -152,6 +152,35 @@ input[type="range"]::-moz-range-thumb {
   line-height: 1.5;
   font-size: 14px;
 }
+.ptm-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  min-height: 36px;
+  padding: 4px 12px;
+  background: #3b0764;
+  color: #f5d0fe;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid rgba(216, 180, 254, 0.4);
+}
+.ptm-banner label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+body:has(.ptm-banner) .mobile-topbar-shell {
+  top: 36px;
+}
 .mobile-topbar-shell {
   position: fixed;
   top: 0;

@@ -79,6 +79,7 @@ import {
 } from 'recharts';
 const GuideModal = lazy(() => import('./GuideModal.jsx'));
 const localProEntitlementEnabled = import.meta.env.DEV && import.meta.env.VITE_LOCAL_PRO_ENTITLEMENT === 'true';
+const PREVIEW_TEST_MODE = import.meta.env.VITE_PREVIEW_TEST_MODE === 'true';
 const applyLocalProEntitlement = (loadedEntitlement = { hasPro: false, source: null }) => (
   localProEntitlementEnabled
     ? { ...loadedEntitlement, hasPro: true, source: loadedEntitlement.source || 'local-dev' }
@@ -482,8 +483,25 @@ const App = () => {
     setProjects(readStoredProjects());
     const launch = rememberLaunchLocation();
 
-    const sessionFromUrl = consumeMagicLinkSession();
-    const session = sessionFromUrl || getStoredSession();
+    if (PREVIEW_TEST_MODE) {
+      let previewPro = false;
+      try { previewPro = window.localStorage.getItem('npvPreviewPro') === 'true'; } catch { previewPro = false; }
+      setAuthSession({
+        accessToken: 'preview-test-mode',
+        refreshToken: '',
+        tokenType: 'bearer',
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000,
+        previewTestMode: true,
+      });
+      setAuthUser({ id: 'preview-tester', email: 'Preview tester' });
+      setAuthEmail('Preview tester');
+      setEntitlement({ hasPro: previewPro, source: 'preview-test' });
+      setEntitlementResolved(true);
+    }
+
+    const sessionFromUrl = PREVIEW_TEST_MODE ? null : consumeMagicLinkSession();
+    const session = PREVIEW_TEST_MODE ? null : (sessionFromUrl || getStoredSession());
     if (session) {
       getActiveSession(session).then((activeSession) => {
         if (!activeSession) {
@@ -683,6 +701,7 @@ const App = () => {
     };
 
     const handleAuthStorage = (event) => {
+      if (PREVIEW_TEST_MODE) return;
       if (event.key !== SESSION_STORAGE_KEY || event.storageArea !== window.localStorage) return;
 
       const session = getStoredSession();
@@ -882,6 +901,7 @@ const App = () => {
   }, [authUser]);
 
   useEffect(() => {
+    if (PREVIEW_TEST_MODE) return;
     if (!freshLoginUserId || !authSession || authUser?.id !== freshLoginUserId) return;
     const userId = freshLoginUserId;
     setFreshLoginUserId(null);
@@ -974,6 +994,7 @@ const App = () => {
   };
 
   const handleRequireAuth = (mode = 'signin') => {
+    if (PREVIEW_TEST_MODE) return;
     setAuthMode(mode);
     setAuthStatus('idle');
     setPasskeyStatus('idle');
@@ -1008,6 +1029,11 @@ const App = () => {
     setSupportNotice('');
     if (!validateSupportFields()) {
       setSupportStatus('error');
+      return;
+    }
+    if (PREVIEW_TEST_MODE) {
+      setSupportStatus('error');
+      setSupportNotice('Support requests are disabled in preview test mode.');
       return;
     }
     if (!authSession) {
@@ -1166,6 +1192,23 @@ const App = () => {
   };
 
   const handleSignOut = () => {
+    if (PREVIEW_TEST_MODE) {
+      let previewPro = false;
+      try { previewPro = window.localStorage.getItem('npvPreviewPro') === 'true'; } catch { previewPro = false; }
+      setAuthSession({
+        accessToken: 'preview-test-mode',
+        refreshToken: '',
+        tokenType: 'bearer',
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000,
+        previewTestMode: true,
+      });
+      setAuthUser({ id: 'preview-tester', email: 'Preview tester' });
+      setAuthEmail('Preview tester');
+      setEntitlement({ hasPro: previewPro, source: 'preview-test' });
+      setEntitlementResolved(true);
+      return;
+    }
     clearStoredSession();
     setAuthSession(null);
     setAuthUser(null);
@@ -1180,6 +1223,11 @@ const App = () => {
   };
 
   const handleStartCheckout = async (plan) => {
+    if (PREVIEW_TEST_MODE) {
+      setCheckoutStatus('error');
+      setCheckoutNotice('Checkout is disabled in preview test mode. Use the Pro switch in the preview banner instead.');
+      return;
+    }
     if (!authSession) {
       handleRequireAuth('register');
       return;
@@ -2064,6 +2112,25 @@ const App = () => {
     return (
       <>
         <style>{`${sliderCss}`}</style>
+      {PREVIEW_TEST_MODE && (
+        <div className="ptm-banner" role="region" aria-label="Preview test mode">
+          <span>Preview test mode</span>
+          <span>Preview tester</span>
+          <label>
+            <input
+              type="checkbox"
+              role="switch"
+              aria-label="Pro"
+              checked={entitlement.hasPro}
+              onChange={(event) => {
+                try { window.localStorage.setItem('npvPreviewPro', event.target.checked ? 'true' : 'false'); } catch { /* ignore */ }
+                setEntitlement({ hasPro: event.target.checked, source: 'preview-test' });
+              }}
+            />
+            Pro
+          </label>
+        </div>
+      )}
         <ExamplesPage
           onBackToApp={handleBackToApp}
           onOpenExample={handleOpenExampleDeeplink}
@@ -2089,6 +2156,25 @@ const App = () => {
     return (
       <>
         <style>{`${sliderCss}`}</style>
+      {PREVIEW_TEST_MODE && (
+        <div className="ptm-banner" role="region" aria-label="Preview test mode">
+          <span>Preview test mode</span>
+          <span>Preview tester</span>
+          <label>
+            <input
+              type="checkbox"
+              role="switch"
+              aria-label="Pro"
+              checked={entitlement.hasPro}
+              onChange={(event) => {
+                try { window.localStorage.setItem('npvPreviewPro', event.target.checked ? 'true' : 'false'); } catch { /* ignore */ }
+                setEntitlement({ hasPro: event.target.checked, source: 'preview-test' });
+              }}
+            />
+            Pro
+          </label>
+        </div>
+      )}
         {activeLegalPage}
         {showSupportModal && (
           <div className="modal" onClick={() => setShowSupportModal(false)}>
@@ -2150,6 +2236,25 @@ const App = () => {
   return (
     <>
       <style>{`${sliderCss}`}</style>
+      {PREVIEW_TEST_MODE && (
+        <div className="ptm-banner" role="region" aria-label="Preview test mode">
+          <span>Preview test mode</span>
+          <span>Preview tester</span>
+          <label>
+            <input
+              type="checkbox"
+              role="switch"
+              aria-label="Pro"
+              checked={entitlement.hasPro}
+              onChange={(event) => {
+                try { window.localStorage.setItem('npvPreviewPro', event.target.checked ? 'true' : 'false'); } catch { /* ignore */ }
+                setEntitlement({ hasPro: event.target.checked, source: 'preview-test' });
+              }}
+            />
+            Pro
+          </label>
+        </div>
+      )}
 
       {showProductHero && !quickViewEnabled && (
       <section className="product-page-hero">
@@ -2279,7 +2384,7 @@ const App = () => {
                       <span>Signed in:</span>
                       <strong>{authUser.email}</strong>
                     </div>
-                    {isPasskeyFeatureEnabled() && (
+                    {isPasskeyFeatureEnabled() && !PREVIEW_TEST_MODE && (
                       <button
                         type="button"
                         className="mobile-topbar-menu-item"
@@ -2291,9 +2396,11 @@ const App = () => {
                         Passkeys
                       </button>
                     )}
+                    {!PREVIEW_TEST_MODE && (
                     <button type="button" className="mobile-topbar-menu-item" onClick={handleSignOut}>
                       Sign Out
                     </button>
+                    )}
                   </div>
                 ) : (
                   <button

@@ -60,7 +60,17 @@ jobs:
       - name: Run browser tests
         run: npm run test:e2e
 
-      - name: Build
+      - name: Verify preview test mode is absent from production builds
+        run: npm run assert:production-preview-free
+
+      - name: Build preview
+        if: github.event_name == 'pull_request'
+        run: npm run build
+        env:
+          VITE_PREVIEW_TEST_MODE: 'true'
+
+      - name: Build production
+        if: github.event_name != 'pull_request'
         run: npm run build
 
       - name: Deploy preview

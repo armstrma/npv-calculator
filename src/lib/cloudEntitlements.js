@@ -1,3 +1,4 @@
+const PREVIEW_TEST_MODE = import.meta.env ? import.meta.env.VITE_PREVIEW_TEST_MODE === 'true' : false;
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -19,6 +20,10 @@ const getHeaders = (accessToken) => ({
 });
 
 export const fetchUserEntitlement = async (session) => {
+  if (PREVIEW_TEST_MODE) {
+    const { getPreviewEntitlement } = await import('./previewTestMode.js');
+    return getPreviewEntitlement();
+  }
   if (!isCloudEntitlementsConfigured() || !session?.accessToken) {
     return { hasPro: false, source: null };
   }

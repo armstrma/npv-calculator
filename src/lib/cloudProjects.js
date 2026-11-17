@@ -1,3 +1,5 @@
+const PREVIEW_TEST_MODE = import.meta.env ? import.meta.env.VITE_PREVIEW_TEST_MODE === 'true' : false;
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -28,6 +30,10 @@ const toProjectMap = (rows) => rows.reduce((projects, row) => {
 }, {});
 
 export const listCloudProjects = async (session) => {
+  if (PREVIEW_TEST_MODE) {
+    const { listPreviewCloudProjects } = await import('./previewTestMode.js');
+    return listPreviewCloudProjects();
+  }
   requireCloudConfig(session);
 
   const response = await fetch(`${SUPABASE_URL}/rest/v1/user_projects?select=id,name,payload,updated_at&order=updated_at.desc`, {
@@ -43,6 +49,10 @@ export const listCloudProjects = async (session) => {
 };
 
 export const upsertCloudProject = async ({ session, userId, name, project }) => {
+  if (PREVIEW_TEST_MODE) {
+    const { upsertPreviewCloudProject } = await import('./previewTestMode.js');
+    return upsertPreviewCloudProject({ name, project });
+  }
   requireCloudConfig(session);
 
   const response = await fetch(`${SUPABASE_URL}/rest/v1/user_projects?on_conflict=user_id,name`, {
@@ -67,6 +77,10 @@ export const upsertCloudProject = async ({ session, userId, name, project }) => 
 };
 
 export const deleteCloudProject = async ({ session, name }) => {
+  if (PREVIEW_TEST_MODE) {
+    const { deletePreviewCloudProject } = await import('./previewTestMode.js');
+    return deletePreviewCloudProject({ name });
+  }
   requireCloudConfig(session);
 
   const response = await fetch(`${SUPABASE_URL}/rest/v1/user_projects?name=eq.${encodeURIComponent(name)}`, {
