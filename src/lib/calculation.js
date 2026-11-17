@@ -265,7 +265,7 @@ export const checkoutPlans = [
   { id: 'annual', label: 'Annual', price: '$20/yr' },
 ];
 
-export const PROJECT_NAME_MAX_LENGTH = 80;
+export const PROJECT_NAME_MAX_LENGTH = 120;
 export const MAX_CASHFLOW_PERIODS = 120;
 const MAX_ABS_FINANCIAL_VALUE = 1_000_000_000;
 const MAX_RATE_VALUE = 100;
