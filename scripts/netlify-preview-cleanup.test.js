@@ -70,12 +70,17 @@ const pr8latest = {
   created_at: '2026-11-16T21:00:00.000Z',
 };
 
-test('production, published, locked, and branch deploys are protected', () => {
+test('production, locked, and branch deploys are protected, but published_at alone is not', () => {
   assert.equal(isProtectedDeploy(production, publishedId), true);
-  assert.equal(isProtectedDeploy({ ...production, id: 'other', context: 'deploy-preview', published_at: '2026-11-01T00:00:00.000Z' }, publishedId), true);
+  assert.equal(isProtectedDeploy({ ...production, id: 'other-prod', context: 'production', published_at: '2026-11-01T00:00:00.000Z' }, publishedId), true);
+  assert.equal(isProtectedDeploy({ ...pr8latest, published_at: '2026-11-15T21:00:00.000Z' }, publishedId), false);
   assert.equal(isProtectedDeploy(branchDeploy, publishedId), true);
   assert.equal(isProtectedDeploy(lockedPreview, publishedId), true);
   assert.equal(isProtectedDeploy(pr8latest, publishedId), false);
+});
+
+test('CLI drafts without deploy-preview context still count as previews', () => {
+  assert.equal(isPreviewDeploy({ ...pr8old, context: null, draft: true, alias: null, title: 'manual draft' }, publishedId), true);
 });
 
 test('CLI alias deploys count as previews even without context=deploy-preview', () => {

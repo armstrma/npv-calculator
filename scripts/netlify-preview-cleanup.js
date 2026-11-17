@@ -3,7 +3,6 @@ const API_BASE = 'https://api.netlify.com/api/v1';
 export const isProtectedDeploy = (deploy, publishedDeployId) => {
   if (!deploy?.id) return true;
   if (publishedDeployId && deploy.id === publishedDeployId) return true;
-  if (deploy.published_at) return true;
   if (deploy.locked) return true;
   if (deploy.context === 'production') return true;
   if (deploy.context === 'branch-deploy') return true;
@@ -22,8 +21,8 @@ const textBlob = (deploy) => [
 export const isPreviewDeploy = (deploy, publishedDeployId) => {
   if (isProtectedDeploy(deploy, publishedDeployId)) return false;
   if (deploy.context === 'deploy-preview') return true;
-  // CLI deploys from this repo use --alias pr-N and a "PR #N" message,
-  // and may not always set context=deploy-preview.
+  // CLI `netlify deploy --alias pr-N` drafts may omit context=deploy-preview.
+  if (deploy.draft === true) return true;
   if (typeof deploy.alias === 'string' && /^pr-\d+$/u.test(deploy.alias)) return true;
   if (deploy.review_id != null && String(deploy.review_id) !== '') return true;
   if (typeof deploy.title === 'string' && /PR #\d+/u.test(deploy.title)) return true;
@@ -179,6 +178,14 @@ export const runCleanup = async ({
     deleteCount: selected.delete.length,
     keepCount: selected.keep.length,
     protectedCount: selected.protected.length,
+    inventory: deploys.map((deploy) => ({
+      ...summarize(deploy),
+      draft: deploy.draft === true,
+      locked: Boolean(deploy.locked),
+      published_at: deploy.published_at || null,
+      preview: isPreviewDeploy(deploy, publishedDeployId),
+      protected: isProtectedDeploy(deploy, publishedDeployId),
+    })),
     delete: selected.delete.map(summarize),
     keep: selected.keep.map(summarize),
   }, null, 2));
