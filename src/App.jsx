@@ -3388,11 +3388,11 @@ const App = () => {
               </div>
             </div>
             <div className="auth-card">
-              <div className="local-save-warning" role="alert">
-                {saveTarget === 'cloud'
-                  ? 'Saved to your passwordless cloud library. Project ownership is enforced by database row-level security.'
-                  : 'Saved in this browser only. Project may be lost if browser storage is cleared, the app data is reset, or you switch devices.'}
-              </div>
+              {saveTarget !== 'cloud' && (
+                <div className="local-save-warning" role="alert">
+                  Saved in this browser only. Project may be lost if browser storage is cleared, the app data is reset, or you switch devices.
+                </div>
+              )}
               {saveDialogMode === 'choose' ? (
                 <>
                   <p className="save-dialog-current-name">
