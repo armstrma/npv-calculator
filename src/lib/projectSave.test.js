@@ -47,6 +47,10 @@ test('suggested copy names stay within the project name length limit', () => {
   assert.equal(isProjectNameTaken(suggestion, projects), false);
 });
 
+test('project name length limit matches the database check', () => {
+  assert.equal(PROJECT_NAME_MAX_LENGTH, 120);
+});
+
 test('conflict helper returns the inline message and a suggestion when a name is taken', () => {
   const projects = { Alpha: {} };
   const conflict = getProjectNameConflict('Alpha', projects);
