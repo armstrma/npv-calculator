@@ -10,8 +10,14 @@ export const calculateNPV = (init, disc, cfs) => {
 const IRR_MIN_RATE = -99.9;
 const IRR_MAX_RATE = 200;
 const IRR_SCAN_STEPS = 1200;
-const IRR_TOLERANCE = 0.000001;
-const NPV_TOLERANCE = 0.01;
+// Roots are refined until the bracket is narrower than this many percentage points.
+const IRR_RATE_TOLERANCE = 1e-10;
+// Two roots closer than this (in percentage points) are treated as the same root.
+const IRR_DEDUPE_TOLERANCE = 1e-6;
+// NPV counts as "zero" only relative to the size of the discounted cash flows at
+// that rate, so the check behaves the same whether inputs are in dollars or millions.
+const IRR_RELATIVE_NPV_TOLERANCE = 1e-9;
+const GOLDEN_RATIO = (Math.sqrt(5) - 1) / 2;
 
 const signOfCashflow = (value) => {
   if (value > 0) return 1;
@@ -27,16 +33,32 @@ export const countCashflowSignChanges = (init, cfs) => {
   }, 0);
 };
 
+// Sum of the absolute discounted cash flows at a rate: the natural scale for NPV there.
+const discountedCashflowScale = (init, disc, cfs) => {
+  const rate = disc / 100;
+  let scale = Math.abs(init);
+  cfs.forEach((cf, index) => {
+    scale += Math.abs(cf) / Math.pow(1 + rate, index + 1);
+  });
+  return scale;
+};
+
+const isNpvNearZero = (init, rate, cfs, npv) => {
+  if (npv === 0) return true;
+  const scale = discountedCashflowScale(init, rate, cfs);
+  return Number.isFinite(scale) && scale > 0 && Math.abs(npv) <= scale * IRR_RELATIVE_NPV_TOLERANCE;
+};
+
+// Bisection on a bracket whose endpoints have strictly opposite NPV signs.
 const bisectIrrRoot = (init, cfs, low, high) => {
   let lowRate = low;
   let highRate = high;
   let lowNpv = calculateNPV(init, lowRate, cfs);
-  let mid = (lowRate + highRate) / 2;
 
-  for (let i = 0; i < 120; i++) {
-    mid = (lowRate + highRate) / 2;
+  for (let i = 0; i < 200 && highRate - lowRate > IRR_RATE_TOLERANCE; i++) {
+    const mid = (lowRate + highRate) / 2;
     const midNpv = calculateNPV(init, mid, cfs);
-    if (Math.abs(midNpv) < NPV_TOLERANCE || Math.abs(highRate - lowRate) < IRR_TOLERANCE) return mid;
+    if (midNpv === 0) return mid;
 
     if (Math.sign(lowNpv) === Math.sign(midNpv)) {
       lowRate = mid;
@@ -46,12 +68,105 @@ const bisectIrrRoot = (init, cfs, low, high) => {
     }
   }
 
-  return mid;
+  return (lowRate + highRate) / 2;
+};
+
+// Golden-section search for the rate where sign * NPV is smallest in [low, high].
+const minimizeSignedNpv = (init, cfs, low, high, sign) => {
+  let a = low;
+  let b = high;
+  const f = (rate) => sign * calculateNPV(init, rate, cfs);
+  let c = b - GOLDEN_RATIO * (b - a);
+  let d = a + GOLDEN_RATIO * (b - a);
+  let fc = f(c);
+  let fd = f(d);
+
+  for (let i = 0; i < 200 && b - a > IRR_RATE_TOLERANCE; i++) {
+    if (fc < fd) {
+      b = d;
+      d = c;
+      fd = fc;
+      c = b - GOLDEN_RATIO * (b - a);
+      fc = f(c);
+    } else {
+      a = c;
+      c = d;
+      fc = fd;
+      d = a + GOLDEN_RATIO * (b - a);
+      fd = f(d);
+    }
+  }
+
+  const rate = (a + b) / 2;
+  return { rate, npv: calculateNPV(init, rate, cfs) };
 };
 
 const dedupeRoots = (roots) => roots
   .sort((a, b) => a - b)
-  .filter((root, index, sortedRoots) => index === 0 || Math.abs(root - sortedRoots[index - 1]) > 0.01);
+  .filter((root, index, sortedRoots) => index === 0 || Math.abs(root - sortedRoots[index - 1]) > IRR_DEDUPE_TOLERANCE);
+
+const scanRateAt = (index) => (index === IRR_SCAN_STEPS
+  ? IRR_MAX_RATE
+  : IRR_MIN_RATE + ((IRR_MAX_RATE - IRR_MIN_RATE) / IRR_SCAN_STEPS) * index);
+
+// Finds every distinct rate in [IRR_MIN_RATE, IRR_MAX_RATE] where NPV is zero.
+// Crossing roots are found from sign changes between grid points and refined by
+// bisection. Touching (tangent) roots and pairs of roots too close together to
+// straddle a grid point are found by refining each local minimum of |NPV|.
+// Returns { roots, tangentRoots }.
+const findIrrRoots = (init, cfs) => {
+  const rates = [];
+  const npvs = [];
+  for (let i = 0; i <= IRR_SCAN_STEPS; i++) {
+    const rate = scanRateAt(i);
+    rates.push(rate);
+    npvs.push(calculateNPV(init, rate, cfs));
+  }
+
+  const roots = [];
+  const tangentRoots = [];
+
+  // Exact or scale-relative zeros at the range edges.
+  [0, IRR_SCAN_STEPS].forEach((index) => {
+    if (Number.isFinite(npvs[index]) && isNpvNearZero(init, rates[index], cfs, npvs[index])) roots.push(rates[index]);
+  });
+
+  for (let i = 1; i <= IRR_SCAN_STEPS; i++) {
+    const previousNpv = npvs[i - 1];
+    const npv = npvs[i];
+    if (!Number.isFinite(previousNpv) || !Number.isFinite(npv)) continue;
+
+    if (npv === 0) {
+      roots.push(rates[i]);
+    } else if (previousNpv !== 0 && Math.sign(previousNpv) !== Math.sign(npv)) {
+      roots.push(bisectIrrRoot(init, cfs, rates[i - 1], rates[i]));
+    }
+  }
+
+  for (let i = 1; i < IRR_SCAN_STEPS; i++) {
+    const [left, middle, right] = [npvs[i - 1], npvs[i], npvs[i + 1]];
+    if (![left, middle, right].every(Number.isFinite) || middle === 0) continue;
+    const sign = Math.sign(middle);
+    // Only same-sign neighborhoods: crossings were already handled above.
+    if (Math.sign(left) !== sign || Math.sign(right) !== sign) continue;
+    if (Math.abs(middle) > Math.abs(left) || Math.abs(middle) > Math.abs(right)) continue;
+
+    const minimum = minimizeSignedNpv(init, cfs, rates[i - 1], rates[i + 1], sign);
+    if (isNpvNearZero(init, minimum.rate, cfs, minimum.npv)) {
+      // NPV touches zero without crossing it: a double (tangent) root.
+      roots.push(minimum.rate);
+      tangentRoots.push(minimum.rate);
+    } else if (Math.sign(minimum.npv) !== sign) {
+      // NPV dips across zero and back between grid points: two close crossing roots.
+      roots.push(bisectIrrRoot(init, cfs, rates[i - 1], minimum.rate));
+      roots.push(bisectIrrRoot(init, cfs, minimum.rate, rates[i + 1]));
+    }
+  }
+
+  const uniqueRoots = dedupeRoots(roots);
+  const uniqueTangentRoots = uniqueRoots.filter((root) => tangentRoots.some((tangent) => Math.abs(tangent - root) <= IRR_DEDUPE_TOLERANCE));
+  return { roots: uniqueRoots, tangentRoots: uniqueTangentRoots, minRateNpv: npvs[0], maxRateNpv: npvs[IRR_SCAN_STEPS] };
+};
 
 export const analyzeIRR = (init, cfs) => {
   const signChanges = countCashflowSignChanges(init, cfs);
@@ -67,30 +182,11 @@ export const analyzeIRR = (init, cfs) => {
     };
   }
 
-  const roots = [];
-  const step = (IRR_MAX_RATE - IRR_MIN_RATE) / IRR_SCAN_STEPS;
-  let previousRate = IRR_MIN_RATE;
-  let previousNpv = calculateNPV(init, previousRate, cfs);
-  const minRateNpv = previousNpv;
+  const { roots: uniqueRoots, tangentRoots, minRateNpv, maxRateNpv } = signChanges === 0
+    ? { roots: [], tangentRoots: [], minRateNpv: Number.NaN, maxRateNpv: Number.NaN }
+    : findIrrRoots(init, cfs);
 
-  if (Math.abs(previousNpv) < NPV_TOLERANCE) roots.push(previousRate);
-
-  for (let i = 1; i <= IRR_SCAN_STEPS; i++) {
-    const rate = IRR_MIN_RATE + step * i;
-    const npv = calculateNPV(init, rate, cfs);
-
-    if (Math.abs(npv) < NPV_TOLERANCE) {
-      roots.push(rate);
-    } else if (Number.isFinite(previousNpv) && Number.isFinite(npv) && Math.sign(previousNpv) !== Math.sign(npv)) {
-      roots.push(bisectIrrRoot(init, cfs, previousRate, rate));
-    }
-
-    previousRate = rate;
-    previousNpv = npv;
-  }
-
-  const uniqueRoots = dedupeRoots(roots);
-  if (signChanges === 1 && uniqueRoots.length === 0 && previousNpv > 0) {
+  if (signChanges === 1 && uniqueRoots.length === 0 && maxRateNpv > 0) {
     return {
       status: 'above-range',
       value: null,
@@ -129,6 +225,18 @@ export const analyzeIRR = (init, cfs) => {
       roots: uniqueRoots,
       signChanges,
       reason: 'The cash-flow pattern changes signs more than once, so IRR may have multiple roots and no single reliable readout.',
+    };
+  }
+
+  if (tangentRoots.length > 0) {
+    // NPV only touches zero here and has the same sign on both sides, so
+    // "accept when IRR beats the discount rate" would give the wrong answer.
+    return {
+      status: 'ambiguous',
+      value: null,
+      roots: uniqueRoots,
+      signChanges,
+      reason: `NPV touches zero at ${uniqueRoots[0].toFixed(2)}% without crossing it, so this IRR does not separate accept from reject and IRR-based rules are marked N/A.`,
     };
   }
 
