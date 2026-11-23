@@ -228,3 +228,44 @@ test('Reset to Defaults restores the ad-hoc model, keeps saved projects, and sur
   const projectsAfterReload = await page.evaluate(() => localStorage.getItem('npvProjects'));
   expect(JSON.parse(projectsAfterReload)['Saved Case'].initial).toBe(1);
 });
+
+test('Copy Project Link round-trips an unnamed, unsaved model', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__copiedText = null;
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async (text) => { window.__copiedText = text; } },
+    });
+  });
+  await page.goto('/');
+
+  await quickInputs(page).first().fill('4321');
+  await quickInputs(page).first().blur();
+  await yearOneCashflow(page).fill('1234');
+  await yearOneCashflow(page).blur();
+  const titleBefore = await page.title();
+
+  await desktopToolbar(page).getByLabel('Share options').click();
+  await desktopToolbar(page).getByRole('button', { name: 'Copy Project Link' }).click();
+  await expect(desktopToolbar(page).getByRole('button', { name: '✓ Copied Project Link' })).toBeVisible();
+
+  const copied = await page.evaluate(() => window.__copiedText);
+  expect(copied).toBeTruthy();
+  const copiedUrl = new URL(copied);
+  expect(copiedUrl.searchParams.get('initial')).toBe('4321');
+  expect(copiedUrl.searchParams.get('cashflows')?.split(',')[0]).toBe('1234');
+  expect(copiedUrl.searchParams.get('project')).toBeNull();
+
+  // Open the link fresh, as a recipient with no saved state would.
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  await page.goto(`${copiedUrl.pathname}${copiedUrl.search}`);
+
+  await expect(quickInputs(page).first()).toHaveValue('4,321');
+  await expect(yearOneCashflow(page)).toHaveValue('1,234');
+  await expect(page).toHaveTitle(titleBefore);
+  await expect(page).not.toHaveURL(/initial=/);
+  await expect.poll(async () => (await readDraft(page))?.model?.projectName ?? null).toBe('');
+});

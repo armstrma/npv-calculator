@@ -49,6 +49,7 @@ import { ExamplesPage } from './components/project/ExamplesPage.jsx';
 import { MobileLibraryPanel } from './components/project/MobileLibraryPanel.jsx';
 import { getExampleBySlug } from './components/project/projectData.js';
 import { exportNpvWorkbook } from './lib/excelExport.js';
+import { buildShareLinkUrl, parseShareLinkParams } from './lib/shareLink.js';
 import {
   createDebouncedWriter,
   createDefaultWorkingModel,
@@ -533,16 +534,8 @@ const App = () => {
     }
 
     const params = new URLSearchParams(launch.search);
-    const initialValue = params.get('initial');
-    const discountValue = params.get('discount');
-    const cashflowsParam = params.get('cashflows');
-    const currencyParam = params.get('currency');
-    const periodParam = params.get('period');
-    const rateBasisParam = params.get('rateBasis');
-    const projectParam = params.get('project');
+    const shared = parseShareLinkParams(params);
     const exampleParam = params.get('example');
-    const hurdleEnabledParam = params.get('hurdleEnabled');
-    const hurdleRateParam = params.get('hurdleRate');
     const examplePathMatch = launch.pathname.match(/^\/examples\/([^/?#]+)/);
     const exampleSlug = exampleParam || (examplePathMatch ? decodeURIComponent(examplePathMatch[1]) : '');
     const exampleProject = exampleSlug ? getExampleBySlug(exampleSlug) : null;
@@ -565,50 +558,29 @@ const App = () => {
       setShowSensitivity(true);
     }
 
-    if (initialValue !== null) {
-      const parsedInitial = sanitizeFinancialValue(initialValue);
-      if (Number.isFinite(parsedInitial)) {
-        setInitial(parsedInitial);
-        setInitialInput(formatNumberWithCommas(parsedInitial));
-      }
+    if (shared.initial !== undefined) {
+      setInitial(shared.initial);
+      setInitialInput(formatNumberWithCommas(shared.initial));
     }
-    if (discountValue !== null) {
-      const parsedDiscount = sanitizeRateValue(discountValue);
-      if (Number.isFinite(parsedDiscount)) {
-        setDiscount(parsedDiscount);
-        if (hurdleEnabledParam !== 'true') setRateInput(parsedDiscount.toFixed(1));
-      }
+    if (shared.discount !== undefined) {
+      setDiscount(shared.discount);
+      if (shared.showHurdleRate !== true) setRateInput(shared.discount.toFixed(1));
     }
-    if (cashflowsParam) {
-      const parsedCashflows = sanitizeCashflows(cashflowsParam.split(','));
-      if (parsedCashflows.length) {
-        setCashflows(parsedCashflows);
-        setCashflowInputs(parsedCashflows.map(formatNumberWithCommas));
-      }
+    if (shared.cashflows) {
+      setCashflows(shared.cashflows);
+      setCashflowInputs(shared.cashflows.map(formatNumberWithCommas));
     }
-    if (currencyParam && ['$', '€', '£'].includes(currencyParam)) {
-      setCurrency(currencyParam);
+    if (shared.currency) setCurrency(shared.currency);
+    if (shared.periodMode) setPeriodMode(shared.periodMode);
+    if (shared.rateBasis) setRateBasis(shared.rateBasis);
+    if (shared.showHurdleRate !== undefined) setShowHurdleRate(shared.showHurdleRate);
+    if (shared.hurdleRate !== undefined) {
+      setHurdleRate(shared.hurdleRate);
+      if (shared.showHurdleRate === true) setRateInput(shared.hurdleRate.toFixed(1));
     }
-    if (periodParam && ['months', 'quarters', 'years'].includes(periodParam)) {
-      setPeriodMode(periodParam);
-    }
-    if (rateBasisParam && ['annual', 'per-period'].includes(rateBasisParam)) {
-      setRateBasis(rateBasisParam);
-    }
-    if (hurdleEnabledParam !== null) {
-      setShowHurdleRate(hurdleEnabledParam === 'true');
-    }
-    if (hurdleRateParam !== null) {
-      const parsedHurdleRate = sanitizeRateValue(hurdleRateParam);
-      if (Number.isFinite(parsedHurdleRate)) {
-        setHurdleRate(parsedHurdleRate);
-        if (hurdleEnabledParam === 'true') setRateInput(parsedHurdleRate.toFixed(1));
-      }
-    }
-    if (projectParam) {
-      const sanitizedName = sanitizeProjectName(projectParam);
-      setProjectName(sanitizedName);
-      setLoadedProjectName(sanitizedName);
+    if (shared.projectName !== undefined) {
+      setProjectName(shared.projectName);
+      setLoadedProjectName(shared.projectName);
     }
 
     if (hasUrlDrivenModel(launch)) {
@@ -1848,20 +1820,12 @@ const App = () => {
   };
 
   const copyProjectLink = async () => {
-    const params = new URLSearchParams();
     const project = getCurrentProjectSnapshot();
-    params.set('initial', String(project.initial));
-    params.set('discount', String(project.discount));
-    params.set('cashflows', project.cashflows.join(','));
-    params.set('currency', currency);
-    params.set('period', project.periodMode);
-    params.set('rateBasis', project.rateBasis);
-    params.set('hurdleEnabled', String(project.showHurdleRate));
-    if (project.showHurdleRate) params.set('hurdleRate', String(project.hurdleRate));
-    const sanitizedName = sanitizeProjectName(projectName);
-    if (sanitizedName) params.set('project', sanitizedName);
-
-    const deepLink = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    const deepLink = buildShareLinkUrl(`${window.location.origin}${window.location.pathname}`, {
+      ...project,
+      currency,
+      projectName,
+    });
     await navigator.clipboard.writeText(deepLink);
     setCopiedProjectLink(true);
     window.setTimeout(() => setCopiedProjectLink(false), 2000);
