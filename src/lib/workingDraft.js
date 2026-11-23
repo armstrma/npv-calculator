@@ -151,6 +151,18 @@ export const resetSavedAppData = () => {
   removeStorageKey(PROJECTS_BACKUP_KEY);
   removeStorageKey(WORKING_DRAFT_STORAGE_KEY);
   removeStorageKey(WORKING_DRAFT_BACKUP_KEY);
+  // Shared-link session and scenario drafts (see linkSession.js).
+  removeStorageKey('npvLinkSession');
+  try {
+    const storage = getStorage();
+    if (storage) {
+      Object.keys(storage)
+        .filter((key) => key.startsWith(`${WORKING_DRAFT_STORAGE_KEY}.link.`))
+        .forEach((key) => removeStorageKey(key));
+    }
+  } catch {
+    /* ignore storage access failures */
+  }
 };
 
 export const createDebouncedWriter = (write, delayMs = WORKING_DRAFT_DEBOUNCE_MS) => {

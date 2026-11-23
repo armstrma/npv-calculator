@@ -108,6 +108,7 @@ export const QuickViewCharts = ({
   access,
   canViewAdvancedExample,
   onRequestUpgrade,
+  hideSensitivity = false,
 }) => {
   const [activeChart, setActiveChart] = useState('npv');
   const [activeAnalysisCard, setActiveAnalysisCard] = useState('viability');
@@ -130,7 +131,7 @@ export const QuickViewCharts = ({
   const sensitivityLocked = !access?.features?.sensitivityAnalysis && !canViewAdvancedExample;
   const deeperAnalysisLocked = !access?.features?.sensitivityAnalysis && !canViewAdvancedExample;
   const cashflowsLocked = !access?.hasPro && !canViewAdvancedExample;
-  const shouldShowAnalysisSensitivity = access?.features?.sensitivityAnalysis || canViewAdvancedExample || sensitivityLocked;
+  const shouldShowAnalysisSensitivity = !hideSensitivity && (access?.features?.sensitivityAnalysis || canViewAdvancedExample || sensitivityLocked);
   const handleLockedFeature = (reason) => {
     if (onRequestUpgrade) onRequestUpgrade(reason);
   };
@@ -172,6 +173,7 @@ export const QuickViewCharts = ({
           <>
             <div className="quick-view-stage-heading quick-view-stage-heading-with-control">
               <h2>NPV vs {rateBasis === 'annual' && shouldShowAppliedRate ? 'Annual ' : ''}Discount Rate</h2>
+              {!hideSensitivity && (
               <label className="quick-view-stage-control">
                 <span>Sensitivity</span>
                 <select className={sensitivityLocked ? 'locked-select-blur' : ''} value={showSensitivity ? String(sensitivityPercent) : sensitivityLocked ? 'locked' : 'off'} onChange={(e) => {
@@ -192,6 +194,7 @@ export const QuickViewCharts = ({
                   <option value="20">20%</option>
                 </select>
               </label>
+              )}
             </div>
             <div className="quick-view-chart-frame">
               <ResponsiveContainer width="100%" height="100%">
@@ -228,6 +231,7 @@ export const QuickViewCharts = ({
           <>
             <div className="quick-view-stage-heading quick-view-stage-heading-with-control">
               <h2>Cash Flows</h2>
+              {!hideSensitivity && (
               <label className="quick-view-stage-control">
                 <span>Sensitivity</span>
                 <select className={sensitivityLocked ? 'locked-select-blur' : ''} value={showSensitivity ? String(sensitivityPercent) : sensitivityLocked ? 'locked' : 'off'} onChange={(e) => {
@@ -248,6 +252,7 @@ export const QuickViewCharts = ({
                   <option value="20">20%</option>
                 </select>
               </label>
+              )}
             </div>
             <div className="quick-view-chart-frame">
               <ResponsiveContainer width="100%" height="100%">
@@ -327,6 +332,7 @@ export const QuickViewCharts = ({
           <>
             <div className="quick-view-stage-heading quick-view-stage-heading-with-control">
               <h2>Analyze</h2>
+              {!hideSensitivity && (
               <label className="quick-view-stage-control">
                 <span>Sensitivity</span>
                 <select className={sensitivityLocked ? 'locked-select-blur' : ''} value={showSensitivity ? String(sensitivityPercent) : sensitivityLocked ? 'locked' : 'off'} onChange={(e) => {
@@ -347,6 +353,7 @@ export const QuickViewCharts = ({
                   <option value="20">20%</option>
                 </select>
               </label>
+              )}
             </div>
             <div className="quick-view-analysis-panel quick-view-analysis-two-column quick-view-analysis-panel-compact">
               <section className="quick-view-analysis-column quick-view-analysis-summary">

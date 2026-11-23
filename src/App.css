@@ -1606,6 +1606,71 @@ body:has(.ptm-banner) .save-confirmation {
   opacity: 1;
   transform: translateY(0);
 }
+/* Locked sliders: the reason appears ON the slider, not above the row. */
+.locked-slider-wrap {
+  position: relative;
+}
+.locked-slider-wrap.locked-control-tooltip::after {
+  left: 0;
+  right: 0;
+  top: 50%;
+  bottom: auto;
+  text-align: center;
+  padding: 5px 8px;
+  transform: translateY(-50%) scale(0.98);
+}
+.locked-input-row:hover .locked-slider-wrap.locked-control-tooltip::after,
+.locked-input-row:focus-within .locked-slider-wrap.locked-control-tooltip::after,
+.locked-slider-wrap.locked-control-tooltip:hover::after {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+/* Author (scenario) locks use a neutral slate tone so they read differently from upgrade prompts. */
+.locked-control-tooltip-author::after {
+  border-color: rgba(148, 163, 184, 0.6);
+  background: rgba(15, 23, 42, 0.96);
+  color: #e2e8f0;
+}
+.field-lock-icon {
+  display: inline-flex;
+  vertical-align: -1px;
+  margin-left: 3px;
+  color: #a78bfa;
+}
+.field-lock-icon-author {
+  color: #94a3b8;
+}
+.field-lock-icon svg {
+  width: 11px;
+  height: 11px;
+}
+.locked-menu-item {
+  opacity: 0.6;
+}
+.scenario-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.55);
+  color: #cbd5e1;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.scenario-banner-exit {
+  flex: none;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: transparent;
+  color: #e2e8f0;
+  font-size: 11px;
+  cursor: pointer;
+}
 .locked-input-row {
   opacity: 0.7;
 }
