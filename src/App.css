@@ -1611,19 +1611,28 @@ body:has(.ptm-banner) .save-confirmation {
   position: relative;
 }
 .locked-slider-wrap.locked-control-tooltip::after {
-  left: 0;
-  right: 0;
+  left: 50%;
+  right: auto;
   top: 50%;
   bottom: auto;
+  max-width: calc(100% - 8px);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
   text-align: center;
-  padding: 5px 8px;
-  transform: translateY(-50%) scale(0.98);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translate(-50%, -50%) scale(0.98);
 }
 .locked-input-row:hover .locked-slider-wrap.locked-control-tooltip::after,
 .locked-input-row:focus-within .locked-slider-wrap.locked-control-tooltip::after,
+.locked-input-row:active .locked-slider-wrap.locked-control-tooltip::after,
 .locked-slider-wrap.locked-control-tooltip:hover::after {
   opacity: 1;
-  transform: translateY(-50%) scale(1);
+  transform: translate(-50%, -50%) scale(1);
 }
 /* Author (scenario) locks use a neutral slate tone so they read differently from upgrade prompts. */
 .locked-control-tooltip-author::after {
@@ -1648,28 +1657,104 @@ body:has(.ptm-banner) .save-confirmation {
   opacity: 0.6;
 }
 .scenario-banner {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   margin: 0 0 8px;
-  padding: 6px 10px;
+  padding: 7px 10px 7px 12px;
+  border-left: 3px solid #38bdf8;
   border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(15, 23, 42, 0.55);
+  background: #082f49;
   color: #cbd5e1;
+  text-align: left;
   font-size: 11px;
   line-height: 1.35;
 }
+.scenario-banner-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+.scenario-banner-text strong {
+  color: #e0f2fe;
+  font-size: 12px;
+}
 .scenario-banner-exit {
   flex: none;
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(148, 163, 184, 0.5);
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.6);
+  background: transparent;
+  color: #e0f2fe;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.scenario-banner-exit:hover,
+.scenario-banner-exit:focus-visible {
+  background: rgba(56, 189, 248, 0.16);
+}
+/* Unobtrusive frame so it's clear the whole workspace is a shared scenario. */
+.quick-view-shell.scenario-view {
+  box-shadow: inset 0 0 0 2px rgba(56, 189, 248, 0.45);
+}
+.quick-view-shell-desktop.scenario-view {
+  border-color: rgba(56, 189, 248, 0.55);
+}
+.scenario-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(2, 6, 23, 0.66);
+}
+.scenario-confirm {
+  width: min(360px, 100%);
+  padding: 18px 18px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(71, 85, 105, 0.6);
+  background: #0f172a;
+  color: #e2e8f0;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+}
+.scenario-confirm h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: #f8fafc;
+}
+.scenario-confirm p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #cbd5e1;
+}
+.scenario-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.scenario-confirm-actions button {
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.scenario-confirm-cancel {
+  border: 1px solid rgba(71, 85, 105, 0.7);
   background: transparent;
   color: #e2e8f0;
-  font-size: 11px;
-  cursor: pointer;
+}
+.scenario-confirm-exit {
+  border: 1px solid #38bdf8;
+  background: #0284c7;
+  color: #f8fafc;
 }
 .locked-input-row {
   opacity: 0.7;

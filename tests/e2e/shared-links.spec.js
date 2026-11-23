@@ -11,7 +11,17 @@ const testSessionHash = '#access_token=test-token&refresh_token=refresh-token&ex
 const PRO_LINK = '/?initial=50000&discount=9&cashflows=5000,6000,7000,8000,9000,10000,11000,12000,13000,14000&currency=%24&period=months&rateBasis=annual&hurdleEnabled=true&hurdleRate=11';
 const LOCK_LINK = '/?initial=1000&discount=10&cashflows=300,400,500&currency=%24&period=years&rateBasis=annual&hurdleEnabled=false&v=2&lock=initial,discount,cf1&hide=sensitivity,export,presentation,sliderColors';
 
-const AUTHOR_MESSAGE = 'Locked by the author of this scenario.';
+const AUTHOR_MESSAGE = 'Locked by author';
+const PLAIN_FREE_LINK = '/?initial=2000&discount=10&cashflows=500,600,700&currency=%24&period=years&rateBasis=annual&hurdleEnabled=false';
+const stageTab = (page, name) => page.locator('.quick-view-stage-tab', { hasText: name });
+
+const confirmExit = async (page) => {
+  await page.locator('.scenario-banner').getByRole('button', { name: 'Exit Scenario' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Exit this scenario?' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Exit', exact: true }).click();
+  await expect(dialog).toBeHidden();
+};
 
 const readStorage = (page, key) => page.evaluate((storageKey) => {
   try {
@@ -43,6 +53,7 @@ test('free user opening a Pro link keeps every shared value, with periods 6+ and
   await expect(fieldInput(page, 'initial')).toBeEnabled();
   await expect(fieldInput(page, 'rate')).toHaveValue('11.0');
   await expect(fieldInput(page, 'rate')).toBeDisabled();
+  await expect(fieldSliderTooltip(page, 'rate')).toHaveAttribute('data-tooltip', 'Pro: hurdle rate');
   for (let i = 0; i < 5; i += 1) await expect(fieldInput(page, `cf${i}`)).toBeEnabled();
   for (let i = 5; i < 10; i += 1) {
     await expect(fieldInput(page, `cf${i}`)).toBeDisabled();
@@ -51,16 +62,26 @@ test('free user opening a Pro link keeps every shared value, with periods 6+ and
   await expect(fieldInput(page, 'cf9')).toHaveValue('14,000');
   await expect(field(page, 'cf0')).toContainText('Month 1');
   await expect(page.getByText('Applied monthly')).toBeVisible();
-  await expect(page.locator('.scenario-banner')).toContainText('Pro settings are read-only on the free plan');
+  await expect(page.locator('.scenario-banner')).toContainText('Viewing a shared scenario');
+  await expect(page.locator('.quick-view-shell.scenario-view')).toBeVisible();
   await expect(page.locator('.quick-view-controls button[aria-label^="Remove"]')).toHaveCount(0);
 
   // Tier-lock tooltip sits on the slider with the upgrade message.
   const tooltip = fieldSliderTooltip(page, 'cf5');
   await expect(tooltip).toHaveAttribute('data-lock-reason', 'tier');
-  await expect(tooltip).toHaveAttribute('data-tooltip', /Upgrade to edit longer horizons/);
+  await expect(tooltip).toHaveAttribute('data-tooltip', 'Pro: beyond 5 months');
 
-  // Demo visuals stay off: Pro tabs keep their PRO badge.
-  await expect(page.locator('.quick-view-stage-tab', { hasText: 'Cash Flows' }).locator('.pro-texture-badge')).toBeVisible();
+  // Scenario view removes Pro analyses the viewer can't use.
+  await expect(stageTab(page, 'Cash Flows')).toHaveCount(0);
+  await expect(page.locator('.quick-view-stage-control', { hasText: 'Sensitivity' })).toHaveCount(0);
+  await stageTab(page, 'Analyze').click();
+  await expect(page.locator('.quick-view-analysis-rule', { hasText: 'Spread' })).toHaveCount(0);
+  await expect(page.locator('.quick-view-analysis-fact-pill', { hasText: 'Uplift' })).toHaveCount(0);
+  await expect(page.locator('.quick-view-analysis-rule', { hasText: 'Creates Value' })).toBeVisible();
+  await desktopToolbar(page).getByLabel('Share options').click();
+  await expect(desktopToolbar(page).getByRole('button', { name: /Export XLSX/ })).toHaveCount(0);
+  await expect(desktopToolbar(page).getByRole('button', { name: /Presentation Mode/ })).toHaveCount(0);
+  await desktopToolbar(page).getByLabel('Share options').click();
 
   // Edit an allowed period, then reload: nothing is trimmed.
   await fieldInput(page, 'cf0').fill('5555');
@@ -119,7 +140,8 @@ test('lock link enforces author locks and hides features', async ({ page }) => {
   const tooltip = fieldSliderTooltip(page, 'initial');
   await expect(tooltip).toHaveAttribute('data-lock-reason', 'author');
   await expect(tooltip).toHaveAttribute('data-tooltip', AUTHOR_MESSAGE);
-  await expect(page.locator('.scenario-banner')).toContainText('set by the author');
+  await expect(page.locator('.scenario-banner')).toContainText('Viewing a shared scenario');
+  await expect(page.locator('.scenario-banner')).toContainText('Locked fields are set by the author');
 
   // Hidden features are absent.
   await expect(page.locator('.quick-view-stage-control', { hasText: 'Sensitivity' })).toHaveCount(0);
@@ -157,7 +179,14 @@ test('lock link autosaves to its own slot, resets to the scenario, and exits bac
   await expect(fieldInput(page, 'cf0')).toHaveValue('300');
   await expect(fieldInput(page, 'initial')).toBeDisabled();
 
-  await page.getByRole('button', { name: 'Exit scenario' }).click();
+  // Cancel keeps the scenario; Exit leaves it.
+  await page.locator('.scenario-banner').getByRole('button', { name: 'Exit Scenario' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Exit this scenario?' });
+  await expect(dialog).toContainText('Your edits here stay saved');
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(fieldInput(page, 'initial')).toBeDisabled();
+  await confirmExit(page);
   await expect(fieldInput(page, 'initial')).toHaveValue('5,555');
   await expect(fieldInput(page, 'initial')).toBeEnabled();
   await expect(page.locator('.scenario-banner')).toHaveCount(0);
@@ -188,7 +217,7 @@ test('example preview shows its tier-lock tooltip on the slider', async ({ page 
   await expect(fieldInput(page, 'cf1')).toBeDisabled();
   const tooltip = fieldSliderTooltip(page, 'cf1');
   await expect(tooltip).toHaveAttribute('data-lock-reason', 'tier');
-  await expect(tooltip).toHaveAttribute('data-tooltip', /Upgrade to premium/);
+  await expect(tooltip).toHaveAttribute('data-tooltip', 'Pro: edit full example');
   await field(page, 'cf1').hover();
   await expect.poll(() => tooltip.evaluate((node) => getComputedStyle(node, '::after').opacity)).toBe('1');
 });
@@ -207,4 +236,66 @@ test.describe('mobile', () => {
     await expect(fieldInput(page, 'cf4')).toBeEnabled();
     await expect(fieldInput(page, 'cf5')).toBeDisabled();
   });
+});
+
+test('free user on a monthly link gets the discount rate locked with a short reason', async ({ page }) => {
+  await page.goto('/?initial=1000&discount=12&cashflows=100,200,300&currency=%24&period=months&rateBasis=annual&hurdleEnabled=false');
+  await expect(fieldInput(page, 'rate')).toHaveValue('12.0');
+  await expect(fieldInput(page, 'rate')).toBeDisabled();
+  await expect(fieldSliderTooltip(page, 'rate')).toHaveAttribute('data-tooltip', 'Pro: monthly rates');
+  await expect(fieldInput(page, 'cf0')).toBeEnabled();
+});
+
+test('outside scenario view, free users still see Pro features with the PRO lock', async ({ page }) => {
+  await page.goto('/');
+  await expect(stageTab(page, 'Cash Flows').locator('.pro-texture-badge')).toBeVisible();
+  await expect(page.locator('.scenario-banner')).toHaveCount(0);
+  await expect(page.locator('.quick-view-shell.scenario-view')).toHaveCount(0);
+});
+
+test('exiting a free shared view returns to the work from before the link', async ({ page }) => {
+  await page.goto('/');
+  await fieldInput(page, 'initial').fill('4444');
+  await fieldInput(page, 'initial').blur();
+  await expect.poll(async () => (await readStorage(page, 'npvWorkingDraft'))?.model?.initial ?? null).toBe(4444);
+
+  await page.goto(PRO_LINK);
+  await expect(quickInputs(page)).toHaveCount(12);
+  const dialogPromise = page.getByRole('dialog', { name: 'Exit this scenario?' });
+  await page.locator('.scenario-banner').getByRole('button', { name: 'Exit Scenario' }).click();
+  await expect(dialogPromise).toContainText('go back to your own work');
+  await dialogPromise.getByRole('button', { name: 'Exit', exact: true }).click();
+
+  await expect(fieldInput(page, 'initial')).toHaveValue('4,444');
+  await expect(quickInputs(page)).toHaveCount(7);
+  await expect(page.locator('.scenario-banner')).toHaveCount(0);
+  await expect(stageTab(page, 'Cash Flows').locator('.pro-texture-badge')).toBeVisible();
+  await page.reload();
+  await expect(fieldInput(page, 'initial')).toHaveValue('4,444');
+});
+
+test('a free user on a plain free-tier link is in scenario view but can edit normally', async ({ page }) => {
+  await page.goto(PLAIN_FREE_LINK);
+  await expect(fieldInput(page, 'initial')).toHaveValue('2,000');
+  await expect(fieldInput(page, 'initial')).toBeEnabled();
+  await expect(page.locator('.scenario-banner')).toBeVisible();
+});
+
+test.describe('mobile scenario banner', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  test('banner and exit confirm work on mobile', async ({ page }) => {
+    await page.goto(LOCK_LINK);
+    await expect(page.locator('.scenario-banner')).toBeVisible();
+    await confirmExit(page);
+    await expect(page.locator('.scenario-banner')).toHaveCount(0);
+    await expect(fieldInput(page, 'initial')).toBeEnabled();
+  });
+});
+
+test('a name-only link is not treated as a shared scenario', async ({ page }) => {
+  await page.goto('/?project=Name%20Only');
+  await expect(page).toHaveTitle('NPV Lab | Name Only');
+  await expect(page.locator('.scenario-banner')).toHaveCount(0);
+  expect(await readStorage(page, 'npvLinkSession')).toBeNull();
 });

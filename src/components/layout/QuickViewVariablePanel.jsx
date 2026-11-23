@@ -64,7 +64,7 @@ export const QuickViewVariablePanel = ({
   canEditProjectStructure = true,
   periodStructureLock,
   isScenario = false,
-  isFreeSharedView = false,
+  isScenarioView = false,
   onExitScenario,
 }) => {
   const locks = fieldLocks || createFieldLocks({ isFreeExamplePreview, showHurdleRate });
@@ -85,13 +85,14 @@ export const QuickViewVariablePanel = ({
       <span>IRR <strong>{formatMobileIrr(irrAnalysis)}</strong></span>
       <span>Payback <strong>{formatPaybackDisplay(payback, periodMode)}</strong></span>
     </div>
-    {(isScenario || isFreeSharedView) && (
-      <div className="scenario-banner" role="status">
-        <span>
-          {isScenario ? 'Scenario link: fields with a lock were set by the author.' : 'Shared model: Pro settings are read-only on the free plan.'}
+    {isScenarioView && (
+      <div className="scenario-banner" role="status" aria-label="Shared scenario">
+        <span className="scenario-banner-text">
+          <strong>Viewing a shared scenario</strong>
+          <span>{isScenario ? 'Locked fields are set by the author.' : 'Pro settings are read-only.'}</span>
         </span>
-        {isScenario && onExitScenario && (
-          <button type="button" className="scenario-banner-exit" onClick={onExitScenario}>Exit scenario</button>
+        {onExitScenario && (
+          <button type="button" className="scenario-banner-exit" onClick={onExitScenario}>Exit Scenario</button>
         )}
       </div>
     )}

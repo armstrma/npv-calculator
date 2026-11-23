@@ -14,11 +14,30 @@ export const LINK_SESSION_STORAGE_KEY = 'npvLinkSession';
 export const LINK_DRAFT_KEY_PREFIX = 'npvWorkingDraft.link.';
 export const LINK_SESSION_VERSION = 1;
 
-export const AUTHOR_LOCK_MESSAGE = 'Locked by the author of this scenario.';
-export const EXAMPLE_TIER_LOCK_MESSAGE = 'This component is locked for editing. Upgrade to premium to modify and save your own copy.';
-export const SHARED_PERIOD_TIER_LOCK_MESSAGE = `Free accounts can edit the first ${FREE_TIER_LIMITS.maxCashflowPeriods} periods of a shared model. Upgrade to edit longer horizons.`;
-export const SHARED_HURDLE_TIER_LOCK_MESSAGE = 'Hurdle rates are a Pro feature. This shared value is read-only on the free plan. Upgrade to edit it.';
-export const SHARED_SETTING_TIER_LOCK_MESSAGE = 'This shared setting is read-only on the free plan. Upgrade to change it.';
+// Lock messages are short so they fit on the slider (desktop and mobile).
+// Format: "Locked by author" / "Locked by author: <reason>" and "Pro" / "Pro: <reason>".
+export const AUTHOR_LOCK_LABEL = 'Locked by author';
+export const TIER_LOCK_LABEL = 'Pro';
+export const LOCK_REASON_MAX_LENGTH = 40;
+
+export const formatLockMessage = (kind, reason = '') => {
+  const label = kind === 'author' ? AUTHOR_LOCK_LABEL : TIER_LOCK_LABEL;
+  const brief = String(reason || '').trim().slice(0, LOCK_REASON_MAX_LENGTH);
+  if (brief) return `${label}: ${brief}`;
+  return kind === 'author' ? label : `${label} feature`;
+};
+
+export const AUTHOR_LOCK_MESSAGE = formatLockMessage('author');
+export const EXAMPLE_TIER_LOCK_MESSAGE = formatLockMessage('tier', 'edit full example');
+export const SHARED_HURDLE_TIER_LOCK_MESSAGE = formatLockMessage('tier', 'hurdle rate');
+export const SHARED_SETTING_TIER_LOCK_MESSAGE = formatLockMessage('tier', 'shared setting');
+const PERIOD_WORDS = { years: 'years', quarters: 'quarters', months: 'months' };
+const PERIOD_MODE_WORDS = { quarters: 'quarterly periods', months: 'monthly periods' };
+const RATE_WORDS = { quarters: 'quarterly rates', months: 'monthly rates' };
+export const getBeyondPeriodsMessage = (periodMode = 'years') => formatLockMessage('tier', `beyond ${FREE_TIER_LIMITS.maxCashflowPeriods} ${PERIOD_WORDS[periodMode] || 'periods'}`);
+export const SHARED_PERIOD_TIER_LOCK_MESSAGE = getBeyondPeriodsMessage('years');
+// Longer wording for the upgrade modal (not the slider tooltip).
+export const FREE_SHARED_PERIODS_UPGRADE_MESSAGE = `Free accounts can edit the first ${FREE_TIER_LIMITS.maxCashflowPeriods} periods of a shared model. Upgrade to edit longer horizons.`;
 
 // Small, stable, non-cryptographic hash (FNV-1a) used only to scope autosave keys.
 export const hashLinkSearch = (search = '') => {
@@ -35,7 +54,9 @@ export const hashLinkSearch = (search = '') => {
   return hash.toString(16).padStart(8, '0');
 };
 
-export const createLinkSession = ({ search, baseline, locks = [], hides = [] }) => {
+// `returnDraft` is the user's own work from before a plain link replaced it,
+// so "Exit Scenario" can bring it back. Scenario links never touch that draft.
+export const createLinkSession = ({ search, baseline, locks = [], hides = [], returnDraft = null }) => {
   const cleanLocks = normalizeScenarioLocks(locks);
   const cleanHides = normalizeScenarioHides(hides);
   return {
@@ -45,6 +66,7 @@ export const createLinkSession = ({ search, baseline, locks = [], hides = [] }) 
     locks: cleanLocks,
     hides: cleanHides,
     baseline: normalizeWorkingDraft({ ...baseline, loadedProjectSource: 'scratch' }),
+    returnDraft: returnDraft ? normalizeWorkingDraft(returnDraft) : null,
   };
 };
 
@@ -62,6 +84,7 @@ export const normalizeLinkSession = (value) => {
     locks,
     hides,
     baseline,
+    returnDraft: value.returnDraft ? normalizeWorkingDraft(value.returnDraft) : null,
   };
 };
 
@@ -108,64 +131,76 @@ export const exceedsFreeTier = (model = {}) => (
 );
 
 const UNLOCKED = Object.freeze({ locked: false, reason: null, message: '' });
-const authorLock = Object.freeze({ locked: true, reason: 'author', message: AUTHOR_LOCK_MESSAGE });
-const tierLock = (message) => ({ locked: true, reason: 'tier', message });
+const lockOf = (reason, message) => ({ locked: true, reason, message });
 
 // One place that decides whether each input is editable and why not.
 // Author locks win over tier locks so the message reflects the author's intent.
+// `authorReasons` optionally maps a lock key (e.g. "discount", "cf2") to a brief reason.
 export const createFieldLocks = ({
   isFreeExamplePreview = false,
   isFreeSharedView = false,
   authorLocks = [],
+  authorReasons = {},
   showHurdleRate = false,
+  periodMode = 'years',
+  rateBasis = 'annual',
 } = {}) => {
   const locks = new Set(authorLocks);
   const freeLimit = FREE_TIER_LIMITS.maxCashflowPeriods;
-  const examplePreviewLock = tierLock(EXAMPLE_TIER_LOCK_MESSAGE);
+  const examplePreviewLock = lockOf('tier', EXAMPLE_TIER_LOCK_MESSAGE);
+  const author = (key) => lockOf('author', formatLockMessage('author', authorReasons?.[key]));
+  const tier = (reason) => lockOf('tier', formatLockMessage('tier', reason));
 
   const initial = () => {
-    if (locks.has('initial')) return authorLock;
+    if (locks.has('initial')) return author('initial');
     if (isFreeExamplePreview) return examplePreviewLock;
     return UNLOCKED;
   };
 
   const rate = () => {
-    if (locks.has(showHurdleRate ? 'hurdle' : 'discount')) return authorLock;
+    const rateKey = showHurdleRate ? 'hurdle' : 'discount';
+    if (locks.has(rateKey)) return author(rateKey);
     if (isFreeExamplePreview) return examplePreviewLock;
-    if (isFreeSharedView && showHurdleRate) return tierLock(SHARED_HURDLE_TIER_LOCK_MESSAGE);
+    if (isFreeSharedView) {
+      if (showHurdleRate) return tier('hurdle rate');
+      if (RATE_WORDS[periodMode]) return tier(RATE_WORDS[periodMode]);
+      if (rateBasis !== 'annual') return tier('per-period rates');
+    }
     return UNLOCKED;
   };
 
   const hurdleToggle = () => {
-    if (locks.has('hurdle')) return authorLock;
-    if (isFreeExamplePreview || isFreeSharedView) return tierLock(SHARED_HURDLE_TIER_LOCK_MESSAGE);
+    if (locks.has('hurdle')) return author('hurdle');
+    if (isFreeExamplePreview || isFreeSharedView) return tier('hurdle rate');
     return UNLOCKED;
   };
 
   const cashflow = (index) => {
-    if (locks.has('cashflows') || locks.has(`cf${index}`)) return authorLock;
+    if (locks.has(`cf${index}`)) return author(`cf${index}`);
+    if (locks.has('cashflows')) return author('cashflows');
     if (isFreeExamplePreview && index > 0) return examplePreviewLock;
-    if (isFreeSharedView && index >= freeLimit) return tierLock(SHARED_PERIOD_TIER_LOCK_MESSAGE);
+    if (isFreeSharedView && index >= freeLimit) return lockOf('tier', getBeyondPeriodsMessage(periodMode));
     return UNLOCKED;
   };
 
   // Adding/removing periods shifts every later period, so it is blocked when
-  // the author locked the period count or any later period is locked.
+  // the author locked the period count or any cash flow.
   const hasCashflowAuthorLock = [...locks].some((key) => key === 'cashflows' || /^cf\d+$/.test(key));
   const periodStructure = (cashflowCount = 0) => {
-    if (locks.has('periods') || hasCashflowAuthorLock) return authorLock;
+    if (locks.has('periods')) return author('periods');
+    if (hasCashflowAuthorLock) return author('cashflows');
     if (isFreeExamplePreview) return examplePreviewLock;
-    if (isFreeSharedView && cashflowCount > freeLimit) return tierLock(SHARED_PERIOD_TIER_LOCK_MESSAGE);
+    if (isFreeSharedView && cashflowCount > freeLimit) return lockOf('tier', getBeyondPeriodsMessage(periodMode));
     return UNLOCKED;
   };
 
-  const periodMode = (currentPeriodMode = 'years') => {
-    if (locks.has('period')) return authorLock;
-    if (isFreeSharedView && currentPeriodMode !== 'years') return tierLock(SHARED_SETTING_TIER_LOCK_MESSAGE);
+  const periodModeLock = (currentPeriodMode = periodMode) => {
+    if (locks.has('period')) return author('period');
+    if (isFreeSharedView && currentPeriodMode !== 'years') return tier(PERIOD_MODE_WORDS[currentPeriodMode] || 'custom periods');
     return UNLOCKED;
   };
 
-  const currency = () => (locks.has('currency') ? authorLock : UNLOCKED);
+  const currency = () => (locks.has('currency') ? author('currency') : UNLOCKED);
 
-  return { initial, rate, hurdleToggle, cashflow, periodStructure, periodMode, currency };
+  return { initial, rate, hurdleToggle, cashflow, periodStructure, periodMode: periodModeLock, currency };
 };

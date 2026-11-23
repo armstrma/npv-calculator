@@ -50,11 +50,12 @@ import { MobileLibraryPanel } from './components/project/MobileLibraryPanel.jsx'
 import { getExampleBySlug } from './components/project/projectData.js';
 import { exportNpvWorkbook } from './lib/excelExport.js';
 import { buildShareLinkUrl, parseScenarioLinkParams, parseShareLinkParams } from './lib/shareLink.js';
-import { clearLinkSession, createFieldLocks, createLinkSession, exceedsFreeTier, readLinkDraft, readLinkSession, writeLinkDraft, writeLinkSession } from './lib/linkSession.js';
+import { FREE_SHARED_PERIODS_UPGRADE_MESSAGE, clearLinkSession, createFieldLocks, createLinkSession, exceedsFreeTier, readLinkDraft, readLinkSession, writeLinkDraft, writeLinkSession } from './lib/linkSession.js';
 import {
   createDebouncedWriter,
   createDefaultWorkingModel,
   getPathAfterUrlDrivenLaunch,
+  SHARED_LINK_PARAM_KEYS,
   hasSharedLinkParams,
   hasUrlDrivenModel,
   readStoredProjects,
@@ -431,6 +432,7 @@ const App = () => {
   const [cashflowInputs, setCashflowInputs] = useState(defaultWorkingModel.cashflows.map(formatNumberWithCommas));
   const [draftSessionReady, setDraftSessionReady] = useState(false);
   const [linkSession, setLinkSessionState] = useState(null);
+  const [showExitScenarioConfirm, setShowExitScenarioConfirm] = useState(false);
   const latestWorkingDraftRef = useRef(null);
   const hasFlushedLaunchDraftRef = useRef(false);
   const debouncedDraftSaverRef = useRef(null);
@@ -468,10 +470,12 @@ const App = () => {
   // A free user viewing a shared link keeps the shared settings read-only
   // (no silent trimming); demo visuals stay off.
   const isFreeSharedView = !isPro && !isFreeExamplePreview && Boolean(linkSession);
+  // "Scenario view": a lock link, or a free user viewing someone's shared model.
+  const isScenarioView = Boolean(linkSession) && (linkSession.isScenario || isFreeSharedView);
   const scenarioLocks = linkSession?.locks || [];
   const scenarioHides = useMemo(() => new Set(linkSession?.hides || []), [linkSession]);
   const isScenarioHidden = (feature) => scenarioHides.has(feature);
-  const fieldLocks = createFieldLocks({ isFreeExamplePreview, isFreeSharedView, authorLocks: scenarioLocks, showHurdleRate });
+  const fieldLocks = createFieldLocks({ isFreeExamplePreview, isFreeSharedView, authorLocks: scenarioLocks, showHurdleRate, periodMode, rateBasis });
   const effectiveSliderGradientsEnabled = sliderGradientsEnabled && !isScenarioHidden('sliderColors');
   const canViewAdvancedExample = isPro || isFreeExamplePreview;
   const effectiveShowSensitivity = showSensitivity && (access.features.sensitivityAnalysis || isFreeExamplePreview) && !isScenarioHidden('sensitivity');
@@ -613,7 +617,8 @@ const App = () => {
       setLoadedProjectName(shared.projectName);
     }
 
-    const isSharedLinkLaunch = hasSharedLinkParams(params);
+    // A name-only link (?project=…) carries no model, so it is not a shared scenario.
+    const isSharedLinkLaunch = hasSharedLinkParams(params) && SHARED_LINK_PARAM_KEYS.some((key) => key !== 'project' && params.get(key) !== null);
     if (isSharedLinkLaunch) {
       // Baseline = what the link shows: defaults (or the example), then link params.
       const base = exampleProject
@@ -627,7 +632,10 @@ const App = () => {
         loadedProjectSource: 'scratch',
       };
       const scenario = parseScenarioLinkParams(params);
-      const nextSession = createLinkSession({ search: launch.search, baseline, locks: scenario.locks, hides: scenario.hides });
+      // Keep the user's own work so Exit Scenario can return to it (plain links replace the draft).
+      const previousSession = readLinkSession();
+      const returnDraft = scenario.isScenario ? null : (previousSession?.returnDraft || readWorkingDraft());
+      const nextSession = createLinkSession({ search: launch.search, baseline, locks: scenario.locks, hides: scenario.hides, returnDraft });
       linkSessionRef.current = nextSession;
       writeLinkSession(nextSession);
       setLinkSessionState(nextSession);
@@ -1564,13 +1572,24 @@ const App = () => {
     debouncedDraftSaverRef.current.flush(linkSession.baseline);
   };
 
-  // Leave a scenario link and return to the normal working draft.
+  // Leave a scenario and return to the user's own work.
   const exitScenario = () => {
+    const leaving = linkSessionRef.current;
     setLinkSession(null);
-    const draft = readWorkingDraft() || createDefaultWorkingModel();
+    const draft = (leaving?.isScenario ? readWorkingDraft() : leaving?.returnDraft) || createDefaultWorkingModel();
     applyWorkingModelState(draft);
+    setShowHurdleWarning(false);
     latestWorkingDraftRef.current = draft;
+    debouncedDraftSaverRef.current.flush(draft);
+    setShowExitScenarioConfirm(false);
     setShowQuickViewMenu(false);
+  };
+
+  const requestExitScenario = () => {
+    setShowQuickViewMenu(false);
+    setShowShareMenu(false);
+    setShowSaveMenu(false);
+    setShowExitScenarioConfirm(true);
   };
 
   const applyDefaultWorkingModel = () => {
@@ -1889,7 +1908,7 @@ const App = () => {
   const addYear = () => {
     if (!canAddCashflowPeriod) {
       if (periodStructureLock.reason === 'author') return;
-      openUpgradeModal(periodStructureLock.reason === 'tier' && isFreeSharedView ? periodStructureLock.message : isFreeExamplePreview ? 'Free example previews only let you edit the first cash-flow period. Upgrade to edit the full template.' : 'Free projects are limited to 5 cash-flow periods. Upgrade to unlock longer horizons.');
+      openUpgradeModal(periodStructureLock.reason === 'tier' && isFreeSharedView ? FREE_SHARED_PERIODS_UPGRADE_MESSAGE : isFreeExamplePreview ? 'Free example previews only let you edit the first cash-flow period. Upgrade to edit the full template.' : 'Free projects are limited to 5 cash-flow periods. Upgrade to unlock longer horizons.');
       return;
     }
     if (cashflows.length >= MAX_CASHFLOW_PERIODS) return;
@@ -1899,7 +1918,7 @@ const App = () => {
 
   const removeYear = (index) => {
     if (!canEditProjectStructure) {
-      if (periodStructureLock.reason === 'tier') openUpgradeModal(periodStructureLock.message);
+      if (periodStructureLock.reason === 'tier') openUpgradeModal(isFreeSharedView ? FREE_SHARED_PERIODS_UPGRADE_MESSAGE : 'Free example previews only let you edit the first cash-flow period. Upgrade to edit the full template.');
       return;
     }
     setCashflows(cashflows.filter((_, i) => i !== index));
@@ -2076,7 +2095,7 @@ const App = () => {
   const addQuickViewYear = () => {
     if (!canAddCashflowPeriod) {
       if (periodStructureLock.reason === 'author') return;
-      openUpgradeModal(periodStructureLock.reason === 'tier' && isFreeSharedView ? periodStructureLock.message : isFreeExamplePreview ? 'Free example previews only let you edit the first cash-flow period. Upgrade to edit the full template.' : 'Free projects are limited to 5 cash-flow periods. Upgrade to unlock longer horizons.');
+      openUpgradeModal(periodStructureLock.reason === 'tier' && isFreeSharedView ? FREE_SHARED_PERIODS_UPGRADE_MESSAGE : isFreeExamplePreview ? 'Free example previews only let you edit the first cash-flow period. Upgrade to edit the full template.' : 'Free projects are limited to 5 cash-flow periods. Upgrade to unlock longer horizons.');
       return;
     }
     if (cashflows.length >= MAX_CASHFLOW_PERIODS) return;
@@ -2087,7 +2106,7 @@ const App = () => {
   const insertQuickViewYearAfter = (index) => {
     if (!canAddCashflowPeriod) {
       if (periodStructureLock.reason === 'author') return;
-      openUpgradeModal(periodStructureLock.reason === 'tier' && isFreeSharedView ? periodStructureLock.message : isFreeExamplePreview ? 'Free example previews only let you edit the first cash-flow period. Upgrade to edit the full template.' : 'Free projects are limited to 5 cash-flow periods. Upgrade to unlock longer horizons.');
+      openUpgradeModal(periodStructureLock.reason === 'tier' && isFreeSharedView ? FREE_SHARED_PERIODS_UPGRADE_MESSAGE : isFreeExamplePreview ? 'Free example previews only let you edit the first cash-flow period. Upgrade to edit the full template.' : 'Free projects are limited to 5 cash-flow periods. Upgrade to unlock longer horizons.');
       return;
     }
     if (cashflows.length >= MAX_CASHFLOW_PERIODS) return;
@@ -2616,7 +2635,7 @@ const App = () => {
                     <option value="years">Years</option>
                   </select>
                 </label>
-                {!isScenarioHidden('sensitivity') && (
+                {!isScenarioHidden('sensitivity') && !(isScenarioView && !access.features.sensitivityAnalysis && !isFreeExamplePreview) && (
                 <label className="mobile-topbar-menu-item mobile-topbar-menu-item-select">
                   <span>Sensitivity</span>
                   <select className={!access.features.sensitivityAnalysis && !isFreeExamplePreview ? 'locked-select-blur' : ''} value={effectiveShowSensitivity ? String(sensitivityPercent) : 'locked'} onChange={(e) => {
@@ -2655,11 +2674,7 @@ const App = () => {
                 <button type="button" className="mobile-topbar-menu-item" onClick={handleResetToDefaults}>
                   {linkSession?.isScenario ? 'Reset to Scenario' : 'Reset to Defaults'}
                 </button>
-                {linkSession?.isScenario && (
-                  <button type="button" className="mobile-topbar-menu-item" onClick={exitScenario}>
-                    Exit Scenario
-                  </button>
-                )}
+
                 <div className="mobile-topbar-menu-divider" />
                 <button type="button" className="mobile-topbar-menu-item" onClick={(event) => {
                   handleNavigatePricing(event);
@@ -2718,7 +2733,7 @@ const App = () => {
                 >
                   {copiedProjectLink ? '✓ Copied Project Link' : 'Copy Project Link'}
                 </button>
-                {!isScenarioHidden('export') && (
+                {!isScenarioHidden('export') && !(isScenarioView && !access.features.exportReports) && (
                 <button
                   type="button"
                   className="mobile-topbar-menu-item"
@@ -2741,7 +2756,7 @@ const App = () => {
                   {!access.features.exportReports && <span className="pro-texture-badge">PRO</span>}
                 </button>
                 )}
-                {key === 'desktop' && !isScenarioHidden('presentation') && (
+                {key === 'desktop' && !isScenarioHidden('presentation') && !(isScenarioView && !access.features.presentationMode) && (
                   <button
                     type="button"
                     className="mobile-topbar-menu-item"
@@ -2788,7 +2803,7 @@ const App = () => {
       </div>
 
       {quickViewEnabled ? (
-        <div className={`quick-view-shell ${isDesktopViewport ? 'quick-view-shell-desktop' : ''}`}>
+        <div className={`quick-view-shell ${isDesktopViewport ? 'quick-view-shell-desktop' : ''} ${isScenarioView ? 'scenario-view' : ''}`}>
           <div className="quick-view-stage">
             <QuickViewCharts
               currency={currency}
@@ -2801,6 +2816,7 @@ const App = () => {
               canViewAdvancedExample={canViewAdvancedExample}
               onRequestUpgrade={openUpgradeModal}
               hideSensitivity={isScenarioHidden('sensitivity')}
+              hideLockedPro={isScenarioView}
               discountData={discountData}
               barData={barData}
               marginalSensitivityData={marginalSensitivityData}
@@ -2879,8 +2895,8 @@ const App = () => {
             canEditProjectStructure={canEditProjectStructure}
             periodStructureLock={periodStructureLock}
             isScenario={Boolean(linkSession?.isScenario)}
-            isFreeSharedView={isFreeSharedView}
-            onExitScenario={exitScenario}
+            isScenarioView={isScenarioView}
+            onExitScenario={requestExitScenario}
           />
         </div>
       ) : (
@@ -3294,6 +3310,32 @@ const App = () => {
           <span className="floating-upgrade-label">Upgrade</span>
           <span className="floating-upgrade-badge pro-texture-badge">PRO</span>
         </button>
+      )}
+
+      {showExitScenarioConfirm && (
+        <div className="scenario-confirm-backdrop" onClick={() => setShowExitScenarioConfirm(false)}>
+          <div
+            className="scenario-confirm"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="scenario-confirm-title"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setShowExitScenarioConfirm(false);
+            }}
+          >
+            <h2 id="scenario-confirm-title">Exit this scenario?</h2>
+            <p>
+              {linkSession?.isScenario
+                ? 'Your edits here stay saved on this device. Reopen the link to pick up where you left off.'
+                : 'You’ll go back to your own work. Edits to this shared model won’t be kept, but the link still opens the original.'}
+            </p>
+            <div className="scenario-confirm-actions">
+              <button type="button" className="scenario-confirm-cancel" onClick={() => setShowExitScenarioConfirm(false)} autoFocus>Cancel</button>
+              <button type="button" className="scenario-confirm-exit" onClick={exitScenario}>Exit</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showPresentationMode && (

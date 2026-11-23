@@ -109,6 +109,7 @@ export const QuickViewCharts = ({
   canViewAdvancedExample,
   onRequestUpgrade,
   hideSensitivity = false,
+  hideLockedPro = false,
 }) => {
   const [activeChart, setActiveChart] = useState('npv');
   const [activeAnalysisCard, setActiveAnalysisCard] = useState('viability');
@@ -131,7 +132,11 @@ export const QuickViewCharts = ({
   const sensitivityLocked = !access?.features?.sensitivityAnalysis && !canViewAdvancedExample;
   const deeperAnalysisLocked = !access?.features?.sensitivityAnalysis && !canViewAdvancedExample;
   const cashflowsLocked = !access?.hasPro && !canViewAdvancedExample;
-  const shouldShowAnalysisSensitivity = !hideSensitivity && (access?.features?.sensitivityAnalysis || canViewAdvancedExample || sensitivityLocked);
+  // In a scenario view, Pro analyses the viewer can't use are removed instead of shown locked.
+  const hideCashflowsTab = hideLockedPro && cashflowsLocked;
+  const hideSensitivityControls = hideSensitivity || (hideLockedPro && sensitivityLocked);
+  const hideDeeperAnalysis = hideLockedPro && deeperAnalysisLocked;
+  const shouldShowAnalysisSensitivity = !hideSensitivityControls && (access?.features?.sensitivityAnalysis || canViewAdvancedExample || sensitivityLocked);
   const handleLockedFeature = (reason) => {
     if (onRequestUpgrade) onRequestUpgrade(reason);
   };
@@ -149,6 +154,7 @@ export const QuickViewCharts = ({
         <button type="button" className={`quick-view-stage-tab ${activeView === 'npv' ? 'active' : ''}`} onClick={() => setActiveChart('npv')}>
           NPV Curve
         </button>
+        {!hideCashflowsTab && (
         <button type="button" className={`quick-view-stage-tab ${activeView === 'cashflows' ? 'active' : ''}`} onClick={() => {
           if (cashflowsLocked) {
             handleLockedFeature('The cash-flow recovery chart is locked on the free tier. Upgrade to see raw versus discounted recovery over the full horizon.');
@@ -158,6 +164,7 @@ export const QuickViewCharts = ({
         }}>
           Cash Flows{cashflowsLocked && <span className="pro-texture-badge">PRO</span>}
         </button>
+        )}
         <button type="button" className={`quick-view-stage-tab ${activeView === 'impact' ? 'active' : ''}`} onClick={() => {
           setActiveChart('impact');
         }}>
@@ -173,7 +180,7 @@ export const QuickViewCharts = ({
           <>
             <div className="quick-view-stage-heading quick-view-stage-heading-with-control">
               <h2>NPV vs {rateBasis === 'annual' && shouldShowAppliedRate ? 'Annual ' : ''}Discount Rate</h2>
-              {!hideSensitivity && (
+              {!hideSensitivityControls && (
               <label className="quick-view-stage-control">
                 <span>Sensitivity</span>
                 <select className={sensitivityLocked ? 'locked-select-blur' : ''} value={showSensitivity ? String(sensitivityPercent) : sensitivityLocked ? 'locked' : 'off'} onChange={(e) => {
@@ -231,7 +238,7 @@ export const QuickViewCharts = ({
           <>
             <div className="quick-view-stage-heading quick-view-stage-heading-with-control">
               <h2>Cash Flows</h2>
-              {!hideSensitivity && (
+              {!hideSensitivityControls && (
               <label className="quick-view-stage-control">
                 <span>Sensitivity</span>
                 <select className={sensitivityLocked ? 'locked-select-blur' : ''} value={showSensitivity ? String(sensitivityPercent) : sensitivityLocked ? 'locked' : 'off'} onChange={(e) => {
@@ -332,7 +339,7 @@ export const QuickViewCharts = ({
           <>
             <div className="quick-view-stage-heading quick-view-stage-heading-with-control">
               <h2>Analyze</h2>
-              {!hideSensitivity && (
+              {!hideSensitivityControls && (
               <label className="quick-view-stage-control">
                 <span>Sensitivity</span>
                 <select className={sensitivityLocked ? 'locked-select-blur' : ''} value={showSensitivity ? String(sensitivityPercent) : sensitivityLocked ? 'locked' : 'off'} onChange={(e) => {
@@ -366,6 +373,8 @@ export const QuickViewCharts = ({
                     <span>Creates Value</span>
                     <span className="quick-view-analysis-rule-result">{isDesktopViewport && <span className="quick-view-analysis-rule-factor">{viabilityFactor}</span>}<strong>{viabilityPass ? 'Pass' : 'Fail'}</strong></span>
                   </button>
+                  {!hideDeeperAnalysis && (
+                  <>
                   <button type="button" className={`quick-view-analysis-rule ${activeAnalysisCard === 'standard' ? 'active' : ''} ${spreadStatus.tone === 'positive' ? 'pass' : spreadStatus.tone === 'negative' ? 'fail' : ''}`} onClick={() => {
                     if (deeperAnalysisLocked) {
                       handleLockedFeature('Spread diagnostics are locked on the free tier. Upgrade to see return spread against the active rate.');
@@ -386,6 +395,8 @@ export const QuickViewCharts = ({
                     <span>Durability {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span>
                     <span className="quick-view-analysis-rule-result">{isDesktopViewport && <span className="quick-view-analysis-rule-factor">{deeperAnalysisLocked ? <LockedValue /> : durabilityFactor}</span>}<strong>{deeperAnalysisLocked ? <LockedValue /> : fragilityPass ? 'Pass' : 'Fail'}</strong></span>
                   </button>
+                  </>
+                  )}
                 </div>
                 <div className="quick-view-analysis-detail quick-view-analysis-inline-detail">
                   {!isDesktopViewport && <span className="quick-view-analysis-detail-factor">{activeAnalysisFactor}</span>}
@@ -400,12 +411,16 @@ export const QuickViewCharts = ({
                 <div className="quick-view-analysis-facts-list">
                   <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>IRR {irrIssueLabel && <span className="irr-info-icon" title={irrIssueDetail}>i</span>}</span><strong>{getIrrDisplay(irrAnalysis)}</strong></div>
                   <div className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline"><span>Payback</span><strong>{formatPaybackDisplay(payback, periodMode)}</strong></div>
+                  {!hideDeeperAnalysis && (
+                  <>
                   <button type="button" className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline" onClick={() => {
                     if (deeperAnalysisLocked) handleLockedFeature('Uplift analysis is locked on the free tier. Upgrade to see the cash-flow improvement needed to break even.');
                   }}><span>Uplift</span><strong>{deeperAnalysisLocked ? <LockedValue /> : breakEvenCashflowUpliftPct === null ? 'N/A' : `${breakEvenCashflowUpliftPct >= 0 ? '+' : ''}${breakEvenCashflowUpliftPct.toFixed(1)}%`}</strong></button>
                   <button type="button" className="quick-view-analysis-fact-pill quick-view-analysis-fact-pill-inline" onClick={() => {
                     if (deeperAnalysisLocked) handleLockedFeature('Max initial investment is locked on the free tier. Upgrade to see the highest upfront cost this project can support.');
                   }}><span>Max Initial</span><strong>{deeperAnalysisLocked ? <LockedValue /> : `${currency}${maxInitialAtNpvZero.toFixed(2)}`}</strong></button>
+                  </>
+                  )}
                 </div>
                 {shouldShowAnalysisSensitivity && (
                   <div

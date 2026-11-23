@@ -7,6 +7,7 @@ import {
   SHARED_HURDLE_TIER_LOCK_MESSAGE,
   SHARED_PERIOD_TIER_LOCK_MESSAGE,
   createFieldLocks,
+  formatLockMessage,
   createLinkSession,
   exceedsFreeTier,
   getLinkDraftKey,
@@ -139,6 +140,44 @@ test('free example preview keeps its rules: only the first cash flow is editable
   assert.equal(locks.cashflow(0).locked, false);
   assert.equal(locks.cashflow(1).reason, 'tier');
   assert.equal(locks.periodStructure(5).locked, true);
+});
+
+test('lock messages are short, with an optional brief reason', () => {
+  assert.equal(formatLockMessage('author'), 'Locked by author');
+  assert.equal(formatLockMessage('author', 'given in problem'), 'Locked by author: given in problem');
+  assert.equal(formatLockMessage('tier'), 'Pro feature');
+  assert.equal(formatLockMessage('tier', 'monthly rates'), 'Pro: monthly rates');
+  assert.equal(formatLockMessage('tier', 'x'.repeat(80)).length, 'Pro: '.length + 40);
+  assert.equal(AUTHOR_LOCK_MESSAGE, 'Locked by author');
+  assert.equal(SHARED_PERIOD_TIER_LOCK_MESSAGE, 'Pro: beyond 5 years');
+  // Every built-in message stays short enough to sit on a slider.
+  [AUTHOR_LOCK_MESSAGE, EXAMPLE_TIER_LOCK_MESSAGE, SHARED_HURDLE_TIER_LOCK_MESSAGE, SHARED_PERIOD_TIER_LOCK_MESSAGE]
+    .forEach((message) => assert.ok(message.length <= 28, message));
+});
+
+test('free shared view locks the discount rate in monthly, quarterly, or per-period mode', () => {
+  assert.equal(createFieldLocks({ isFreeSharedView: true, periodMode: 'months' }).rate().message, 'Pro: monthly rates');
+  assert.equal(createFieldLocks({ isFreeSharedView: true, periodMode: 'quarters' }).rate().message, 'Pro: quarterly rates');
+  assert.equal(createFieldLocks({ isFreeSharedView: true, rateBasis: 'per-period' }).rate().message, 'Pro: per-period rates');
+  assert.equal(createFieldLocks({ isFreeSharedView: true }).rate().locked, false);
+  // Pro users are never tier-locked.
+  assert.equal(createFieldLocks({ periodMode: 'months', rateBasis: 'per-period' }).rate().locked, false);
+  const monthly = createFieldLocks({ isFreeSharedView: true, periodMode: 'months' });
+  assert.equal(monthly.cashflow(7).message, 'Pro: beyond 5 months');
+  assert.equal(monthly.periodMode().message, 'Pro: monthly periods');
+});
+
+test('author reasons appear in the author message', () => {
+  const locks = createFieldLocks({ authorLocks: ['discount', 'cf2'], authorReasons: { discount: 'use 8% WACC' } });
+  assert.equal(locks.rate().message, 'Locked by author: use 8% WACC');
+  assert.equal(locks.cashflow(2).message, 'Locked by author');
+});
+
+test('plain-link sessions keep a return draft; scenarios do not need one', () => {
+  const session = createLinkSession({ search: '?initial=1', baseline, returnDraft: { ...baseline, initial: 777, cashflows: [7] } });
+  assert.equal(session.returnDraft.initial, 777);
+  assert.equal(normalizeLinkSession(JSON.parse(JSON.stringify(session))).returnDraft.initial, 777);
+  assert.equal(createLinkSession({ search: '?lock=initial', baseline, locks: ['initial'] }).returnDraft, null);
 });
 
 test('free shared view: periods 1-5 editable, later periods and hurdle read-only', () => {
