@@ -3,6 +3,9 @@ import test from 'node:test';
 import {
   buildShareLinkParams,
   buildShareLinkUrl,
+  normalizeScenarioHides,
+  normalizeScenarioLocks,
+  parseScenarioLinkParams,
   parseShareLinkParams,
 } from './shareLink.js';
 
@@ -101,4 +104,35 @@ test('hurdleEnabled is true only for the literal string true', () => {
   assert.equal(parseShareLinkParams('?hurdleEnabled=true').showHurdleRate, true);
   assert.equal(parseShareLinkParams('?hurdleEnabled=TRUE').showHurdleRate, false);
   assert.equal(parseShareLinkParams('?hurdleEnabled=false').showHurdleRate, false);
+});
+
+test('scenario links add v=2, lock and hide, and never carry a project name', () => {
+  const params = buildShareLinkParams({
+    ...unnamedModel,
+    projectName: 'Secret Name',
+    locks: ['initial', 'cf2', 'bogus', 'initial'],
+    hides: ['sensitivity', 'nope'],
+  });
+  assert.equal(params.get('v'), '2');
+  assert.equal(params.get('lock'), 'initial,cf2');
+  assert.equal(params.get('hide'), 'sensitivity');
+  assert.equal(params.get('project'), null);
+  // The model params are identical to a plain link.
+  const plain = buildShareLinkParams(unnamedModel);
+  for (const [key, value] of plain.entries()) assert.equal(params.get(key), value);
+});
+
+test('parseScenarioLinkParams reads locks and hides and drops unknown keys', () => {
+  assert.deepEqual(
+    parseScenarioLinkParams('?initial=1&v=2&lock=initial,cf03,cf1,foo,cashflows&hide=export,x,sliderColors'),
+    { locks: ['initial', 'cf3', 'cf1', 'cashflows'], hides: ['export', 'sliderColors'], isScenario: true },
+  );
+  assert.deepEqual(parseScenarioLinkParams('?initial=1&discount=2'), { locks: [], hides: [], isScenario: false });
+  assert.deepEqual(parseScenarioLinkParams('?v=2&lock=&hide=,,'), { locks: [], hides: [], isScenario: false });
+});
+
+test('scenario lists normalize from arrays or strings', () => {
+  assert.deepEqual(normalizeScenarioLocks(' period , rateBasis ,cf99999'), ['period', 'rateBasis']);
+  assert.deepEqual(normalizeScenarioLocks(['currency', 'hurdle', 'periods']), ['currency', 'hurdle', 'periods']);
+  assert.deepEqual(normalizeScenarioHides(['presentation', 'presentation']), ['presentation']);
 });

@@ -1,6 +1,27 @@
 import { formatNumberWithCommas, hasArithmeticOperator, parseNumericInput } from '../../lib/input.js';
 import { formatMobileIrr, formatMobileNpv, formatPaybackDisplay, getAddPeriodLabel, getPeriodLabel, sanitizeFinancialValue, sanitizeRateValue } from '../../lib/calculation.js';
 import { CurrencyExpressionInput } from '../input/CurrencyExpressionInput.jsx';
+import { createFieldLocks } from '../../lib/linkSession.js';
+
+const lockRowClass = (lock) => (lock.locked ? `locked-input-row locked-input-row-${lock.reason}` : '');
+
+// Locked inputs show their reason ON the slider when hovered or focused.
+const LockableSlider = ({ lock, children }) => (
+  lock.locked ? (
+    <div className={`locked-slider-wrap locked-control-tooltip locked-control-tooltip-${lock.reason}`} data-tooltip={lock.message} data-lock-reason={lock.reason}>
+      {children}
+    </div>
+  ) : children
+);
+
+const LockIcon = ({ lock }) => (lock.locked ? (
+  <span className={`field-lock-icon field-lock-icon-${lock.reason}`} role="img" aria-label={lock.message} title={lock.message}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  </span>
+) : null);
 
 export const QuickViewVariablePanel = ({
   sentiment,
@@ -39,8 +60,18 @@ export const QuickViewVariablePanel = ({
   access,
   isFreeExamplePreview,
   resolveOperations,
+  fieldLocks,
+  canEditProjectStructure = true,
+  periodStructureLock,
+  isScenario = false,
+  isScenarioView = false,
+  onExitScenario,
 }) => {
-  const lockedTooltip = 'This component is locked for editing. Upgrade to premium to modify and save your own copy.';
+  const locks = fieldLocks || createFieldLocks({ isFreeExamplePreview, showHurdleRate });
+  const initialLock = locks.initial();
+  const rateLock = locks.rate();
+  const hurdleToggleLock = locks.hurdleToggle();
+  const structureLock = periodStructureLock || locks.periodStructure(cashflows.length);
   const shouldResolveInput = (value) => resolveOperations || !hasArithmeticOperator(value);
 
   return (
@@ -54,16 +85,28 @@ export const QuickViewVariablePanel = ({
       <span>IRR <strong>{formatMobileIrr(irrAnalysis)}</strong></span>
       <span>Payback <strong>{formatPaybackDisplay(payback, periodMode)}</strong></span>
     </div>
-    <div className={`quick-view-row ${isFreeExamplePreview ? 'locked-input-row locked-control-tooltip' : ''}`} data-tooltip={isFreeExamplePreview ? lockedTooltip : undefined}>
+    {isScenarioView && (
+      <div className="scenario-banner" role="status" aria-label="Shared scenario">
+        <span className="scenario-banner-text">
+          <strong>Viewing a shared scenario</strong>
+          <span>{isScenario ? 'Locked fields are set by the author.' : 'Pro settings are read-only.'}</span>
+        </span>
+        {onExitScenario && (
+          <button type="button" className="scenario-banner-exit" onClick={onExitScenario}>Exit Scenario</button>
+        )}
+      </div>
+    )}
+    <div className={`quick-view-row ${lockRowClass(initialLock)}`} data-lock-field="initial">
       <div className="quick-view-row-top quick-view-row-top-static">
-        <span>Initial</span>
+        <span>Initial <LockIcon lock={initialLock} /></span>
         <span>{currency}</span>
         <CurrencyExpressionInput
           type="text"
           inputMode="decimal"
           autoComplete="off"
           value={initialInput}
-          disabled={isFreeExamplePreview}
+          disabled={initialLock.locked}
+          title={initialLock.locked ? initialLock.message : undefined}
           onChange={(e) => {
             const rawValue = e.target.value;
             setInitialInput(rawValue);
@@ -93,21 +136,24 @@ export const QuickViewVariablePanel = ({
           }}
         />
       </div>
-      <input type="range" min={sliderBounds.initial.min} max={sliderBounds.initial.max} step={100} value={initial} disabled={isFreeExamplePreview} onChange={(e) => {
-        const nextInitial = Number(e.target.value);
-        setInitial(nextInitial);
-        setInitialInput(formatNumberWithCommas(nextInitial));
-      }} className="slider-initial" />
+      <LockableSlider lock={initialLock}>
+        <input type="range" min={sliderBounds.initial.min} max={sliderBounds.initial.max} step={100} value={initial} disabled={initialLock.locked} onChange={(e) => {
+          const nextInitial = Number(e.target.value);
+          setInitial(nextInitial);
+          setInitialInput(formatNumberWithCommas(nextInitial));
+        }} className="slider-initial" />
+      </LockableSlider>
     </div>
-    <div className={`quick-view-row quick-view-row-compact ${isFreeExamplePreview ? 'locked-input-row locked-control-tooltip' : ''}`} data-tooltip={isFreeExamplePreview ? lockedTooltip : undefined}>
+    <div className={`quick-view-row quick-view-row-compact ${lockRowClass(rateLock)}`} data-lock-field="rate">
       <div className="quick-view-row-top quick-view-row-top-discount quick-view-row-top-static">
-        <span>{showHurdleRate ? `${rateBasisPrefix}Hurdle Rate` : `${rateBasisPrefix}Discount Rate`}</span>
+        <span>{showHurdleRate ? `${rateBasisPrefix}Hurdle Rate` : `${rateBasisPrefix}Discount Rate`} <LockIcon lock={rateLock} /></span>
         <input
           type="text"
           inputMode="decimal"
           autoComplete="off"
           value={rateInput}
-          disabled={isFreeExamplePreview}
+          disabled={rateLock.locked}
+          title={rateLock.locked ? rateLock.message : undefined}
           onChange={(e) => {
             const rawValue = e.target.value;
             setRateInput(rawValue);
@@ -128,32 +174,37 @@ export const QuickViewVariablePanel = ({
         />
         <span>%</span>
         {access?.features?.hurdleRate && (
-          <label className="quick-view-toggle"><input type="checkbox" checked={showHurdleRate} onChange={(e) => setShowHurdleRate(e.target.checked)} /> Hurdle</label>
+          <label className="quick-view-toggle" title={hurdleToggleLock.locked ? hurdleToggleLock.message : undefined}><input type="checkbox" checked={showHurdleRate} disabled={hurdleToggleLock.locked} onChange={(e) => setShowHurdleRate(e.target.checked)} /> Hurdle</label>
         )}
       </div>
-      <input type="range" min={0} max={30} step={0.1} value={showHurdleRate ? hurdleRate : discount} disabled={isFreeExamplePreview} onChange={(e) => {
-        const nextRate = Number(e.target.value);
-        if (showHurdleRate) setHurdleRate(nextRate);
-        else setDiscount(nextRate);
-        setRateInput(nextRate.toFixed(1));
-      }} className={showHurdleRate ? 'slider-hurdle' : 'slider-discount'} />
+      <LockableSlider lock={rateLock}>
+        <input type="range" min={0} max={30} step={0.1} value={showHurdleRate ? hurdleRate : discount} disabled={rateLock.locked} onChange={(e) => {
+          const nextRate = Number(e.target.value);
+          if (showHurdleRate) setHurdleRate(nextRate);
+          else setDiscount(nextRate);
+          setRateInput(nextRate.toFixed(1));
+        }} className={showHurdleRate ? 'slider-hurdle' : 'slider-discount'} />
+      </LockableSlider>
       {shouldShowAppliedRate && (
         <div className="rate-derived-line">
           {appliedRateLabel}: {appliedRateForAnalysis.toFixed(2)}%
         </div>
       )}
     </div>
-    {cashflows.map((cf, index) => (
-      <div key={index} className={`quick-view-row quick-view-row-compact ${isFreeExamplePreview && index > 0 ? 'locked-input-row locked-control-tooltip' : ''}`} data-tooltip={isFreeExamplePreview && index > 0 ? lockedTooltip : undefined}>
+    {cashflows.map((cf, index) => {
+      const cashflowLock = locks.cashflow(index);
+      return (
+      <div key={index} className={`quick-view-row quick-view-row-compact ${lockRowClass(cashflowLock)}`} data-lock-field={`cf${index}`}>
         <div className="quick-view-row-top">
-          <span>{getPeriodLabel(periodMode, index + 1)}</span>
+          <span>{getPeriodLabel(periodMode, index + 1)} <LockIcon lock={cashflowLock} /></span>
           <span>{currency}</span>
           <CurrencyExpressionInput
             type="text"
             inputMode="decimal"
             autoComplete="off"
             value={cashflowInputs[index] ?? formatNumberWithCommas(cf)}
-            disabled={isFreeExamplePreview && index > 0}
+            disabled={cashflowLock.locked}
+            title={cashflowLock.locked ? cashflowLock.message : undefined}
             onChange={(e) => {
               const nextInputs = [...cashflowInputs];
               nextInputs[index] = e.target.value;
@@ -198,19 +249,24 @@ export const QuickViewVariablePanel = ({
               }
             }}
           />
-          {!isFreeExamplePreview && <button type="button" onClick={() => removeYear(index)}>×</button>}
+          {!isFreeExamplePreview && canEditProjectStructure && <button type="button" aria-label={`Remove ${getPeriodLabel(periodMode, index + 1)}`} onClick={() => removeYear(index)}>×</button>}
         </div>
-        <input type="range" min={sliderBounds.cashflow.min} max={sliderBounds.cashflow.max} step={100} value={cf} disabled={isFreeExamplePreview && index > 0} onChange={(e) => {
-          const updated = [...cashflows];
-          updated[index] = Number(e.target.value);
-          setCashflows(updated);
-          setCashflowInputs(updated.map(formatNumberWithCommas));
-        }} className={`slider-cashflow-${index}`} />
+        <LockableSlider lock={cashflowLock}>
+          <input type="range" min={sliderBounds.cashflow.min} max={sliderBounds.cashflow.max} step={100} value={cf} disabled={cashflowLock.locked} onChange={(e) => {
+            const updated = [...cashflows];
+            updated[index] = Number(e.target.value);
+            setCashflows(updated);
+            setCashflowInputs(updated.map(formatNumberWithCommas));
+          }} className={`slider-cashflow-${index}`} />
+        </LockableSlider>
       </div>
-    ))}
-    <button type="button" className="quick-view-add-space" onClick={addQuickViewYear}>
-      {getAddPeriodLabel(periodMode, isDesktopViewport)}{(isFreeExamplePreview || cashflows.length >= access?.limits?.maxCashflowPeriods) && <span className="pro-texture-badge">PRO</span>}
-    </button>
+      );
+    })}
+    {structureLock.reason !== 'author' && (
+      <button type="button" className="quick-view-add-space" onClick={addQuickViewYear}>
+        {getAddPeriodLabel(periodMode, isDesktopViewport)}{(isFreeExamplePreview || structureLock.locked || cashflows.length >= access?.limits?.maxCashflowPeriods) && <span className="pro-texture-badge">PRO</span>}
+      </button>
+    )}
   </div>
   );
 };
